@@ -1,5 +1,5 @@
 local appendTelemetryQueue = require("@root/telemetry/appendTelemetryQueue")
-local getBuild = require("@root/getBuild")
+local getBuild = require("@root/common/getBuild")
 local getTelemetryQuietReason = require("@root/telemetry/getTelemetryQuietReason")
 local getTelemetryStatus = require("@root/telemetry/getTelemetryStatus")
 local telemetryTypes = require("@root/telemetry/types")

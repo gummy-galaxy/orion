@@ -1,10 +1,10 @@
 local json = require("@std/json")
 
-local getWorkspaceDir = require("@root/store/getWorkspaceDir")
-local parseSort = require("@root/query/parseSort")
-local queryItems = require("@root/query/queryItems")
-local readDoc = require("@root/store/readDoc")
-local render = require("@root/render")
+local getWorkspaceDir = require("@root/storage/canvases/getWorkspaceDir")
+local parseSort = require("@root/canvas/query/parseSort")
+local queryItems = require("@root/canvas/query/queryItems")
+local readDoc = require("@root/storage/canvases/readDoc")
+local render = require("@root/canvas/render")
 
 -- Reads an optional field of one type, refusing any other.
 local function readField(request: json.Object, name: string, kind: string): any

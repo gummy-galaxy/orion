@@ -3,7 +3,7 @@ local test = require("@std/test")
 local appendTelemetryQueue = require("@root/telemetry/appendTelemetryQueue")
 local chooseTelemetry = require("@root/telemetry/chooseTelemetry")
 local drainTelemetryQueue = require("@root/telemetry/drainTelemetryQueue")
-local getBuild = require("@root/getBuild")
+local getBuild = require("@root/common/getBuild")
 local testing = require("@root/testing")
 
 local NOW = "2026-10-30T12:00:00Z"

@@ -211,7 +211,7 @@ Runs `orion node show`.
 
 ## orion_node_query
 
-Find cards and groups with an expression. Fields: kind, repo, status, recordedStatus, group, who, priority, draft, label, note, pr, ref, snoozed. Compare quoted values with = or !=, quoting numbers and booleans too; group, priority, label, note, and ref also take ~ for case-insensitive text.
+Find cards and groups with an expression. Fields: kind, repo, status, recordedStatus, group, within, who, priority, draft, label, note, pr, ref, snoozed. Compare quoted values with = or !=, quoting numbers and booleans too; group, priority, label, note, and ref also take ~ for case-insensitive text.
 
 Runs `orion node query`.
 

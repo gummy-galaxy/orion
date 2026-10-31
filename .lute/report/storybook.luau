@@ -10,11 +10,11 @@ local fs = require("@std/fs")
 local path = require("@std/path")
 local process = require("@std/process")
 
-local command = require("@cli/command")
-local findTouchedStories = require("@cli/storybook/findTouchedStories")
-local formatStorybookComment = require("@cli/storybook/formatStorybookComment")
-local parseStoryIndex = require("@cli/storybook/parseStoryIndex")
-local upsertCommentAsync = require("@cli/github/upsertCommentAsync")
+local command = require("@cli/common/process/command")
+local findTouchedStories = require("../lib/storybook/findTouchedStories")
+local formatStorybookComment = require("../lib/storybook/formatStorybookComment")
+local parseStoryIndex = require("../lib/storybook/parseStoryIndex")
+local upsertCommentAsync = require("@cli/sources/github/api/upsertCommentAsync")
 
 local MARKER = "<!-- orion-storybook -->"
 local STORYBOOK_ROOT = "workspace/orion-app"

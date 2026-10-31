@@ -2,7 +2,7 @@ local test = require("@std/test")
 
 local appendTelemetryQueue = require("@root/telemetry/appendTelemetryQueue")
 local drainTelemetryQueue = require("@root/telemetry/drainTelemetryQueue")
-local getBuild = require("@root/getBuild")
+local getBuild = require("@root/common/getBuild")
 local telemetrySender = require("@root/server/telemetrySender")
 local telemetryTypes = require("@root/telemetry/types")
 local testing = require("@root/testing")

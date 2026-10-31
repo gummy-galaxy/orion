@@ -1,6 +1,6 @@
 local test = require("@std/test")
 
-local getBuild = require("@root/getBuild")
+local getBuild = require("@root/common/getBuild")
 local getTelemetryQuietReason = require("@root/telemetry/getTelemetryQuietReason")
 
 local RELEASE = getBuild("e87813e")

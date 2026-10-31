@@ -3,13 +3,13 @@ local test = require("@std/test")
 
 local buildTools = require("@root/cli/mcp/catalog/buildTools")
 local cli = require("@root/cli")
-local getItem = require("@root/graph/getItem")
-local getVersion = require("@root/getVersion")
+local getItem = require("@root/canvas/items/getItem")
+local getVersion = require("@root/common/getVersion")
 local handleMessage = require("@root/cli/mcp/server/handleMessage")
-local loadDoc = require("@root/store/loadDoc")
+local loadDoc = require("@root/storage/canvases/loadDoc")
 local mcpTypes = require("@root/cli/mcp/types")
 local testing = require("@root/testing")
-local writeDoc = require("@root/store/writeDoc")
+local writeDoc = require("@root/storage/canvases/writeDoc")
 
 local need = assert
 local TOOLS = buildTools(cli.describe())

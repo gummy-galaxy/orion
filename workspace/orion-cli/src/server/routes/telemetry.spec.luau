@@ -3,7 +3,7 @@ local net = require("@lute/net/server")
 local test = require("@std/test")
 
 local drainTelemetryQueue = require("@root/telemetry/drainTelemetryQueue")
-local getBuild = require("@root/getBuild")
+local getBuild = require("@root/common/getBuild")
 local telemetry = require("@root/server/routes/telemetry")
 local testing = require("@root/testing")
 

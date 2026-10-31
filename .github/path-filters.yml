@@ -27,7 +27,7 @@ app:
   - "workspace/orion-app/**/!(*.md)"
   - docs/guide/tokens.md
   - examples/themes/**
-  - workspace/orion-cli/src/themes/tokenContract.luau
+  - workspace/orion-cli/src/canvas/appearance/tokenContract.luau
   - .lute/report/init.luau
   - .lute/report/coverage.luau
 
@@ -58,4 +58,4 @@ perf:
   - .lute/report/init.luau
   - .lute/report/perf.luau
   - .lute/report/perfHistory.luau
-  - workspace/orion-cli/src/perf/**
+  - .lute/lib/perf/**
