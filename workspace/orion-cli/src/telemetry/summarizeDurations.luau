@@ -11,7 +11,7 @@ local function percentile(sorted: { number }, fraction: number): number
 end
 
 -- Summarizes durations in milliseconds as their median, 95th percentile, and
--- slowest, rounded to a tenth. Returns nil for no samples.
+-- slowest, rounded to a hundredth. Returns nil for no samples.
 local function summarizeDurations(samples: { number }): Summary?
 	if #samples == 0 then
 		return nil
@@ -21,7 +21,7 @@ local function summarizeDurations(samples: { number }): Summary?
 	table.sort(sorted)
 
 	local function round(value: number): number
-		return math.round(value * 10) / 10
+		return math.round(value * 100) / 100
 	end
 
 	return {
