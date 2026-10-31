@@ -25,7 +25,12 @@ end
 return table.freeze({
 	help = "Open an agent session on a card's work, with a preset's prompt filled in to send",
 	mcp = {
-		description = "Open a new agent session on a card's work, such as Claude Code in Claude Desktop, with a preset's prompt filled in for the person to send. It starts where the card's branch is checked out, or else in the repository's clone with the prompt asking for a worktree. Nothing runs until they send it. orion session presets lists the presets that fit a card and where it would start.",
+		description = "Open a new agent session on a card's work, such as Claude Code in Claude Desktop, "
+			.. "with a preset's prompt filled in for the person to send. "
+			.. "It starts where the card's branch is checked out, "
+			.. "or else in the repository's clone with the prompt asking for a worktree. "
+			.. "Nothing runs until they send it. "
+			.. "orion session presets lists the presets that fit a card and where it would start.",
 		annotations = { openWorldHint = true },
 	},
 	define = function(parser: cli.Parser)

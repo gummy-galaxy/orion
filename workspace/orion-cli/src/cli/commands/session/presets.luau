@@ -18,7 +18,8 @@ type Context = context.Context
 return table.freeze({
 	help = "List the presets a card can start an agent session with, and where it would start",
 	mcp = {
-		description = "List the presets that fit a card for orion session start, the agent that would run, and the folder it would start in, or what's in the way.",
+		description = "List the presets that fit a card for orion session start, the agent that would run, "
+			.. "and the folder it would start in, or what's in the way.",
 		annotations = { readOnlyHint = true },
 	},
 	define = function(parser: cli.Parser)
