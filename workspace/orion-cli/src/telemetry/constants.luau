@@ -13,6 +13,11 @@ return table.freeze({
 	-- up to 30 batches a minute from each install.
 	SEND_SECONDS = 60,
 
+	-- A queue that built up while the server wasn't running can split into
+	-- more batches than the backend accepts in a minute. So one send stops
+	-- after this many, and the rest go back in the queue for the next send.
+	MAX_BATCHES_PER_SEND = 25,
+
 	-- A request to the backend that takes longer than this is given up on.
 	-- That's long enough for a slow network, and short enough that a backend
 	-- that can't be reached doesn't hold up the next send.
