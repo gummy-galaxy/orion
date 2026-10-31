@@ -7,11 +7,12 @@ local types = require("@root/types")
 type Item = types.Item
 type Scope = queryTypes.Scope
 
--- Derives the graph and works out every group's path once, so matching and
--- sorting a whole canvas reads each from a table.
+-- Derives the graph and works out every group's path and parent once, so
+-- matching and sorting a whole canvas reads each from a table.
 local function createScope(doc: types.Doc, now: string?): Scope
 	local byId: { [string]: Item } = {}
 	local groupPaths: { [string]: { string } } = {}
+	local groupParents: { [string]: string } = {}
 
 	for _, item in doc.nodes do
 		byId[item.id] = item
@@ -41,10 +42,11 @@ local function createScope(doc: types.Doc, now: string?): Scope
 	for _, item in doc.nodes do
 		if isGroup(item) then
 			getPath(item, {})
+			groupParents[item.id] = item.parentId
 		end
 	end
 
-	return { derived = derive(doc, now), groupPaths = groupPaths }
+	return { derived = derive(doc, now), groupPaths = groupPaths, groupParents = groupParents }
 end
 
 return createScope
