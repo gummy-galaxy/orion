@@ -1,9 +1,9 @@
 local crypto = require("@lute/crypto")
 
 --[[
-	A random version 4 UUID for a new node or link. Ids made from labels or
-	counters collide when two branches of a canvas each add one, and random ones
-	never do, so git merges them as separate files.
+	A random version 4 UUID for a new node, link, or placement. Ids made from
+	labels or counters collide when two branches of a canvas each add one, and
+	random ones never do, so git merges them as separate files.
 ]]
 local function createId(): string
 	local bytes = crypto.secretbox.keygen()

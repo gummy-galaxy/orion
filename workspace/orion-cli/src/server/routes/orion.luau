@@ -26,6 +26,21 @@ function orion.handle(request: net.ReceivedRequest, root: string, active: string
 				return shared.reply(404, json.object({ path = getDocPath(requestedDir), canvas = requested }))
 			end
 			local body = encodeDocObject(doc)
+
+			-- The app draws each node where its first placement puts it,
+			-- until it reads placements itself.
+			local nodes: json.Array = {}
+
+			for index, object in json.asArray(body.nodes) or {} do
+				local item = doc.nodes[index]
+				local node = json.object(json.asObject(object) :: json.Object)
+				node.position = json.object({ x = item.position.x, y = item.position.y })
+				node.parentId = item.parentId
+				table.insert(nodes, node)
+			end
+
+			body.nodes = nodes
+
 			body.derived = serializeDerived(derive(doc))
 			return shared.reply(200, body)
 		end

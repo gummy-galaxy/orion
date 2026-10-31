@@ -51,7 +51,8 @@ end
 	by a writer that stopped partway is cleared by finishing its write first.
 	Callers that hold the lock recover before reading, since this would wait on
 	their own lock. With `includeFiles`, the snapshot also maps each file's path
-	to its text, and keeps what each node and link file stored beside its entry.
+	to its text, and keeps what each node, link, and placement file stored
+	beside its entry.
 ]]
 local function readCanvasFiles(dir: string, includeFiles: boolean?): CanvasSnapshot?
 	local canvasFile = getDocPath(dir)

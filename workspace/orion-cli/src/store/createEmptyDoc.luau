@@ -4,11 +4,12 @@ type Doc = types.Doc
 
 local function createEmptyDoc(): Doc
 	return {
-		version = 2,
+		version = 3,
 		revision = 0,
 		settings = { sources = {}, checkSnoozes = {} },
 		nodes = {},
 		links = {},
+		placements = {},
 	}
 end
 

@@ -10,6 +10,8 @@ type CheckSnooze = types.CheckSnooze
 type Doc = types.Doc
 type Item = types.Item
 type Link = types.Link
+type Placement = types.Placement
+type Position = types.Position
 type Source = types.Source
 
 local function asNumber(value: json.Value): number?
@@ -34,9 +36,43 @@ local function getStrings(value: json.Value): { string }?
 	return result
 end
 
--- Reads a whole canvas object into a document, filling in defaults.
+local function getPosition(value: json.Value): Position
+	local position = json.asObject(value) or json.object({})
+	return { x = asNumber(position.x) or 0, y = asNumber(position.y) or 0 }
+end
+
+--[[
+	Reads a whole canvas object into a document, filling in defaults. Each node
+	takes its position and group from its first placement. A node from before
+	placements keeps the position and group stored on it, and the next write
+	moves them into a placement. Any other node has no placement.
+]]
 local function decodeDocObject(root: json.Object): Doc
 	checkDataVersion(root)
+
+	-- Before data version 3, every node was placed where it said, or at the
+	-- origin.
+	local isBeforePlacements = type(root.version) == "number" and root.version < 3
+
+	local placements: { Placement } = {}
+	local firstPlacements: { [string]: Placement } = {}
+
+	for _, raw in json.asArray(root.placements) or {} do
+		local object = json.asObject(raw)
+		local id = if object then getStringField(object.id) else nil
+		local node = if object then getStringField(object.node) else nil
+
+		if object and id and node then
+			local placement = {
+				id = id,
+				node = node,
+				parentId = getStringField(object.parentId),
+				position = getPosition(object.position),
+			}
+			table.insert(placements, placement)
+			firstPlacements[node] = firstPlacements[node] or placement
+		end
+	end
 
 	local nodes: { Item } = {}
 
@@ -46,12 +82,20 @@ local function decodeDocObject(root: json.Object): Doc
 		local kind = if object then getStringField(object.type) else nil
 
 		if object and id and kind then
-			local position = json.asObject(object.position) or json.object({})
+			local placement = firstPlacements[id]
+			local isLegacy = placement == nil and (isBeforePlacements or object.position ~= nil)
 			table.insert(nodes, {
 				id = id,
 				type = kind,
-				position = { x = asNumber(position.x) or 0, y = asNumber(position.y) or 0 },
-				parentId = getStringField(object.parentId),
+				position = if placement
+					then { x = placement.position.x, y = placement.position.y }
+					else getPosition(object.position),
+				parentId = if placement
+					then placement.parentId
+					elseif isLegacy then getStringField(object.parentId)
+					else nil,
+				placement = if placement then placement.id else nil,
+				unplaced = if placement == nil and not isLegacy then true else nil,
 				width = asNumber(object.width),
 				height = asNumber(object.height),
 				data = json.asObject(object.data) or json.object({}),
@@ -137,7 +181,7 @@ local function decodeDocObject(root: json.Object): Doc
 	end
 
 	return {
-		version = 2,
+		version = 3,
 		revision = asNumber(root.revision) or 0,
 		settings = {
 			sources = sources,
@@ -148,6 +192,7 @@ local function decodeDocObject(root: json.Object): Doc
 		},
 		nodes = nodes,
 		links = links,
+		placements = placements,
 		github = json.asObject(root.github),
 		suggestions = json.asObject(root.suggestions),
 		repositories = json.asObject(root.repositories),
