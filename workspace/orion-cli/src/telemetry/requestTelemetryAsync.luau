@@ -5,9 +5,9 @@ local telemetryConstants = require("@root/telemetry/constants")
 
 --[[
 	Makes a request to the telemetry backend and returns its response, or why
-	there isn't one. A request that takes longer than `timeoutSeconds` is given
-	up on and left to finish in the background, since the request itself has no
-	timeout.
+	there isn't one. Requests in Lute, the runtime Orion's CLI runs on, can't
+	set a timeout of their own. So this stops waiting after `timeoutSeconds`,
+	and a request still running then finishes in the background, unused.
 ]]
 local function requestTelemetryAsync(
 	url: string,

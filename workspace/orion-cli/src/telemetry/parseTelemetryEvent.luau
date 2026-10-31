@@ -41,11 +41,14 @@ local function isTimestamp(value: unknown): boolean
 end
 
 --[[
-	Checks one event's shape and returns it as the queue stores it, stamped
-	with `now` when it has no time of its own. Only the shape is checked here:
-	the backend checks names and properties against the catalog. A session id or
-	timestamp the backend can't parse would make it refuse the whole batch, so
-	those are checked strictly.
+	Checks that one event is well formed and returns it the way the queue
+	stores it. An event without a time of its own is stamped with `now`.
+
+	This checks the form of an event, not whether it's one Orion records. The
+	backend checks names and properties against the published event list, and
+	it drops an unknown event on its own. A session id or timestamp it can't
+	parse is different: the backend refuses the whole batch over it. So those
+	two are checked in full here.
 ]]
 local function parseTelemetryEvent(value: json.Value, now: string): QueuedEvent
 	local object = assert(json.asObject(value), "an event must be an object")

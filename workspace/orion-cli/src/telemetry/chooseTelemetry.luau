@@ -9,10 +9,14 @@ local writeTelemetryConsent = require("@root/telemetry/writeTelemetryConsent")
 type Build = types.Build
 type Consent = telemetryTypes.Consent
 
--- Records the person's answer from the app or the CLI. Opting in queues one
--- `telemetry_opted_in` event saying where the choice was made, and choosing
--- "on" again doesn't queue another. Opting out deletes anything still waiting
--- to be sent, and sends nothing.
+-- Records the person's answer from the app or the CLI.
+--
+-- Turning sharing on queues a `telemetry_opted_in` event saying where the
+-- choice was made. Choosing "on" while it's already on queues nothing more.
+-- Like any event, it isn't queued in a dev build or under an override such as
+-- `DO_NOT_TRACK`, though the choice is still saved.
+--
+-- Turning sharing off deletes any events still waiting to be sent.
 local function chooseTelemetry(
 	root: string,
 	enabled: boolean,

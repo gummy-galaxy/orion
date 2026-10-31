@@ -3,9 +3,12 @@ local types = require("@root/types")
 
 type Build = types.Build
 
--- The build that events are sent from. A checkout reports its commit as "dev"
--- and a build with uncommitted changes ends in "-dirty", and neither is a
--- release anyone installed, so both are dev builds.
+-- Describes the running build of Orion, or a build stamped with `commit` when
+-- one is given. `lute run build` stamps each binary with the commit it was
+-- built from. Running from source reports "dev" instead, and a binary built
+-- with uncommitted changes has a commit ending in "-dirty". Both of those are
+-- dev builds. Any other build counts as a release, including one built
+-- outside git, whose commit is "unknown".
 local function getBuild(commit: string?): Build
 	local resolvedCommit = commit or buildInfo.commit
 	local isDev = resolvedCommit == "dev" or resolvedCommit:sub(-6) == "-dirty"

@@ -30,10 +30,10 @@ local function readLines(file: path.Pathlike, events: { QueuedEvent }, now: stri
 end
 
 --[[
-	Empties the queue and returns what was in it. The queue is moved aside
-	before it's read, so commands appending meanwhile start a fresh one rather
-	than writing into lines already taken. A line that doesn't parse, such as
-	one cut short, is skipped.
+	Empties the queue and returns the events that were in it. The queue file is
+	moved aside before it's read. That way, a command that adds an event in the
+	meantime starts a new queue file instead of writing to the one being read.
+	A line that doesn't parse, such as one cut short, is skipped.
 ]]
 local function drainTelemetryQueue(root: string, now: string): { QueuedEvent }
 	local queue = path.join(root, fileNames.telemetryQueue)

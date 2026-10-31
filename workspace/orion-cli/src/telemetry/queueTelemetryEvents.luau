@@ -8,10 +8,11 @@ local types = require("@root/types")
 type Build = types.Build
 type QueuedEvent = telemetryTypes.QueuedEvent
 
--- Queues events for `orion server start` to send, but only on a machine that
--- opted in, with no override, outside dev builds, perf runs, and CI. Anything
--- else is dropped here, so nothing is kept to send later. Returns how many
--- were queued.
+-- Adds events to the queue for `orion server start` to send. Events are only
+-- queued when this machine opted in and nothing overrides that, such as
+-- `DO_NOT_TRACK`, and when the run isn't a dev build, a perf run, or CI.
+-- Otherwise they're dropped here, so nothing is kept to send later. Returns
+-- how many events were queued.
 local function queueTelemetryEvents(
 	root: string,
 	events: { QueuedEvent },

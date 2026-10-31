@@ -12,9 +12,10 @@ end
 --[[
 	The backend publishes what a sender should know before it sends, such as
 	how big a batch may be. This asks for it at the backend's `config`
-	endpoint. When the backend can't be reached, or its answer doesn't hold
-	both batch limits, this returns nil and the reason, and the caller keeps
-	the limits it already has.
+	endpoint. When the backend can't be reached, or its answer doesn't include
+	both the event and byte limits, this returns nil and the reason. The
+	caller then keeps using the limits it has, which start as the ones this
+	build shipped with.
 ]]
 local function getTelemetryConfigAsync(endpoint: string, timeoutSeconds: number): (TelemetryConfig?, string?)
 	local response, failure = requestTelemetryAsync(endpoint, { method = "GET" }, timeoutSeconds)

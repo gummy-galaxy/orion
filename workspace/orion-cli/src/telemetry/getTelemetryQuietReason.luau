@@ -2,9 +2,10 @@ local types = require("@root/types")
 
 type Build = types.Build
 
--- Why this run never queues or sends usage events, whatever was chosen, or nil
--- when it may. Dev builds, perf runs, and CI aren't people using Orion, so
--- their events would only muddy the charts.
+-- Some runs of Orion aren't people using it: dev builds, perf runs
+-- (`ORION_PERF=1`), and CI. Their events would only muddy the usage charts, so
+-- these runs never queue or send anything, even when telemetry is on. This
+-- returns why a run is one of them, or nil when it may send.
 local function getTelemetryQuietReason(environment: { [string]: string }, build: Build): string?
 	if build.channel == "dev" then
 		return "a dev build"

@@ -11,10 +11,13 @@ local telemetryTypes = require("@root/telemetry/types")
 type QueuedEvent = telemetryTypes.QueuedEvent
 
 --[[
-	Appends events to the queue in the data folder, one JSON line each, for
-	`orion server start` to send. Commands and the MCP server run briefly or
-	shouldn't wait on the network, so they leave events here instead of sending
-	them. Returns how many were queued: none once the queue is full.
+	Adds events to the queue file in the data folder, one JSON line each, for
+	`orion server start` to send later. CLI commands finish quickly, and the
+	MCP server that agents talk to shouldn't wait on the network, so both leave
+	their events here instead of sending them.
+
+	The queue has a size limit. Events that would push it past the limit are
+	dropped, along with any after them. Returns how many events were added.
 ]]
 local function appendTelemetryQueue(root: string, events: { QueuedEvent }): number
 	if #events == 0 then

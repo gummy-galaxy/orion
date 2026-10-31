@@ -51,10 +51,12 @@ function telemetry.handle(
 	return if didSucceed then response :: Response else shared.reply(400, json.object({ error = tostring(response) }))
 end
 
--- `POST {"events": [...]}` queues the app's events for the server to send.
--- Only their size and shape are checked; the backend checks them against the
--- catalog. When the machine isn't sharing, the events are dropped and the
--- reply says none were queued, so the app needn't check first.
+-- `POST {"events": [...]}` queues the app's events for this server to send to
+-- the telemetry backend later. Each event must have a valid name, session id,
+-- timestamp, and flat properties, but this route doesn't check which events
+-- exist. The backend does that against the published event list. When the
+-- machine isn't sharing usage data, the events are dropped and the reply says
+-- none were queued, so the app can post without checking first.
 function telemetry.handleEvents(
 	request: net.ReceivedRequest,
 	root: string,

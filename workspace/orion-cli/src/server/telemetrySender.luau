@@ -23,24 +23,31 @@ local telemetrySender = {}
 
 export type Options = {
 	environment: { [string]: string },
-	-- A server started for the app's dev server, which never sends.
+	-- True when this server was started with a dev port, to serve the app's
+	-- dev server. Like a dev build, it never sends.
 	isDevServer: boolean?,
 	build: Build?,
-	-- Stand in for the backend in specs.
+	-- Specs pass these to stand in for the backend.
 	sendTelemetryBatchAsync: typeof(sendTelemetryBatchAsync)?,
 	getTelemetryConfigAsync: typeof(getTelemetryConfigAsync)?,
 }
 
 --[[
-	Sends the queue from `orion server start` in the background. Each send takes
-	the whole queue. When sending isn't allowed, because nobody opted in, an
-	override is set, or this is a dev build, perf run, or CI, the queue is
-	dropped rather than kept for later. A batch that fails is dropped too, with
-	no retry and nothing shown to the person beyond a warning in the log.
+	Events wait in a queue file in the data folder until `orion server start`
+	sends them. This creates the part of the server that does that, every
+	minute in the background.
 
-	Batches are sized by the limits the backend publishes, asked for before the
-	first send of each run. Until it answers, the limits this build shipped with
-	stand in, and the next send asks again.
+	Each send empties the whole queue and splits it into batches. Sending can
+	be off for several reasons: nobody opted in, `DO_NOT_TRACK` or
+	`ORION_TELEMETRY=0` is set, or this is a dev build, a perf run, CI, or a
+	server for the app's dev server. Then the queue is deleted rather than kept
+	for later. A batch the backend doesn't accept is dropped too. It isn't
+	retried, and the only sign of it is a warning in the log.
+
+	The backend publishes how big a batch may be. The server asks for those
+	limits before its first send and keeps them for the rest of the run. If the
+	backend can't be reached, the server uses the limits this build shipped
+	with and asks again on the next send.
 ]]
 function telemetrySender.create(root: string, options: Options)
 	local build = options.build or getBuild()
