@@ -89,7 +89,10 @@ local EVENTS: { Event } = {
 		sources = { "app" },
 		help = "The app opened and drew its first canvas.",
 		properties = {
-			duration("startup_ms", "Milliseconds from launch to the first drawn canvas."),
+			duration(
+				"startup_ms",
+				"Milliseconds from launching the app, including the wait for its server, to the first drawn canvas."
+			),
 			count("card_count", "Cards on the canvas it opened to."),
 		},
 	},
@@ -97,12 +100,12 @@ local EVENTS: { Event } = {
 		name = "performance_summarized",
 		family = "Performance",
 		sources = { "app", "cli" },
-		help = "A summary of one timing over a session of the app or of `orion server start`, sent when the session ends.",
+		help = "A summary of one timing over a stretch of a session of the app or of `orion server start`, sent every few minutes and when the session ends.",
 		properties = {
 			{
 				name = "metric",
 				type = "string",
-				help = "What was timed: a pan or zoom frame, a `derive` or `layout` pass, or a flush by `orion server start`.",
+				help = "What was timed: a pan or zoom frame or a `layout` pass in the app, or a `derive` pass or applying the app's edits (`server_flush`) in `orion server start`.",
 				values = { "pan_frame", "zoom_frame", "derive", "layout", "server_flush" },
 			},
 			count("sample_count", "How many times it was measured."),
@@ -126,16 +129,15 @@ local EVENTS: { Event } = {
 			count("note_count", "Notes."),
 			count("media_count", "Images and other media."),
 			count("sticker_count", "Stickers."),
-			count("comment_count", "Comments."),
 		},
 	},
 	{
 		name = "features_used",
 		family = "Feature use",
 		sources = { "app" },
-		help = "How much each feature was used during a session, sent when the session ends.",
+		help = "How much each feature was used during a stretch of a session, sent every few minutes and when the session ends.",
 		properties = {
-			duration("session_ms", "How long the session lasted, in milliseconds."),
+			duration("session_ms", "How much of the session this covers, in milliseconds."),
 			duration("select_tool_ms", "Milliseconds with the Select tool active."),
 			duration("pan_tool_ms", "Milliseconds with the Pan tool active."),
 			duration("comment_tool_ms", "Milliseconds with the Comment tool active."),
