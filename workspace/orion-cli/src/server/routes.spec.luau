@@ -73,7 +73,9 @@ test.case("GET returns the document with unknown root data", function(assert)
 	fs.createDirectory(root, { makeParents = true })
 	testing.writeCanvasText(
 		root,
-		[[{"version":2,"settings":{"githubOwner":"Vocksel","theme":"dark"},"nodes":[{"id":"a","type":"task","data":{"repo":"Vocksel/orion","refs":[{"source":"github","kind":"pull","key":"Vocksel/orion#12"}]}}],"links":[],"extra":"kept"}]]
+		[[{"version":2,"settings":{"githubOwner":"Vocksel","theme":"dark"},"nodes":[{"id":"a","type":"task",]]
+			.. [["data":{"repo":"Vocksel/orion","refs":[{"source":"github","kind":"pull",]]
+			.. [["key":"Vocksel/orion#12"}]}}],"links":[],"extra":"kept"}]]
 	)
 	local response = decodeResponse(router.handleAsync(createRequest("GET", "/api/orion")))
 	local settings = json.asObject(response.settings)
@@ -93,7 +95,10 @@ test.case("GET sends derived values beside the document without storing them", f
 	fs.createDirectory(root, { makeParents = true })
 	testing.writeCanvasText(
 		root,
-		[[{"version":2,"revision":3,"settings":{"sources":[]},"nodes":[{"id":"a","type":"task","position":{"x":0,"y":0},"data":{"kind":"task","label":"A","itemKind":"step","status":"todo"}},{"id":"b","type":"task","position":{"x":0,"y":0},"data":{"kind":"task","label":"B","itemKind":"step","status":"todo"}}],"links":[{"id":"a>b","from":"a","to":"b","kind":"blocks"}]}]]
+		[[{"version":2,"revision":3,"settings":{"sources":[]},"nodes":[{"id":"a","type":"task","position":{"x":0,]]
+			.. [["y":0},"data":{"kind":"task","label":"A","itemKind":"step","status":"todo"}},{"id":"b",]]
+			.. [["type":"task","position":{"x":0,"y":0},"data":{"kind":"task","label":"B","itemKind":"step",]]
+			.. [["status":"todo"}}],"links":[{"id":"a>b","from":"a","to":"b","kind":"blocks"}]}]]
 	)
 	local response = decodeResponse(router.handleAsync(createRequest("GET", "/api/orion")))
 	local derived = json.asObject(response.derived) :: json.Object

@@ -31,7 +31,12 @@ export function TradingSignal({
 
   return (
     <Tooltip label={`${hint}. Click to open ${checks ? 'the checks' : 'the pull request'}.`}>
-      <a className={`${className} trading-link nodrag nopan`} href={checks ? `${url}/checks` : url} target="_blank" rel="noreferrer">
+      <a
+        className={`${className} trading-link nodrag nopan`}
+        href={checks ? `${url}/checks` : url}
+        target="_blank"
+        rel="noreferrer"
+      >
         {children}
       </a>
     </Tooltip>

@@ -106,8 +106,8 @@ local function reportPerf()
 	end
 
 	local sha = string.sub(env.SHA or "", 1, 7)
-	local footer =
-		`<sub>Measured {sha} on \`{runner}\` in [run {runNumber}]({env.RUN_URL}). Changes under 10%, or within how far each side's runs disagree, are treated as noise.</sub>`
+	local footer = `<sub>Measured {sha} on \`{runner}\` in [run {runNumber}]({env.RUN_URL}). `
+		.. `Changes under 10%, or within how far each side's runs disagree, are treated as noise.</sub>`
 
 	local posted, problem =
 		upsertCommentAsync(command, repository, pullRequest, MARKER, `{MARKER}\n{report}\n{footer}\n`)

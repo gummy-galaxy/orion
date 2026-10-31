@@ -8,7 +8,15 @@ export type PlacedSticker = Sticker & { fresh: boolean }
 /** Whether a press held ⇧ or ⌘, which adds to the selection instead of replacing it. */
 export type PressModifiers = Pick<React.MouseEvent, 'metaKey' | 'shiftKey'>
 /** A visible group's frame in canvas coordinates. `parent` is the nearest visible group around it. */
-export type StickerBounds = { id: string; x0: number; y0: number; x1: number; y1: number; parent: string | null; depth: number }
+export type StickerBounds = {
+  id: string
+  x0: number
+  y0: number
+  x1: number
+  y1: number
+  parent: string | null
+  depth: number
+}
 export type StickerMove = { id: string; x: number; y: number }
 
 /** Drag below this many screen pixels is a click. */
@@ -57,13 +65,28 @@ type Body = {
   resting: boolean
 }
 
-type Hold = { id: string; pointerId: number; startX: number; startY: number; offset: StickerPoint; at: StickerPoint; active: boolean }
+type Hold = {
+  id: string
+  pointerId: number
+  startX: number
+  startY: number
+  offset: StickerPoint
+  at: StickerPoint
+  active: boolean
+}
 
 function homeAt(point: StickerPoint, bounds: StickerBounds[]) {
   let best: StickerBounds | null = null
 
   for (const body of bounds)
-    if (point.x >= body.x0 && point.x <= body.x1 && point.y >= body.y0 && point.y <= body.y1 && (!best || body.depth > best.depth)) best = body
+    if (
+      point.x >= body.x0 &&
+      point.x <= body.x1 &&
+      point.y >= body.y0 &&
+      point.y <= body.y1 &&
+      (!best || body.depth > best.depth)
+    )
+      best = body
 
   return best?.id ?? null
 }
@@ -81,7 +104,10 @@ function chaseTarget(body: Body, point: StickerPoint, bounds: Map<string, Sticke
   const home = body.home ? bounds.get(body.home) : undefined
 
   if (home) {
-    const outsideDistance = Math.hypot(Math.max(home.x0 - point.x, 0, point.x - home.x1), Math.max(home.y0 - point.y, 0, point.y - home.y1))
+    const outsideDistance = Math.hypot(
+      Math.max(home.x0 - point.x, 0, point.x - home.x1),
+      Math.max(home.y0 - point.y, 0, point.y - home.y1),
+    )
 
     if (outsideDistance > pop) {
       body.home = home.parent
@@ -89,7 +115,10 @@ function chaseTarget(body: Body, point: StickerPoint, bounds: Map<string, Sticke
       return chaseTarget(body, point, bounds, pop)
     }
 
-    const inside = { x: clamp(point.x, home.x0 + RADIUS, home.x1 - RADIUS), y: clamp(point.y, home.y0 + RADIUS, home.y1 - RADIUS) }
+    const inside = {
+      x: clamp(point.x, home.x0 + RADIUS, home.x1 - RADIUS),
+      y: clamp(point.y, home.y0 + RADIUS, home.y1 - RADIUS),
+    }
     const pull = Math.hypot(point.x - inside.x, point.y - inside.y)
 
     if (outsideDistance > 0 && pull > 0) {
@@ -102,7 +131,13 @@ function chaseTarget(body: Body, point: StickerPoint, bounds: Map<string, Sticke
   }
 
   for (const obstacle of obstacles(body.home, bounds)) {
-    if (point.x < obstacle.x0 - RADIUS || point.x > obstacle.x1 + RADIUS || point.y < obstacle.y0 - RADIUS || point.y > obstacle.y1 + RADIUS) continue
+    if (
+      point.x < obstacle.x0 - RADIUS ||
+      point.x > obstacle.x1 + RADIUS ||
+      point.y < obstacle.y0 - RADIUS ||
+      point.y > obstacle.y1 + RADIUS
+    )
+      continue
 
     // The side the sticker is on is the edge it presses against.
     const gaps = [obstacle.x0 - body.x, body.x - obstacle.x1, obstacle.y0 - body.y, body.y - obstacle.y1]
@@ -271,7 +306,12 @@ class StickerWorld {
     this.draw = draw
   }
 
-  update(stickers: PlacedSticker[], bounds: StickerBounds[], settle: (moves: StickerMove[]) => void, reactFlow: ReactFlowInstance) {
+  update(
+    stickers: PlacedSticker[],
+    bounds: StickerBounds[],
+    settle: (moves: StickerMove[]) => void,
+    reactFlow: ReactFlowInstance,
+  ) {
     this.stickers = stickers
     this.list = bounds
     this.bounds = new Map(bounds.map((body) => [body.id, body]))
@@ -334,7 +374,9 @@ class StickerWorld {
 
       const angle = Math.random() * 2 * Math.PI
       const [normalX, normalY] =
-        distance > 1e-6 ? [(body.x - sticker.x) / distance, (body.y - sticker.y) / distance] : [Math.cos(angle), Math.sin(angle)]
+        distance > 1e-6
+          ? [(body.x - sticker.x) / distance, (body.y - sticker.y) / distance]
+          : [Math.cos(angle), Math.sin(angle)]
 
       body.velocityX += normalX * STAMP_KNOCK
       body.velocityY += normalY * STAMP_KNOCK
@@ -343,7 +385,9 @@ class StickerWorld {
   }
 
   private flow(event: { clientX: number; clientY: number }) {
-    return this.reactFlow ? this.reactFlow.screenToFlowPosition({ x: event.clientX, y: event.clientY }) : { x: event.clientX, y: event.clientY }
+    return this.reactFlow
+      ? this.reactFlow.screenToFlowPosition({ x: event.clientX, y: event.clientY })
+      : { x: event.clientX, y: event.clientY }
   }
 
   /** `companions` are the other picked stickers, which move with this one once it's dragged. */
@@ -462,7 +506,14 @@ class StickerWorld {
       for (const [id, offset] of this.followers) {
         const body = this.bodies.get(id)
 
-        if (body) Object.assign(body, { x: held.x + offset.x, y: held.y + offset.y, velocityX: 0, velocityY: 0, resting: false })
+        if (body)
+          Object.assign(body, {
+            x: held.x + offset.x,
+            y: held.y + offset.y,
+            velocityX: 0,
+            velocityY: 0,
+            resting: false,
+          })
       }
 
     let awake = !!this.hold
@@ -475,7 +526,12 @@ class StickerWorld {
 
       if (body === held) continue
 
-      if (!body.resting && Math.hypot(body.velocityX, body.velocityY) < REST_SPEED && Math.abs(body.lean) < 0.2 && Math.abs(body.spin) < 0.05) {
+      if (
+        !body.resting &&
+        Math.hypot(body.velocityX, body.velocityY) < REST_SPEED &&
+        Math.abs(body.lean) < 0.2 &&
+        Math.abs(body.spin) < 0.05
+      ) {
         body.velocityX = 0
         body.velocityY = 0
         body.lean = 0
@@ -556,8 +612,16 @@ export function StickerLayer({
         return (
           <div
             key={sticker.id}
-            className={`sticker nopan${sticker.fresh ? ' is-fresh' : ''}${held ? ' is-held' : ''}${picked.has(sticker.id) ? ' is-selected' : ''}${interactive ? ' is-interactive' : ''}`}
-            style={{ transform: `translate(${at.x}px, ${at.y}px)`, '--tilt': `${sticker.tilt + at.lean}deg` } as CSSProperties}
+            className={
+              `sticker nopan${sticker.fresh ? ' is-fresh' : ''}${held ? ' is-held' : ''}` +
+              `${picked.has(sticker.id) ? ' is-selected' : ''}${interactive ? ' is-interactive' : ''}`
+            }
+            style={
+              {
+                transform: `translate(${at.x}px, ${at.y}px)`,
+                '--tilt': `${sticker.tilt + at.lean}deg`,
+              } as CSSProperties
+            }
             onPointerDown={(event) => {
               if (event.button !== 0 || !interactive) return
 

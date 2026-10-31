@@ -22,7 +22,8 @@ return table.freeze({
 			{ help = "Repository the job runs in, as owner/name (required)", mcp = { required = true } }
 		)
 		parser:add("until", "option", {
-			help = "When it ends: an ISO 8601 date or date-time, in local time unless it ends in Z or an offset. Without it, the snooze lasts on each card until the job passes there",
+			help = "When it ends: an ISO 8601 date or date-time, in local time unless it ends in Z or an offset. "
+				.. "Without it, the snooze lasts on each card until the job passes there",
 		})
 	end,
 

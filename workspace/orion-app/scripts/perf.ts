@@ -9,7 +9,17 @@
  * .perf/report.md.
  */
 import { execFileSync, spawnSync } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs'
 import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
@@ -21,11 +31,15 @@ import { buildReport, IDLE_MS, SLOW_FRAME_MS, type Renderer, type ReportInput, t
 
 type Side = 'base' | 'head'
 /** What the perf stories expose on the page, plus the frame gaps this script records there. */
-type PerfWindow = Window & { orionPerf?: { commits: number; renderMs: number; reset: () => void }; perfFrames?: number[] }
+type PerfWindow = Window & {
+  orionPerf?: { commits: number; renderMs: number; reset: () => void }
+  perfFrames?: number[]
+}
 
 const APP = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const OUT = join(APP, '.perf')
-// Storybook's main.ts finds the perf stories and swaps in the profiling renderer. Each side keeps its own preview, which loads that side's app styles.
+// Storybook's main.ts finds the perf stories and swaps in the profiling renderer. Each side keeps its own preview,
+// which loads that side's app styles.
 const HARNESS = ['src/perf', '.storybook/main.ts']
 const VIEWPORT = { width: 1440, height: 900 }
 const SETTLE_MS = 800
@@ -104,7 +118,10 @@ function prepareBase(ref: string): { dir: string; sha: string } {
 
   if (!existsSync(join(dir, 'package.json'))) {
     const staging = `${root}.partial`
-    const archive = execFileSync('git', ['archive', sha, folder], { cwd: git('rev-parse', '--show-toplevel'), maxBuffer: 1 << 30 })
+    const archive = execFileSync('git', ['archive', sha, folder], {
+      cwd: git('rev-parse', '--show-toplevel'),
+      maxBuffer: 1 << 30,
+    })
 
     rmSync(staging, { recursive: true, force: true })
     mkdirSync(staging, { recursive: true })
@@ -124,7 +141,8 @@ function prepareBase(ref: string): { dir: string; sha: string } {
     // A persistent runner keeps this copy between jobs, and its link can outlive the node_modules it pointed at.
     rmSync(modules, { force: true })
 
-    const sameLock = readFileSync(join(dir, 'package-lock.json'), 'utf8') === readFileSync(join(APP, 'package-lock.json'), 'utf8')
+    const sameLock =
+      readFileSync(join(dir, 'package-lock.json'), 'utf8') === readFileSync(join(APP, 'package-lock.json'), 'utf8')
 
     if (sameLock) symlinkSync(join(APP, 'node_modules'), modules, 'dir')
     else run('npm', ['ci', '--no-audit', '--no-fund', '--silent'], dir)
@@ -140,18 +158,29 @@ function runBenchmarks(dir: string, side: Side, round: number): Map<string, numb
   mkdirSync(dirname(file), { recursive: true })
   run(
     join(dir, 'node_modules/.bin/vitest'),
-    ['bench', '--root', 'src', '--run', `--execArgv=--hash-seed=${HASH_SEED}`, '--reporter=json', `--outputFile=${file}`],
+    [
+      'bench',
+      '--root',
+      'src',
+      '--run',
+      `--execArgv=--hash-seed=${HASH_SEED}`,
+      '--reporter=json',
+      `--outputFile=${file}`,
+    ],
     dir,
   )
 
   type Report = {
-    testResults: { assertionResults: { title: string; benchmarks?: { tasks: { name: string; latency: { p50: number } }[] }[] }[] }[]
+    testResults: {
+      assertionResults: { title: string; benchmarks?: { tasks: { name: string; latency: { p50: number } }[] }[] }[]
+    }[]
   }
   const report = JSON.parse(readFileSync(file, 'utf8')) as Report
   const results = new Map<string, number>()
 
   for (const test of report.testResults.flatMap((file) => file.assertionResults)) {
-    for (const task of (test.benchmarks ?? []).flatMap((group) => group.tasks)) results.set(`${test.title} › ${task.name}`, task.latency.p50)
+    for (const task of (test.benchmarks ?? []).flatMap((group) => group.tasks))
+      results.set(`${test.title} › ${task.name}`, task.latency.p50)
   }
 
   return results
@@ -181,11 +210,15 @@ function serve(dir: string): Promise<{ server: Server; url: string }> {
       return
     }
 
-    response.writeHead(200, { 'content-type': MIME[extname(file)] ?? 'application/octet-stream' }).end(readFileSync(file))
+    response
+      .writeHead(200, { 'content-type': MIME[extname(file)] ?? 'application/octet-stream' })
+      .end(readFileSync(file))
   })
 
   return new Promise((done) =>
-    server.listen(0, '127.0.0.1', () => done({ server, url: `http://127.0.0.1:${(server.address() as AddressInfo).port}` })),
+    server.listen(0, '127.0.0.1', () =>
+      done({ server, url: `http://127.0.0.1:${(server.address() as AddressInfo).port}` }),
+    ),
   )
 }
 
@@ -194,11 +227,14 @@ type TraceEvent = { name: string; ph: string; pid: number; tid: number; dur?: nu
 /** Totals from a Chromium trace: frames the page drew, and time on its main thread, raster workers, and GPU. */
 function readTrace(events: TraceEvent[]): Sample {
   const threads = new Map(
-    events.filter((event) => event.ph === 'M' && event.name === 'thread_name').map((event) => [`${event.pid}:${event.tid}`, event.args?.name]),
+    events
+      .filter((event) => event.ph === 'M' && event.name === 'thread_name')
+      .map((event) => [`${event.pid}:${event.tid}`, event.args?.name]),
   )
   const onMain = (event: TraceEvent) => threads.get(`${event.pid}:${event.tid}`) === 'CrRendererMain'
   const complete = events.filter((event) => event.ph === 'X')
-  const total = (keep: (event: TraceEvent) => boolean) => complete.filter(keep).reduce((sum, event) => sum + (event.dur ?? 0), 0) / 1000
+  const total = (keep: (event: TraceEvent) => boolean) =>
+    complete.filter(keep).reduce((sum, event) => sum + (event.dur ?? 0), 0) / 1000
 
   return {
     frames: complete.filter((event) => event.name === 'Commit' && onMain(event)).length,
@@ -222,7 +258,10 @@ async function readRenderer(browser: Browser): Promise<Renderer> {
   return { device: gpu.devices[0]?.deviceString ?? 'unknown', gpu: gpu.featureStatus.gpu_compositing === 'enabled' }
 }
 
-/** Times one interaction: React commits from the story's Profiler, browser work from a trace, and gaps between animation frames. */
+/**
+ * Times one interaction: React commits from the story's Profiler, browser work from a trace, and gaps between animation
+ * frames.
+ */
 async function measure(browser: Browser, page: Page, action: () => Promise<void>): Promise<Sample> {
   await page.evaluate(() => {
     const holder = window as PerfWindow
@@ -273,11 +312,18 @@ type VisibleCard = { x: number; y: number; right: number; below: number }
  */
 async function visibleCards(page: Page): Promise<VisibleCard[]> {
   return page.evaluate(() => {
-    const area = document.querySelector('.react-flow')?.getBoundingClientRect() ?? new DOMRect(0, 0, innerWidth, innerHeight)
+    const area =
+      document.querySelector('.react-flow')?.getBoundingClientRect() ?? new DOMRect(0, 0, innerWidth, innerHeight)
 
     return [...document.querySelectorAll('.react-flow__node-task')]
       .map((node) => node.getBoundingClientRect())
-      .filter((box) => box.top > area.top + 60 && box.left > area.left + 60 && box.bottom < area.bottom - 80 && box.right < area.right - 60)
+      .filter(
+        (box) =>
+          box.top > area.top + 60 &&
+          box.left > area.left + 60 &&
+          box.bottom < area.bottom - 80 &&
+          box.right < area.right - 60,
+      )
       .sort((a, b) => a.top - b.top || a.left - b.left)
       .map((box) => {
         const x = box.left + box.width / 2
@@ -379,7 +425,10 @@ async function main() {
   const dirs: Record<Side, string> = { base: base.dir, head: APP }
   const input: ReportInput = {
     base: { ref: options.base, sha: base.sha },
-    head: { ref: process.env.GITHUB_HEAD_REF || git('rev-parse', '--abbrev-ref', 'HEAD'), sha: git('rev-parse', 'HEAD') },
+    head: {
+      ref: process.env.GITHUB_HEAD_REF || git('rev-parse', '--abbrev-ref', 'HEAD'),
+      sha: git('rev-parse', 'HEAD'),
+    },
   }
   const raw: Record<string, unknown> = { base: input.base, head: input.head }
 
@@ -390,7 +439,9 @@ async function main() {
 
     for (let index = 0; index < runs; index++) {
       for (const side of sideOrder(index)) {
-        const results = await timed(`Benchmarking ${side} (round ${index + 1} of ${runs})`, () => runBenchmarks(dirs[side], side, index))
+        const results = await timed(`Benchmarking ${side} (round ${index + 1} of ${runs})`, () =>
+          runBenchmarks(dirs[side], side, index),
+        )
 
         for (const [name, p50] of results) (bench[side][name] ??= []).push(p50)
       }
@@ -433,7 +484,9 @@ async function main() {
     input.render = {
       runs,
       renderer,
-      stories: Object.fromEntries(stories.map((story) => [story, { base: collected.base[story], head: collected.head[story] }])),
+      stories: Object.fromEntries(
+        stories.map((story) => [story, { base: collected.base[story], head: collected.head[story] }]),
+      ),
     }
     raw.render = collected
   }

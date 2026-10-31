@@ -15,7 +15,9 @@ export const Failing: Story = {
     <LinkPrompt
       x={120}
       y={120}
-      submit={() => Promise.reject(new Error('no source recognizes https://example.com/page; add its GitHub or Jira source first'))}
+      submit={() =>
+        Promise.reject(new Error('no source recognizes https://example.com/page; add its GitHub or Jira source first'))
+      }
       close={() => {}}
     />
   ),

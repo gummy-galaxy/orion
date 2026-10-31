@@ -14,7 +14,13 @@ const task = (id: string, x: number, y: number, parentId?: string, selected?: bo
   data: { kind: 'task', label: id, itemKind: 'step', status: 'todo' },
 })
 
-const group = (id: string, x: number, y: number, parentId?: string, data: Partial<{ cover: string; background: string }> = {}): AppNode => ({
+const group = (
+  id: string,
+  x: number,
+  y: number,
+  parentId?: string,
+  data: Partial<{ cover: string; background: string }> = {},
+): AppNode => ({
   id,
   type: 'cluster',
   parentId,
@@ -31,7 +37,12 @@ const image = (id: string, x: number, y: number, asset: string): AppNode => ({
   data: { kind: 'image', label: id, asset, canvas: 'source' },
 })
 
-const link = (from: string, to: string, kind: Link['kind'] = 'blocks'): Link => ({ id: `${from}>${to}`, from, to, kind })
+const link = (from: string, to: string, kind: Link['kind'] = 'blocks'): Link => ({
+  id: `${from}>${to}`,
+  from,
+  to,
+  kind,
+})
 
 const counter = () => {
   let next = 0
@@ -40,7 +51,11 @@ const counter = () => {
 }
 
 const copy = (nodes: AppNode[], links: Link[], ids: string[], stickers: Sticker[] = [], stickerIds: string[] = []) =>
-  copySelection({ nodes: normalize(nodes), links, stickers }, { nodes: new Set(ids), stickers: new Set(stickerIds) }, 'source')!
+  copySelection(
+    { nodes: normalize(nodes), links, stickers },
+    { nodes: new Set(ids), stickers: new Set(stickerIds) },
+    'source',
+  )!
 
 describe('copying a selection', () => {
   it('keeps links between copied nodes and drops links that leave the selection', () => {
@@ -55,7 +70,13 @@ describe('copying a selection', () => {
   })
 
   it('takes a group with everything inside it, at any depth', () => {
-    const nodes = [group('g', 0, 0), group('inner', 40, 100, 'g'), task('a', 40, 100, 'inner'), task('b', 300, 100, 'g'), task('outside', 900, 0)]
+    const nodes = [
+      group('g', 0, 0),
+      group('inner', 40, 100, 'g'),
+      task('a', 40, 100, 'inner'),
+      task('b', 300, 100, 'g'),
+      task('outside', 900, 0),
+    ]
     const clip = copy(nodes, [link('a', 'b'), link('b', 'outside')], ['g'])
 
     expect(clip.nodes.map((node) => node.id).sort()).toEqual(['a', 'b', 'g', 'inner'])
@@ -64,13 +85,22 @@ describe('copying a selection', () => {
 
   it('measures from the top-left of what was copied, wherever it sat', () => {
     const nodes = normalize([group('g', 100, 100), task('a', 200, 200, 'g'), task('b', 500, 400)])
-    const clip = copySelection({ nodes, links: [], stickers: [] }, { nodes: new Set(['a', 'b']), stickers: new Set() }, 'source')!
+    const clip = copySelection(
+      { nodes, links: [], stickers: [] },
+      { nodes: new Set(['a', 'b']), stickers: new Set() },
+      'source',
+    )!
     const absoluteA = absolutePosition(
       nodes.find((node) => node.id === 'a')!,
       byId(nodes),
     )
 
-    expect(clip.bounds).toEqual({ x: absoluteA.x, y: absoluteA.y, width: 500 + TASK_WIDTH - absoluteA.x, height: 400 + TASK_HEIGHT - absoluteA.y })
+    expect(clip.bounds).toEqual({
+      x: absoluteA.x,
+      y: absoluteA.y,
+      width: 500 + TASK_WIDTH - absoluteA.x,
+      height: 400 + TASK_HEIGHT - absoluteA.y,
+    })
     expect(clip.nodes.find((node) => node.id === 'a')).toMatchObject({ parentId: undefined, position: { x: 0, y: 0 } })
     expect(clip.parent).toBeNull()
   })
@@ -106,7 +136,13 @@ describe('copying a selection', () => {
   })
 
   it('copies nothing without a selection', () => {
-    expect(copySelection({ nodes: [task('a', 0, 0)], links: [], stickers: [] }, { nodes: new Set(), stickers: new Set() }, 'source')).toBeNull()
+    expect(
+      copySelection(
+        { nodes: [task('a', 0, 0)], links: [], stickers: [] },
+        { nodes: new Set(), stickers: new Set() },
+        'source',
+      ),
+    ).toBeNull()
   })
 })
 
@@ -116,8 +152,16 @@ describe('pasting a clip', () => {
 
   it('gives every node and link a new id and keeps the links between the copies', () => {
     const nodes = original()
-    const clip = copySelection({ nodes, links, stickers: [] }, { nodes: new Set(['a', 'b']), stickers: new Set() }, 'source')!
-    const pasted = pasteClip({ nodes, links, stickers: [] }, clip, { at: { x: 0, y: 500 }, parent: null, makeId: counter() })
+    const clip = copySelection(
+      { nodes, links, stickers: [] },
+      { nodes: new Set(['a', 'b']), stickers: new Set() },
+      'source',
+    )!
+    const pasted = pasteClip({ nodes, links, stickers: [] }, clip, {
+      at: { x: 0, y: 500 },
+      parent: null,
+      makeId: counter(),
+    })
     const added = pasted.nodes.filter((node) => !['a', 'b', 'c'].includes(node.id))
     const addedIds = new Set(added.map((node) => node.id))
 
@@ -133,8 +177,16 @@ describe('pasting a clip', () => {
 
   it('places the copy at the point given and selects it in place of the old selection', () => {
     const nodes = original().map((node) => (node.id === 'c' ? { ...node, selected: true } : node))
-    const clip = copySelection({ nodes, links, stickers: [] }, { nodes: new Set(['b', 'c']), stickers: new Set() }, 'source')!
-    const pasted = pasteClip({ nodes, links, stickers: [] }, clip, { at: { x: 1000, y: 1000 }, parent: null, makeId: counter() })
+    const clip = copySelection(
+      { nodes, links, stickers: [] },
+      { nodes: new Set(['b', 'c']), stickers: new Set() },
+      'source',
+    )!
+    const pasted = pasteClip({ nodes, links, stickers: [] }, clip, {
+      at: { x: 1000, y: 1000 },
+      parent: null,
+      makeId: counter(),
+    })
     const added = pasted.nodes.filter((node) => node.id.startsWith('new'))
 
     expect(added.map((node) => node.position)).toEqual([
@@ -146,7 +198,11 @@ describe('pasting a clip', () => {
 
   it('pastes into a group, relative to where the group sits', () => {
     const nodes = normalize([group('g', 0, 0), task('inside', 100, 100, 'g'), task('a', 900, 900)])
-    const clip = copySelection({ nodes, links: [], stickers: [] }, { nodes: new Set(['a']), stickers: new Set() }, 'source')!
+    const clip = copySelection(
+      { nodes, links: [], stickers: [] },
+      { nodes: new Set(['a']), stickers: new Set() },
+      'source',
+    )!
     const groupNode = nodes.find((node) => node.id === 'g')!
     const at = { x: groupNode.position.x + GROUP_PADDING + 300, y: groupNode.position.y + GROUP_HEADER_HEIGHT }
     const pasted = pasteClip({ nodes, links: [], stickers: [] }, clip, { at, parent: 'g', makeId: counter() })
@@ -158,8 +214,16 @@ describe('pasting a clip', () => {
 
   it('rebuilds a copied group with its nesting under the new ids', () => {
     const nodes = normalize([group('g', 0, 0), group('inner', 40, 100, 'g'), task('a', 40, 100, 'inner')])
-    const clip = copySelection({ nodes, links: [], stickers: [] }, { nodes: new Set(['g']), stickers: new Set() }, 'source')!
-    const pasted = pasteClip({ nodes, links: [], stickers: [] }, clip, { at: { x: 2000, y: 0 }, parent: null, makeId: counter() })
+    const clip = copySelection(
+      { nodes, links: [], stickers: [] },
+      { nodes: new Set(['g']), stickers: new Set() },
+      'source',
+    )!
+    const pasted = pasteClip({ nodes, links: [], stickers: [] }, clip, {
+      at: { x: 2000, y: 0 },
+      parent: null,
+      makeId: counter(),
+    })
     const nodeMap = byId(pasted.nodes)
     const copiedTask = pasted.nodes.find((node) => node.type === 'task' && node.id.startsWith('new'))!
     const copiedInner = nodeMap.get(copiedTask.parentId!)!
@@ -171,7 +235,11 @@ describe('pasting a clip', () => {
 
   it('pastes the same clip again under different ids', () => {
     const nodes = original()
-    const clip = copySelection({ nodes, links, stickers: [] }, { nodes: new Set(['a', 'b']), stickers: new Set() }, 'source')!
+    const clip = copySelection(
+      { nodes, links, stickers: [] },
+      { nodes: new Set(['a', 'b']), stickers: new Set() },
+      'source',
+    )!
     const makeId = counter()
     const first = pasteClip({ nodes, links, stickers: [] }, clip, { at: { x: 0, y: 500 }, parent: null, makeId })
     const second = pasteClip(first, clip, { at: { x: 0, y: 900 }, parent: null, makeId })
@@ -182,9 +250,17 @@ describe('pasting a clip', () => {
 
   it('draws again when a new id is already taken', () => {
     const nodes = original()
-    const clip = copySelection({ nodes, links: [], stickers: [] }, { nodes: new Set(['a']), stickers: new Set() }, 'source')!
+    const clip = copySelection(
+      { nodes, links: [], stickers: [] },
+      { nodes: new Set(['a']), stickers: new Set() },
+      'source',
+    )!
     const ids = ['a', 'b', 'fresh']
-    const pasted = pasteClip({ nodes, links: [], stickers: [] }, clip, { at: { x: 0, y: 500 }, parent: null, makeId: () => ids.shift()! })
+    const pasted = pasteClip({ nodes, links: [], stickers: [] }, clip, {
+      at: { x: 0, y: 500 },
+      parent: null,
+      makeId: () => ids.shift()!,
+    })
 
     expect(pasted.nodes.map((node) => node.id)).toEqual(['a', 'b', 'c', 'fresh'])
   })
@@ -195,8 +271,16 @@ describe('pasting a clip', () => {
       { id: 'on-a', kind: '🔥', x: 10, y: 10, tilt: 0, on: 'a' },
       { id: 'loose', kind: '🎉', x: 100, y: 100, tilt: 3 },
     ]
-    const clip = copySelection({ nodes, links: [], stickers }, { nodes: new Set(['a']), stickers: new Set(['loose']) }, 'source')!
-    const pasted = pasteClip({ nodes, links: [], stickers }, clip, { at: { x: 0, y: 500 }, parent: null, makeId: counter() })
+    const clip = copySelection(
+      { nodes, links: [], stickers },
+      { nodes: new Set(['a']), stickers: new Set(['loose']) },
+      'source',
+    )!
+    const pasted = pasteClip({ nodes, links: [], stickers }, clip, {
+      at: { x: 0, y: 500 },
+      parent: null,
+      makeId: counter(),
+    })
     const [onCopy, looseCopy] = pasted.stickers.slice(2)
 
     expect(onCopy).toMatchObject({ on: 'new0', x: 10, y: 10 })
@@ -222,9 +306,18 @@ describe('cutting a clip', () => {
   })
 
   it('takes a group with its contents, and pasting the cut brings it all back', () => {
-    const nodes = normalize([group('g', 0, 0), task('a', 40, 100, 'g'), task('b', 300, 100, 'g'), task('outside', 900, 0)])
+    const nodes = normalize([
+      group('g', 0, 0),
+      task('a', 40, 100, 'g'),
+      task('b', 300, 100, 'g'),
+      task('outside', 900, 0),
+    ])
     const links = [link('a', 'b'), link('b', 'outside')]
-    const clip = copySelection({ nodes, links, stickers: [] }, { nodes: new Set(['g']), stickers: new Set() }, 'source')!
+    const clip = copySelection(
+      { nodes, links, stickers: [] },
+      { nodes: new Set(['g']), stickers: new Set() },
+      'source',
+    )!
     const cut = cutClip({ nodes, links, stickers: [] }, clip)
 
     expect(cut.nodes.map((node) => node.id)).toEqual(['outside'])
@@ -239,7 +332,11 @@ describe('cutting a clip', () => {
 describe('duplicating', () => {
   it('lands the copy offset from the original, in the group they share', () => {
     const nodes = normalize([group('g', 0, 0), task('a', 40, 100, 'g')])
-    const clip = copySelection({ nodes, links: [], stickers: [] }, { nodes: new Set(['a']), stickers: new Set() }, 'source')!
+    const clip = copySelection(
+      { nodes, links: [], stickers: [] },
+      { nodes: new Set(['a']), stickers: new Set() },
+      'source',
+    )!
     const pasted = pasteClip({ nodes, links: [], stickers: [] }, clip, {
       at: { x: clip.bounds.x + DUPLICATE_OFFSET, y: clip.bounds.y + DUPLICATE_OFFSET },
       parent: clip.parent,
@@ -260,7 +357,11 @@ describe('moving a clip to another workspace', () => {
 
   const clipWith = (): Clip =>
     copy(
-      [image('picture', 0, 0, asset), group('g', 400, 0, undefined, { cover, background: '#ff0000' }), task('inside', 440, 100, 'g')],
+      [
+        image('picture', 0, 0, asset),
+        group('g', 400, 0, undefined, { cover, background: '#ff0000' }),
+        task('inside', 440, 100, 'g'),
+      ],
       [],
       ['picture', 'g'],
     )

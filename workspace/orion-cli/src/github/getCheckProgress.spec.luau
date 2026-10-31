@@ -26,7 +26,9 @@ test.case("check progress is waiting while every unfinished check is queued", fu
 	assert.eq(
 		getCheckProgress(
 			rollup(
-				[[{"contexts":{"checkRunCountsByState":[{"state":"QUEUED","count":2},{"state":"SUCCESS","count":4},{"state":"IN_PROGRESS","count":0}],"statusContextCountsByState":[{"state":"EXPECTED","count":1}]}}]]
+				[[{"contexts":{"checkRunCountsByState":[{"state":"QUEUED","count":2},{"state":"SUCCESS",]]
+					.. [["count":4},{"state":"IN_PROGRESS","count":0}],]]
+					.. [["statusContextCountsByState":[{"state":"EXPECTED","count":1}]}}]]
 			)
 		),
 		"waiting"

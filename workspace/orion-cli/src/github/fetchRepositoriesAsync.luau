@@ -61,7 +61,8 @@ local function fetchRepositoriesAsync(doc: Doc, run: CommandRunner): { FoundRepo
 			for index, repo in batch do
 				table.insert(
 					parts,
-					`r{index}: repository(owner: {json.serialize(repo.owner)}, name: {json.serialize(repo.name)}) \{ databaseId nameWithOwner }`
+					`r{index}: repository(owner: {json.serialize(repo.owner)}, name: `
+						.. `{json.serialize(repo.name)}) \{ databaseId nameWithOwner }`
 				)
 			end
 

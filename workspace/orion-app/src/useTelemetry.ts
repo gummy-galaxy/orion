@@ -19,7 +19,9 @@ export function useTelemetry(): [TelemetryStatus | null, (enabled: boolean) => v
   }, [])
 
   const choose = useCallback((enabled: boolean) => {
-    chooseTelemetry(enabled).then(setStatus, (error: unknown) => console.error('Could not save the telemetry choice', error))
+    chooseTelemetry(enabled).then(setStatus, (error: unknown) =>
+      console.error('Could not save the telemetry choice', error),
+    )
   }, [])
 
   return [status, choose]

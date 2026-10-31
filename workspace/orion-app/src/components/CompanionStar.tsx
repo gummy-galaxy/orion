@@ -22,7 +22,8 @@ export function CompanionStar({ face = false }: { face?: boolean }) {
 
   return (
     <svg viewBox="-110 -190 220 380" aria-hidden="true">
-      {/* The edge draws the shape again with a wide stroke underneath, so the outline traces the points and core as one. */}
+      {/* The edge draws the shape again with a wide stroke underneath, so the outline traces the points and core
+          as one. */}
       <g className="companion-edge">
         <path d={OUTLINE_PATH} />
         <circle r={coreRadius} />
@@ -32,7 +33,14 @@ export function CompanionStar({ face = false }: { face?: boolean }) {
         <circle r={coreRadius} />
       </g>
       {face && (
-        <g className="eyes" fill="none" stroke="currentColor" strokeWidth={11} strokeLinecap="round" strokeLinejoin="round">
+        <g
+          className="eyes"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={11}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <CompanionEye side="l" x={-24} />
           <CompanionEye side="r" x={24} />
         </g>
