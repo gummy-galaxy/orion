@@ -17,7 +17,7 @@ on:
       - "!workspace/orion-app/scripts/**"
       - .lute/report/init.luau
       - .lute/report/storybook.luau
-      - workspace/orion-cli/src/storybook/**
+      - .lute/lib/storybook/**
       - rokit.toml
       - .github/workflows/storybook.yml
   push:
