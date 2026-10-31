@@ -1,7 +1,5 @@
 local appendQueue = require("@root/telemetry/appendQueue")
-local getBuild = require("@root/telemetry/getBuild")
-local getQuietReason = require("@root/telemetry/getQuietReason")
-local getStatus = require("@root/telemetry/getStatus")
+local canQueue = require("@root/telemetry/canQueue")
 local telemetryTypes = require("@root/telemetry/types")
 
 type Build = telemetryTypes.Build
@@ -17,7 +15,7 @@ local function queueEvents(
 	environment: { [string]: string },
 	build: Build?
 ): number
-	if not getStatus(root, environment).enabled or getQuietReason(environment, build or getBuild()) then
+	if not canQueue(root, environment, build) then
 		return 0
 	end
 

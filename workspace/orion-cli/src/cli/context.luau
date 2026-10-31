@@ -18,6 +18,9 @@ export type Dependencies = {
 	workspace: string?,
 	now: (() -> string)?,
 	exit: ((code: number) -> ())?,
+	-- Called once the arguments name a command, with its name, such as
+	-- "card set", and the flags it was given, for usage telemetry.
+	onCommand: ((command: string, flags: string) -> ())?,
 }
 
 export type Context = {
