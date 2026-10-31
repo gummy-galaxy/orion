@@ -435,7 +435,7 @@ Every tool takes `canvas`, as every command takes `--canvas`, and ignores it whe
 
 When the data folder's layout changes, Orion moves an older folder into the new one the first time it runs, rather than asking people to move it by hand. Renaming workspaces to canvases was the first: `workspaces.json` became `canvases.json` and `workspaces/<name>/` became `canvases/<name>/`. A move keeps a backup of anything it rewrites, picks up where it left off if it stopped partway, and refuses while another build of Orion is still serving the folder.
 
-These moves live in `workspace/orion-cli/src/migrations/`, whose README dates each one. Nobody on 0.1.0 or later has an older folder, so they're all removed at that release, and the code that runs them stays for the next layout change, as "Aliases and migrations share one lifecycle" says.
+These moves live in `workspace/orion-cli/src/storage/migrations/`, whose README dates each one. Nobody on 0.1.0 or later has an older folder, so they're all removed at that release, and the code that runs them stays for the next layout change, as "Aliases and migrations share one lifecycle" says.
 
 Moves that would have to guess are the exception. Upgrading a version 1 data file meant guessing the GitHub owner of every short repository name, so Orion refuses a version 1 file instead, with a message saying how to upgrade it with an older build.
 
@@ -623,6 +623,14 @@ A Luau function that waits on a `CommandRunner`, directly or through a call, end
 
 2026-10-25 · [#627](https://github.com/vocksel/orion/pull/627)
 
+### The CLI's source is grouped in layers
+
+`workspace/orion-cli/src` holds a few top-level folders, each a layer: `common` for helpers with no Orion knowledge, `canvas` for the model and pure changes to it, `storage` for the data folder on disk, `sources` and `telemetry` for the outside world, and `cli` and `server` for the surfaces. A folder requires from its own layer or one below it. Types, constants, and config tables, such as `types.luau`, `geometry.luau`, and `fileNames.luau`, stay at the top of `src` under every layer, beside `testing.luau`. Requires keep the one `@root` alias, with no alias per layer. MCP lives in `cli/mcp`, since its tools are built from the CLI's commands. Code that only `.lute` scripts use lives in `.lute/lib`, not in `src`.
+
+**Why:** with dozens of folders and loose files at the top of `src`, nothing said where a module belonged, and GitHub code sat in two places. A layer answers where a new module goes and which way its requires may point, and it leaves the requires that point up, such as the canvas model reading GitHub pull request facts, easy to spot.
+
+2026-10-31 · [#707](https://github.com/gummy-galaxy/orion/pull/707)
+
 ## Docs
 
 ### The docs site has Guide, Reference, and Development sections
@@ -650,6 +658,22 @@ The app asks once on launch, and Settings changes the answer. `orion telemetry o
 **Why:** consent an agent can give isn't the person's consent. A prompt from the CLI would hang an agent that runs it, so the CLI stays silent and sends nothing until someone opts in.
 
 2026-10-28 · [#507](https://github.com/gummy-galaxy/orion/issues/507), [#433](https://github.com/gummy-galaxy/orion/issues/433)
+
+### An event needs a reason from outside
+
+A new usage event joins the catalog only when something outside pushes for it: a decision it would change, a target it measures, such as 80% of new installs reaching a canvas, or a problem seen in real use. Performance on people's machines comes first: frame times, CPU, memory, crashes, and time to interactive. Events carry counts, durations, and Orion's own names, never content.
+
+**Why:** every event lengthens the list people read before they opt in, needs code to emit it, and adds to what PostHog stores. Collecting only what a decision needs keeps that list short enough to read and keeps telemetry within what people agreed to. Screen views were left out on this basis until a specific question needs them.
+
+2026-10-30 · [#624](https://github.com/gummy-galaxy/orion/issues/624), [#692](https://github.com/gummy-galaxy/orion/issues/692), [#433](https://github.com/gummy-galaxy/orion/issues/433)
+
+### People can delete what they've shared
+
+Settings and `orion telemetry delete` erase every event sent under the install ID, separately from opting out. Opting out stops sending but keeps the ID, so the data can still be deleted afterward. Deleting forgets the ID, and opting in again starts a new one. Erasure ships before any release that sends events.
+
+**Why:** consent that can be withdrawn should be able to take back what was given too, and data protection law such as GDPR expects that. Keeping deletion apart from opting out means stopping doesn't silently discard data someone was happy to share, and deleting stays possible after they stop.
+
+2026-10-30 · [#691](https://github.com/gummy-galaxy/orion/issues/691), [#433](https://github.com/gummy-galaxy/orion/issues/433)
 
 ## Releases
 

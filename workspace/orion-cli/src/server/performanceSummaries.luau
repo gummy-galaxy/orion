@@ -1,10 +1,12 @@
 local task = require("@std/task")
 
-local queueEvents = require("@root/telemetry/queueEvents")
+local formatTimestamp = require("@root/common/time/formatTimestamp")
+local queueTelemetryEvents = require("@root/telemetry/queueTelemetryEvents")
 local summarizeDurations = require("@root/telemetry/summarizeDurations")
 local telemetryTypes = require("@root/telemetry/types")
+local types = require("@root/types")
 
-type Build = telemetryTypes.Build
+type Build = types.Build
 type QueuedEvent = telemetryTypes.QueuedEvent
 
 export type Metric = "derive" | "server_flush"
@@ -63,7 +65,7 @@ function performanceSummaries.create(root: string, options: Options)
 	-- the next stretch. Returns how many were queued.
 	function summaries.queue(): number
 		local events: { QueuedEvent } = {}
-		local timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
+		local timestamp = formatTimestamp()
 
 		for _, metric in METRICS do
 			local summary = summarizeDurations(samples[metric])
@@ -88,7 +90,7 @@ function performanceSummaries.create(root: string, options: Options)
 			counts[metric] = 0
 		end
 
-		return queueEvents(root, events, options.environment, options.build)
+		return queueTelemetryEvents(root, events, options.environment, options.build)
 	end
 
 	function summaries.start()

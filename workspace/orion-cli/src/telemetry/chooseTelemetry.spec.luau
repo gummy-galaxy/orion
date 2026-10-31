@@ -1,8 +1,9 @@
 local test = require("@std/test")
 
+local appendTelemetryQueue = require("@root/telemetry/appendTelemetryQueue")
 local chooseTelemetry = require("@root/telemetry/chooseTelemetry")
-local getBuild = require("@root/telemetry/getBuild")
-local takeQueue = require("@root/telemetry/takeQueue")
+local drainTelemetryQueue = require("@root/telemetry/drainTelemetryQueue")
+local getBuild = require("@root/common/getBuild")
 local testing = require("@root/testing")
 
 local NOW = "2026-10-30T12:00:00Z"
@@ -14,7 +15,7 @@ test.case("opting in queues one event saying where", function(assert)
 	chooseTelemetry(root, true, "cli", {}, RELEASE)
 	chooseTelemetry(root, true, "app", {}, RELEASE)
 
-	local events = takeQueue(root, NOW)
+	local events = drainTelemetryQueue(root, NOW)
 
 	assert.eq(#events, 1)
 	assert.eq(events[1].name, "telemetry_opted_in")
@@ -26,15 +27,29 @@ test.case("opting out queues nothing", function(assert)
 
 	chooseTelemetry(root, false, "app", {}, RELEASE)
 
-	assert.eq(#takeQueue(root, NOW), 0)
+	assert.eq(#drainTelemetryQueue(root, NOW), 0)
+end)
+
+test.case("opting out deletes events still waiting to be sent", function(assert)
+	local root = testing.directory("choose-telemetry-clear")
+
+	chooseTelemetry(root, true, "cli", {}, RELEASE)
+	appendTelemetryQueue(root, { { name = "cli_command_ran", timestamp = NOW, properties = {} } })
+	chooseTelemetry(root, false, "cli", {}, RELEASE)
+	chooseTelemetry(root, true, "cli", {}, RELEASE)
+
+	local events = drainTelemetryQueue(root, NOW)
+
+	assert.eq(#events, 1)
+	assert.eq(events[1].name, "telemetry_opted_in")
 end)
 
 test.case("dev builds and overrides record the choice but queue nothing", function(assert)
 	local devRoot = testing.directory("choose-telemetry-dev")
 	assert.eq(chooseTelemetry(devRoot, true, "app", {}, getBuild("dev")).choice, "on")
-	assert.eq(#takeQueue(devRoot, NOW), 0)
+	assert.eq(#drainTelemetryQueue(devRoot, NOW), 0)
 
 	local overrideRoot = testing.directory("choose-telemetry-override")
 	assert.eq(chooseTelemetry(overrideRoot, true, "cli", { DO_NOT_TRACK = "1" }, RELEASE).choice, "on")
-	assert.eq(#takeQueue(overrideRoot, NOW), 0)
+	assert.eq(#drainTelemetryQueue(overrideRoot, NOW), 0)
 end)

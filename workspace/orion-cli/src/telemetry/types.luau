@@ -18,12 +18,15 @@ export type Status = {
 	enabled: boolean,
 }
 
--- A property's value. Events carry counts, durations, flags, and Orion's own
--- names, never anything nested.
+-- A property's value. Events carry counts, durations, flags, and names that
+-- Orion defines, such as a command or tool name. They never carry what
+-- someone wrote, and never a nested value.
 export type PropertyValue = string | number | boolean
 
--- One event waiting in the queue, in the shape the backend takes. A session id
--- ties app events to the launch they came from; CLI and MCP events have none.
+-- One event waiting in the queue, in the shape the backend takes. Events from
+-- the app carry a session id, which is the same from launch to quit, so one
+-- session's events can be read together. Events from CLI commands and the MCP
+-- server have none.
 export type QueuedEvent = {
 	name: string,
 	sessionId: string?,
@@ -31,11 +34,16 @@ export type QueuedEvent = {
 	properties: { [string]: PropertyValue },
 }
 
--- The build every batch is sent from. "dev" builds never send.
-export type Build = {
-	version: string,
-	commit: string,
-	channel: "release" | "dev",
+-- How big a batch the backend takes, which it publishes at its `config`
+-- endpoint.
+export type Limits = {
+	maxEvents: number,
+	maxBytes: number,
+}
+
+-- What the backend tells a sender before it sends, from its `config` endpoint.
+export type TelemetryConfig = {
+	limits: Limits,
 }
 
 return nil

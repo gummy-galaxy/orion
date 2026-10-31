@@ -1,7 +1,7 @@
 local cli = require("@batteries/cli")
 local test = require("@std/test")
 
-local addArgument = require("@root/cli/addArgument")
+local addArgument = require("@root/cli/arguments/addArgument")
 local buildTools = require("@root/cli/mcp/catalog/buildTools")
 local cliTypes = require("@root/cli/types")
 local definitions = require("@root/cli/definitions")

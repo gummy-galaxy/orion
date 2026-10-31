@@ -9,8 +9,8 @@ local json = require("@std/json")
 local path = require("@std/path")
 local process = require("@std/process")
 
-local command = require("@cli/command")
-local upsertCommentAsync = require("@cli/github/upsertCommentAsync")
+local command = require("@cli/common/process/command")
+local upsertCommentAsync = require("@cli/sources/github/api/upsertCommentAsync")
 
 type Metric = { total: number, covered: number, pct: number }
 

@@ -15,11 +15,11 @@ local process = require("@std/process")
 local buildTools = require("@cli/cli/mcp/catalog/buildTools")
 local cliModule = require("@cli/cli")
 local describeCommands = require("@cli/cli/describeCommands")
-local getArgumentLabel = require("@cli/cli/getArgumentLabel")
+local getArgumentLabel = require("@cli/cli/arguments/getArgumentLabel")
 local mcpTypes = require("@cli/cli/mcp/types")
-local querySyntax = require("@cli/query/querySyntax")
-local refForms = require("@cli/adapters/refForms")
-local selectors = require("@cli/query/selectors")
+local querySyntax = require("@cli/canvas/query/querySyntax")
+local refForms = require("@cli/sources/refForms")
+local selectors = require("@cli/canvas/query/selectors")
 local telemetryEvents = require("@cli/telemetry/events")
 
 type CommandDescription = describeCommands.CommandDescription
@@ -465,9 +465,9 @@ local function renderTelemetry(): string
 		"",
 		"Nothing goes straight from the app, a command, or an agent to the network. "
 			.. "Events wait in a small queue in Orion's data folder, and `orion server start`, which the app runs, "
-			.. "sends them about once a minute. A batch that can't be sent is dropped, never retried. "
+			.. "sends them periodically. A batch that can't be sent is dropped, never retried. "
 			.. "Setting `DO_NOT_TRACK=1` or `ORION_TELEMETRY=0` keeps everything off whatever was chosen, "
-			.. "and a machine that isn't sharing keeps nothing to send later. Dev builds, perf runs, and CI never send.",
+			.. "and a machine that isn't sharing keeps nothing to send later.",
 		"",
 	}
 

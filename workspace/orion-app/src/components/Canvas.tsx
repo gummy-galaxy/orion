@@ -83,6 +83,7 @@ import {
 import { DebugBar, type MotionSettings } from './DebugBar'
 import { DetailStepper } from './DetailStepper'
 import { DetailsPanel } from './DetailsPanel'
+import { DETAILS_TABS, type DetailsTab } from '../detailsTabs'
 import { ResizeHandle } from './ResizeHandle'
 import { EmptyCanvas } from './EmptyCanvas'
 import { ComponentInspector } from './ComponentInspector'
@@ -144,6 +145,7 @@ import {
   type Workspaces,
 } from '../persist'
 import { Sidebar } from './Sidebar'
+import { TableTab } from './TableTab'
 import { Settings, type SettingsSection } from './Settings'
 import { TelemetryPrompt } from './TelemetryPrompt'
 import {
@@ -286,6 +288,7 @@ const SIDEBAR_KEY = 'orion:sidebar'
 const DETAILS_KEY = 'orion:details'
 const SIDEBAR_WIDTH_KEY = 'orion:sidebar-width'
 const DETAILS_WIDTH_KEY = 'orion:details-width'
+const DETAILS_TAB_KEY = 'orion:details-tab'
 const SIDEBAR_WIDTH = { min: 200, max: 480 }
 const DETAILS_WIDTH = { min: 320, max: 720 }
 const DEBUG_KEY = 'orion:debug'
@@ -426,6 +429,16 @@ function readFlag(key: string, fallback: boolean) {
 
 function writeFlag(key: SavedSetting, value: boolean) {
   saveSettings({ [key]: value ? '1' : '0' })
+}
+
+function readDetailsTab(): DetailsTab {
+  try {
+    const stored = localStorage.getItem(DETAILS_TAB_KEY)
+
+    return DETAILS_TABS.find((entry) => entry.id === stored)?.id ?? 'details'
+  } catch {
+    return 'details'
+  }
 }
 
 /**
@@ -569,15 +582,28 @@ export function Canvas() {
   const [showDetails, setShowDetails] = useState(() => readFlag(DETAILS_KEY, true))
   const [sidebarWidth, setSidebarWidth] = useState(() => readWidth(SIDEBAR_WIDTH_KEY))
   const [detailsWidth, setDetailsWidth] = useState(() => readWidth(DETAILS_WIDTH_KEY))
-  // Renaming and editing happen in the details panel, so starting either brings a hidden panel back.
-  const setEditing = useCallback((id: string | null) => {
-    setEditingState(id)
-
-    if (id === null || readFlag(DETAILS_KEY, true)) return
-
-    setShowDetails(true)
-    writeFlag('details', true)
+  const [detailsTab, setDetailsTab] = useState(readDetailsTab)
+  const chooseDetailsTab = useCallback((tab: DetailsTab) => {
+    setDetailsTab(tab)
+    saveSettings({ 'details-tab': tab })
   }, [])
+  // Renaming and editing happen in the details panel's Details tab, so starting either brings a hidden panel back on
+  // that tab.
+  const setEditing = useCallback(
+    (id: string | null) => {
+      setEditingState(id)
+
+      if (id === null) return
+
+      if (readDetailsTab() !== 'details') chooseDetailsTab('details')
+
+      if (readFlag(DETAILS_KEY, true)) return
+
+      setShowDetails(true)
+      writeFlag('details', true)
+    },
+    [chooseDetailsTab],
+  )
   const [appearance, setAppearance] = useState(readAppearance)
   /** Shareable themes from the data folder, reloaded when settings or the palette open so a new file shows up. */
   const [themes, setThemes] = useState<Theme[]>(cachedThemes)
@@ -2278,14 +2304,17 @@ export function Canvas() {
     [],
   )
 
-  /** Selects the cards, opens the innermost group that holds them all, and frames them, as one step in history. */
+  /**
+   * Selects the cards, opens the innermost group that holds them all, or `within` when it's given, and frames them, as
+   * one step in history.
+   */
   const showReveal = useCallback(
-    (reveal: Reveal) => {
+    (reveal: Reveal, within?: string | null) => {
       const found = reveal.ids.filter((id) => latest.current.nodes.some((node) => node.id === id))
 
       if (!found.length) return
 
-      const target = revealRoot(latest.current.nodes, found)
+      const target = within === undefined ? revealRoot(latest.current.nodes, found) : within
       const nextDetail = revealDetail(latest.current.nodes, target, found, detail)
       const bounds = revealBounds(latest.current.nodes, found, cardSize)
       const box = canvasRef.current?.getBoundingClientRect()
@@ -2319,6 +2348,12 @@ export function Canvas() {
       })
     },
     [remember, detail, cardSize, root, reactFlow, setPinned, setNodes, clearStickerPicks],
+  )
+
+  // The Table tab lists the open group's cards, so landing on one keeps that group open and the table's scope with it.
+  const revealFromTable = useCallback(
+    (id: string) => showReveal({ canvas: workspace.current, ids: [id], selectOnly: false }, root),
+    [showReveal, root],
   )
 
   // Waits for the canvas to finish loading, since its cards aren't on screen before then.
@@ -3945,6 +3980,15 @@ export function Canvas() {
       run: () => toggleDetails(!showDetails),
     },
     {
+      id: 'table-tab',
+      label: showDetails && detailsTab === 'table' ? 'Show details tab' : 'Show cards as a table',
+      detail: 'Every card in the open group, in the details panel',
+      run: () => {
+        chooseDetailsTab(showDetails && detailsTab === 'table' ? 'details' : 'table')
+        toggleDetails(true)
+      },
+    },
+    {
       id: 'sync',
       label: 'Sync with GitHub',
       detail: 'Refresh pull request status now',
@@ -4038,6 +4082,8 @@ export function Canvas() {
       ungroup={selection ? () => doUngroup([group.id]) : undefined}
     />
   )
+
+  const tableScope = root ? (map.get(root)?.data as ClusterData | undefined)?.label || 'Untitled group' : 'All work'
 
   // The panel follows the focused card, then the selection, then a picked link, and otherwise describes the open level.
   const details = focused ? (
@@ -4601,8 +4647,15 @@ export function Canvas() {
           />
         )}
         {showDetails && (
-          <DetailsPanel width={detailsWidth ?? undefined} hide={() => toggleDetails(false)}>
-            {details}
+          <DetailsPanel
+            width={detailsWidth ?? undefined}
+            tab={detailsTab}
+            chooseTab={chooseDetailsTab}
+            hide={() => toggleDetails(false)}
+          >
+            {detailsTab === 'table'
+              ? ready && <TableTab root={root} scope={tableScope} reveal={revealFromTable} />
+              : details}
           </DetailsPanel>
         )}
         {paletteQuery !== null && (

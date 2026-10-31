@@ -1,18 +1,18 @@
 local test = require("@std/test")
 
 local deriveTimed = require("@root/server/deriveTimed")
-local getBuild = require("@root/telemetry/getBuild")
+local drainTelemetryQueue = require("@root/telemetry/drainTelemetryQueue")
+local getBuild = require("@root/common/getBuild")
 local performanceSummaries = require("@root/server/performanceSummaries")
-local takeQueue = require("@root/telemetry/takeQueue")
 local testing = require("@root/testing")
-local writeConsent = require("@root/telemetry/writeConsent")
+local writeTelemetryConsent = require("@root/telemetry/writeTelemetryConsent")
 
 local NOW = "2026-10-30T12:00:00Z"
 local RELEASE = getBuild("e87813e")
 
 test.case("each timed metric is summarized with the canvas size, then starts over", function(assert)
 	local root = testing.directory("performance-summaries")
-	writeConsent(root, true)
+	writeTelemetryConsent(root, true)
 	local summaries = performanceSummaries.create(root, { environment = {}, build = RELEASE })
 
 	deriveTimed(
@@ -24,7 +24,7 @@ test.case("each timed metric is summarized with the canvas size, then starts ove
 
 	assert.eq(summaries.queue(), 2)
 
-	local events = takeQueue(root, NOW)
+	local events = drainTelemetryQueue(root, NOW)
 	assert.eq(events[1].properties.metric, "derive")
 	assert.eq(events[1].properties.sample_count, 1)
 	assert.eq(events[1].properties.card_count, 2)
@@ -35,7 +35,7 @@ end)
 
 test.case("closing queues the last stretch once", function(assert)
 	local root = testing.directory("performance-summaries-close")
-	writeConsent(root, true)
+	writeTelemetryConsent(root, true)
 	local summaries = performanceSummaries.create(root, { environment = {}, build = RELEASE })
 
 	summaries.record("derive", 3)
@@ -43,14 +43,14 @@ test.case("closing queues the last stretch once", function(assert)
 	summaries.record("derive", 4)
 	summaries.close()
 
-	local events = takeQueue(root, NOW)
+	local events = drainTelemetryQueue(root, NOW)
 	assert.eq(#events, 1)
 	assert.eq(events[1].properties.p50_ms, 3)
 end)
 
 test.case("samples past the cap still count toward sample_count", function(assert)
 	local root = testing.directory("performance-summaries-cap")
-	writeConsent(root, true)
+	writeTelemetryConsent(root, true)
 	local summaries = performanceSummaries.create(root, { environment = {}, build = RELEASE })
 
 	for _ = 1, performanceSummaries.MAX_SAMPLES + 5 do
@@ -58,5 +58,5 @@ test.case("samples past the cap still count toward sample_count", function(asser
 	end
 	summaries.queue()
 
-	assert.eq(takeQueue(root, NOW)[1].properties.sample_count, performanceSummaries.MAX_SAMPLES + 5)
+	assert.eq(drainTelemetryQueue(root, NOW)[1].properties.sample_count, performanceSummaries.MAX_SAMPLES + 5)
 end)

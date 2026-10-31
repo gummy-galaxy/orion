@@ -1,14 +1,22 @@
-local queueEvents = require("@root/telemetry/queueEvents")
-local readConsent = require("@root/telemetry/readConsent")
+local clearTelemetryQueue = require("@root/telemetry/clearTelemetryQueue")
+local formatTimestamp = require("@root/common/time/formatTimestamp")
+local queueTelemetryEvents = require("@root/telemetry/queueTelemetryEvents")
+local readTelemetryConsent = require("@root/telemetry/readTelemetryConsent")
 local telemetryTypes = require("@root/telemetry/types")
-local writeConsent = require("@root/telemetry/writeConsent")
+local types = require("@root/types")
+local writeTelemetryConsent = require("@root/telemetry/writeTelemetryConsent")
 
-type Build = telemetryTypes.Build
+type Build = types.Build
 type Consent = telemetryTypes.Consent
 
--- Records the person's answer from the app or the CLI. Opting in queues one
--- `telemetry_opted_in` event saying where the choice was made, and choosing
--- "on" again doesn't queue another. Opting out sends nothing.
+-- Records the person's answer from the app or the CLI.
+--
+-- Turning sharing on queues a `telemetry_opted_in` event saying where the
+-- choice was made. Choosing "on" while it's already on queues nothing more.
+-- Like any event, it isn't queued in a dev build or under an override such as
+-- `DO_NOT_TRACK`, though the choice is still saved.
+--
+-- Turning sharing off deletes any events still waiting to be sent.
 local function chooseTelemetry(
 	root: string,
 	enabled: boolean,
@@ -16,14 +24,16 @@ local function chooseTelemetry(
 	environment: { [string]: string },
 	build: Build?
 ): Consent
-	local previous = readConsent(root)
-	local consent = writeConsent(root, enabled)
+	local previous = readTelemetryConsent(root)
+	local consent = writeTelemetryConsent(root, enabled)
 
-	if enabled and previous.choice ~= "on" then
-		queueEvents(root, {
+	if not enabled then
+		clearTelemetryQueue(root)
+	elseif previous.choice ~= "on" then
+		queueTelemetryEvents(root, {
 			{
 				name = "telemetry_opted_in",
-				timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ") :: string,
+				timestamp = formatTimestamp(),
 				properties = { surface = surface },
 			},
 		}, environment, build)

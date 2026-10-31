@@ -44,18 +44,22 @@ export async function chooseTelemetry(enabled: boolean): Promise<TelemetryStatus
 /** Whether to ask on launch: nobody has answered, and no override has already answered for them. */
 export const shouldAskTelemetry = (status: TelemetryStatus | null) => status?.choice === 'undecided' && !status.override
 
-/** One usage event from the catalog. Properties hold counts, durations, flags, and Orion's own names, never content. */
+/**
+ * One usage event, named from the list Orion publishes at TELEMETRY_EVENTS_URL. Its properties hold counts, durations,
+ * flags, and names Orion defines, such as a tool name. They never hold what someone wrote.
+ */
 export type TelemetryEvent = {
   name: string
   properties?: Record<string, string | number | boolean>
 }
 
-/** Runs from launch to quit, so every event from one session of the app can be read together. */
+/** An id for this run of the app, from launch to quit. Every event carries it, so a session's events read together. */
 export const TELEMETRY_SESSION_ID = crypto.randomUUID()
 
 /**
- * Hands events to `orion server start`, which queues them only when this machine shares usage data and sends them in
- * the background. Sending never gets in the way, so a failure is dropped without a word.
+ * Hands events to `orion server start`, which queues them when this machine shares usage data and sends them on to the
+ * telemetry backend later. A failure only logs a warning in the console and never throws, so callers can send without
+ * awaiting the result.
  */
 export async function sendTelemetryEvents(events: TelemetryEvent[]): Promise<void> {
   if (events.length === 0) return
@@ -66,13 +70,15 @@ export async function sendTelemetryEvents(events: TelemetryEvent[]): Promise<voi
   })
 
   try {
-    await fetch(`${API}/events`, {
+    const response = await fetch(`${API}/events`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body,
       keepalive: true,
     })
-  } catch {
-    // Telemetry is best effort.
+
+    if (!response.ok) console.warn('Could not queue usage events', response.status)
+  } catch (error) {
+    console.warn('Could not queue usage events', error)
   }
 }
