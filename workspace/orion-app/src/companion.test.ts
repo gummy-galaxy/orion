@@ -33,7 +33,12 @@ describe('describeCard', () => {
 
 describe('clipRect', () => {
   it('trims a rectangle to the view', () => {
-    expect(clipRect({ left: -50, top: 20, right: 100, bottom: 600 }, 400, 300)).toEqual({ left: 0, top: 20, right: 100, bottom: 300 })
+    expect(clipRect({ left: -50, top: 20, right: 100, bottom: 600 }, 400, 300)).toEqual({
+      left: 0,
+      top: 20,
+      right: 100,
+      bottom: 300,
+    })
   })
 
   it('drops a rectangle that barely shows', () => {

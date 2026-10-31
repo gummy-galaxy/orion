@@ -1,6 +1,12 @@
 import type { AppNode, ClusterData } from '../../model'
 
-export const cluster = (id: string, parentId: string | undefined, x: number, y: number, data: Partial<ClusterData> = {}): AppNode => ({
+export const cluster = (
+  id: string,
+  parentId: string | undefined,
+  x: number,
+  y: number,
+  data: Partial<ClusterData> = {},
+): AppNode => ({
   id,
   type: 'cluster',
   parentId,

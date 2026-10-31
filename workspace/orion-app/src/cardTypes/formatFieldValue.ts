@@ -19,7 +19,9 @@ export function formatFieldValue(field: Field, value: FieldValue['value']): stri
   if (field.kind === 'date') {
     const date = new Date(`${String(value)}T00:00:00`)
 
-    return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+    return Number.isNaN(date.getTime())
+      ? String(value)
+      : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
   }
 
   return String(value)

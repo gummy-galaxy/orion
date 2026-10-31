@@ -19,7 +19,15 @@ const GLYPHS: Record<Who, ReactNode> = {
   ),
   ci: (
     <>
-      <circle cx="7.5" cy="7.5" r="3.6" fill="none" stroke="var(--surface-background)" strokeWidth="1.6" strokeDasharray="1.3 1.53" />
+      <circle
+        cx="7.5"
+        cy="7.5"
+        r="3.6"
+        fill="none"
+        stroke="var(--surface-background)"
+        strokeWidth="1.6"
+        strokeDasharray="1.3 1.53"
+      />
       <circle cx="7.5" cy="7.5" r="2.2" fill="none" stroke="var(--surface-background)" strokeWidth="1.4" />
     </>
   ),

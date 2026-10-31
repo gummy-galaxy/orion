@@ -36,13 +36,13 @@ return table.freeze({
 			table.insert(lines, `state {state.name}: {state.label}, counts as {state.means}`)
 		end
 
-		table.insert(
-			lines,
-			`work: {if meaning.isWork then "yes" else "no"} · blocks: {if meaning.canBlock then "yes" else "no"} · done: {if not meaning.canBeDone
-				then "never"
-				elseif meaning.doneWhen == "inputs" then "when its inputs are"
-				else "by its state"}`
-		)
+		local isWork = if meaning.isWork then "yes" else "no"
+		local canBlock = if meaning.canBlock then "yes" else "no"
+		local doneWhen = if not meaning.canBeDone
+			then "never"
+			elseif meaning.doneWhen == "inputs" then "when its inputs are"
+			else "by its state"
+		table.insert(lines, `work: {isWork} · blocks: {canBlock} · done: {doneWhen}`)
 		options.write(table.concat(lines, "\n"))
 	end,
 })

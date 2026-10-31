@@ -1,6 +1,8 @@
 local getCheckFields = require("@root/github/getCheckFields")
 
-local PULL_FIELDS = "number title body url state baseRefName headRefName isDraft mergeable mergeStateStatus headRefOid reviewDecision author { login } updatedAt additions deletions repository { databaseId nameWithOwner } "
+local PULL_FIELDS = "number title body url state baseRefName headRefName isDraft mergeable mergeStateStatus "
+	.. "headRefOid reviewDecision author { login } updatedAt additions deletions repository { databaseId "
+	.. "nameWithOwner } "
 	.. getCheckFields()
 	.. " reviewRequests(first: 20) { totalCount nodes { requestedReviewer { ... on User { login } } } }"
 

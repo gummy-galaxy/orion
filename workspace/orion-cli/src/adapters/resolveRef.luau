@@ -67,7 +67,8 @@ local function resolveRef(input: string, sources: { Source }): ResolvedRef
 
 	if input:match("^https?://") then
 		for _, kind in URL_KINDS do
-			local refFromUrl = getAdapter(kind).refFromUrl
+			local verbs = getAdapter(kind).source
+			local refFromUrl = if verbs then verbs.refFromUrl else nil
 
 			if refFromUrl then
 				local resolved = refFromUrl(input, sources)
@@ -91,7 +92,8 @@ local function resolveRef(input: string, sources: { Source }): ResolvedRef
 	end
 
 	local source = assert(findSource(sources, sourceId), `no source with id "{sourceId}"`)
-	local refFromKey = getAdapter(source.kind).refFromKey
+	local verbs = getAdapter(source.kind).source
+	local refFromKey = if verbs then verbs.refFromKey else nil
 	assert(refFromKey, `{source.kind} sources can't attach refs with source:key; use a URL`)
 
 	local ref = assert(refFromKey(key, source), `"{key}" is not a valid {source.kind} key`)

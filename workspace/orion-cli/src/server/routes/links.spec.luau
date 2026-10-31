@@ -90,5 +90,3 @@ test.case("links route rejects bad requests and reports links it can't use", fun
 	assert.eq(unknown.status, 422)
 	assert.strContains(decode(unknown).error :: string, "no source recognizes")
 end)
-
-return {}

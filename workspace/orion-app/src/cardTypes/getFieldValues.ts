@@ -18,7 +18,9 @@ export function getFieldValues(data: TaskData): FieldValue[] {
 
       seen.add(field.name)
 
-      const stored = CORE_FIELDS.has(field.name) ? (data as Record<string, unknown>)[field.name] : data.fields?.[field.name]
+      const stored = CORE_FIELDS.has(field.name)
+        ? (data as Record<string, unknown>)[field.name]
+        : data.fields?.[field.name]
 
       result.push({ field, type: name, value: (stored as FieldValue['value']) ?? field.default })
     }

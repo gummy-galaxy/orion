@@ -122,7 +122,11 @@ describe('getRefSummary', () => {
 
 describe('getCheckCounts', () => {
   it('returns counts only when the source reported all three', () => {
-    expect(getCheckCounts({ state: 'pending', total: 8, finished: 5, failed: 0 })).toEqual({ total: 8, finished: 5, failed: 0 })
+    expect(getCheckCounts({ state: 'pending', total: 8, finished: 5, failed: 0 })).toEqual({
+      total: 8,
+      finished: 5,
+      failed: 0,
+    })
     expect(getCheckCounts({ state: 'pending', total: 8 })).toBeUndefined()
     expect(getCheckCounts(undefined)).toBeUndefined()
   })
@@ -168,11 +172,19 @@ const rectOf = (nodes: AppNode[], id: string) => {
 }
 
 const overlaps = (first: ReturnType<typeof rectOf>, second: ReturnType<typeof rectOf>) =>
-  first.x < second.x + second.width && second.x < first.x + first.width && first.y < second.y + second.height && second.y < first.y + first.height
+  first.x < second.x + second.width &&
+  second.x < first.x + first.width &&
+  first.y < second.y + second.height &&
+  second.y < first.y + first.height
 
 describe('moveOutOfGroup', () => {
   const nested = () =>
-    normalize([groupNode('outer'), cardNode('keep', 'outer'), groupNode('inner', 'outer', { x: 300, y: 0 }), cardNode('deep', 'inner')])
+    normalize([
+      groupNode('outer'),
+      cardNode('keep', 'outer'),
+      groupNode('inner', 'outer', { x: 300, y: 0 }),
+      cardNode('deep', 'inner'),
+    ])
 
   it('lifts a nested group to its parent level and leaves it where it was', () => {
     const before = nested()
@@ -320,7 +332,12 @@ describe('empty groups', () => {
   })
 
   it('drops the group a moved group leaves empty', () => {
-    const before = normalize([groupNode('outer'), groupNode('solo', 'outer'), cardNode('card', 'solo'), groupNode('empty')])
+    const before = normalize([
+      groupNode('outer'),
+      groupNode('solo', 'outer'),
+      cardNode('card', 'solo'),
+      groupNode('empty'),
+    ])
     const after = moveOutOfGroup(before, 'solo')
 
     expect(byId(after).has('outer')).toBe(false)

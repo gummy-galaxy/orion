@@ -12,13 +12,17 @@ test.case("authored pull requests include every page", function(assert)
 			assert.eq(query:find("after:", 1, true), nil)
 			return testing.result(
 				true,
-				[[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[{"number":1,"state":"OPEN","url":"u1","repository":{"name":"orion","owner":{"login":"vocksel"}}}],"pageInfo":{"hasNextPage":true,"endCursor":"next"}}}}}]]
+				[[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[{"number":1,"state":"OPEN",]]
+					.. [["url":"u1","repository":{"name":"orion","owner":{"login":"vocksel"}}}],]]
+					.. [["pageInfo":{"hasNextPage":true,"endCursor":"next"}}}}}]]
 			)
 		end
 		assert.strContains(query, 'after: "next"')
 		return testing.result(
 			true,
-			[[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[{"number":2,"state":"OPEN","url":"u2","repository":{"name":"orion","owner":{"login":"vocksel"}}}],"pageInfo":{"hasNextPage":false,"endCursor":null}}}}}]]
+			[[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[{"number":2,"state":"OPEN","url":"u2",]]
+				.. [["repository":{"name":"orion","owner":{"login":"vocksel"}}}],]]
+				.. [["pageInfo":{"hasNextPage":false,"endCursor":null}}}}}]]
 		)
 	end)
 	assert.eq(calls, 2)
@@ -41,7 +45,9 @@ test.case("authored pull requests use light fields and halve a page that times o
 
 		return testing.result(
 			true,
-			[[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[{"number":1,"state":"OPEN","url":"u1","repository":{"name":"orion","owner":{"login":"vocksel"}}}],"pageInfo":{"hasNextPage":false}}}}}]]
+			[[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[{"number":1,"state":"OPEN","url":"u1",]]
+				.. [["repository":{"name":"orion","owner":{"login":"vocksel"}}}],]]
+				.. [["pageInfo":{"hasNextPage":false}}}}}]]
 		)
 	end)
 

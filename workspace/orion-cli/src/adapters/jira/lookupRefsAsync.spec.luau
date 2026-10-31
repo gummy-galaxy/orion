@@ -60,5 +60,3 @@ test.case("a Jira source with no command on this machine fails its refs with how
 	assert.strContains(result.failures["issue:abc-1"], "has no command on this machine")
 	assert.strContains(result.failures["issue:abc-1"], "orion source add jira --id jira --command")
 end)
-
-return {}

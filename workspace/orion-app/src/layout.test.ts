@@ -28,7 +28,8 @@ const cluster = (id: string, parentId: string | undefined, data: Partial<Cluster
   data: { kind: 'cluster', label: id, ...data },
 })
 const blocks = (from: string, to: string): Link => ({ id: `${from}>${to}`, from, to, kind: 'blocks' })
-const ids = (count: number, prefix = 't') => Array.from({ length: count }, (_, i) => prefix + String(i).padStart(2, '0'))
+const ids = (count: number, prefix = 't') =>
+  Array.from({ length: count }, (_, i) => prefix + String(i).padStart(2, '0'))
 
 const placed = async (nodes: AppNode[], links: Link[] = []) => {
   const laidOut = await reflow(nodes, links, 'g')
@@ -38,11 +39,16 @@ const placed = async (nodes: AppNode[], links: Link[] = []) => {
 
 const distinct = (values: number[]) => new Set(values.map(Math.round)).size
 
-const overlaps = (positions: Map<string, { x: number; y: number }>, size = { width: TASK_WIDTH, height: TASK_HEIGHT }) => {
+const overlaps = (
+  positions: Map<string, { x: number; y: number }>,
+  size = { width: TASK_WIDTH, height: TASK_HEIGHT },
+) => {
   const all = [...positions.values()]
 
   return all.some((first, i) =>
-    all.slice(i + 1).some((second) => Math.abs(first.x - second.x) < size.width && Math.abs(first.y - second.y) < size.height),
+    all
+      .slice(i + 1)
+      .some((second) => Math.abs(first.x - second.x) < size.width && Math.abs(first.y - second.y) < size.height),
   )
 }
 
@@ -64,7 +70,8 @@ describe('reflow', () => {
     const links = [...fleet.map((id) => blocks('start', id)), ...fleet.map((id) => blocks(id, 'gate'))]
     const classic = await reflow(nodes, links, 'g')
     const mapped = toDisplayed(classic, largeSize)
-    const positions = (items: AppNode[]) => new Map(items.filter((node) => node.parentId === 'g').map((node) => [node.id, node.position]))
+    const positions = (items: AppNode[]) =>
+      new Map(items.filter((node) => node.parentId === 'g').map((node) => [node.id, node.position]))
 
     expect(overlaps(positions(mapped), largeSize)).toBe(false)
     expect(overlaps(positions(await reflow(mapped, links, 'g', largeSize)), largeSize)).toBe(false)
@@ -169,8 +176,16 @@ describe('reflow', () => {
     const taskCounts = [1, 3, 1, 3]
     const nodes: AppNode[] = [
       group(),
-      ...sections.map((id): AppNode => ({ id, type: 'cluster', parentId: 'g', position: { x: 0, y: 0 }, data: { kind: 'cluster', label: id } })),
-      ...sections.flatMap((id, i) => Array.from({ length: taskCounts[i] }, (_, j) => task(`${id}-${j}`, id, j * 300, 0))),
+      ...sections.map((id): AppNode => ({
+        id,
+        type: 'cluster',
+        parentId: 'g',
+        position: { x: 0, y: 0 },
+        data: { kind: 'cluster', label: id },
+      })),
+      ...sections.flatMap((id, i) =>
+        Array.from({ length: taskCounts[i] }, (_, j) => task(`${id}-${j}`, id, j * 300, 0)),
+      ),
     ]
     const positions = await placed(nodes)
     const xs = sections.map((id) => positions.get(id)!.x)
@@ -227,7 +242,10 @@ const rectangle = (nodes: AppNode[], id: string) => {
 }
 
 const rectanglesOverlap = (first: ReturnType<typeof rectangle>, second: ReturnType<typeof rectangle>) =>
-  first.x < second.x + second.width && second.x < first.x + first.width && first.y < second.y + second.height && second.y < first.y + first.height
+  first.x < second.x + second.width &&
+  second.x < first.x + first.width &&
+  first.y < second.y + second.height &&
+  second.y < first.y + first.height
 
 describe('layoutOrder', () => {
   it('lays out deeper groups before the groups that contain them', () => {

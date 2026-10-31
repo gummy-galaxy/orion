@@ -20,9 +20,19 @@ const group = (id: string, parentId?: string, x = 0, y = 0): StoredNode => ({
   data: { kind: 'cluster', label: id },
 })
 
-const doc = (nodes: StoredNode[], links: Link[] = []): OperationDoc => ({ nodes, links, stickers: [], stickerLoadout: [] })
+const doc = (nodes: StoredNode[], links: Link[] = []): OperationDoc => ({
+  nodes,
+  links,
+  stickers: [],
+  stickerLoadout: [],
+})
 
-const link = (from: string, to: string, kind: Link['kind'] = 'blocks'): Link => ({ id: `${from}>${to}`, from, to, kind })
+const link = (from: string, to: string, kind: Link['kind'] = 'blocks'): Link => ({
+  id: `${from}>${to}`,
+  from,
+  to,
+  kind,
+})
 
 describe('diffOperations', () => {
   it('sends nothing when the canvas matches what was saved', () => {
@@ -59,7 +69,7 @@ describe('diffOperations', () => {
     expect(diffOperations(base, current)).toEqual([{ op: 'setData', id: 'g', data: current.nodes[0].data }])
   })
 
-  it('sends a moved item as place, and a resized group as resize with its size cleared when it goes back to default', () => {
+  it('sends a moved item as place, and a resized group as resize, clearing its size back at the default', () => {
     const base = doc([task('a', undefined, 0, 0), group('g')])
     const moved = doc([{ ...task('a', undefined, 30, 40) }, { ...group('g'), width: undefined, height: undefined }])
 
@@ -89,7 +99,12 @@ describe('diffOperations', () => {
 
   it('adds a new note as addNote, and an image as addImage', () => {
     const note = { ...task('note-1', undefined, 4, 8), data: { kind: 'task', label: '', type: 'note', status: 'todo' } }
-    const image = { id: 'img', type: 'image', position: { x: 0, y: 0 }, data: { kind: 'image', label: 'Photo', asset: 'a.png' } }
+    const image = {
+      id: 'img',
+      type: 'image',
+      position: { x: 0, y: 0 },
+      data: { kind: 'image', label: 'Photo', asset: 'a.png' },
+    }
     const ops = diffOperations(doc([]), doc([note, image]))
 
     expect(ops.map((op) => op.op)).toEqual(['addNote', 'addImage'])
@@ -109,7 +124,9 @@ describe('diffOperations', () => {
     const ops = diffOperations(base, current)
 
     expect(ops.find((op) => op.op === 'group')).toEqual({ op: 'group', id: 'batch', label: 'batch', items: ['a', 'b'] })
-    expect(ops.findIndex((op) => op.op === 'group')).toBeLessThan(ops.findIndex((op) => op.op === 'place' && op.id === 'a'))
+    expect(ops.findIndex((op) => op.op === 'group')).toBeLessThan(
+      ops.findIndex((op) => op.op === 'place' && op.id === 'a'),
+    )
     expect(ops).toContainEqual({ op: 'place', id: 'batch', x: 0, y: 0 })
   })
 
@@ -119,7 +136,9 @@ describe('diffOperations', () => {
     const ops = diffOperations(base, current)
 
     expect(ops).toContainEqual({ op: 'move', id: 'b', group: 'p1' })
-    expect(ops.findIndex((op) => op.op === 'move' && op.id === 'b')).toBeLessThan(ops.findIndex((op) => op.op === 'group'))
+    expect(ops.findIndex((op) => op.op === 'move' && op.id === 'b')).toBeLessThan(
+      ops.findIndex((op) => op.op === 'group'),
+    )
   })
 
   it('dissolves a group whose items all moved up as ungroup, without moving them again', () => {
@@ -147,7 +166,9 @@ describe('diffOperations', () => {
     const current = doc([group('g'), task('x'), task('y', 'g')])
     const ops = diffOperations(base, current)
 
-    expect(ops.findIndex((op) => op.op === 'move' && op.id === 'y')).toBeLessThan(ops.findIndex((op) => op.op === 'move' && op.id === 'x'))
+    expect(ops.findIndex((op) => op.op === 'move' && op.id === 'y')).toBeLessThan(
+      ops.findIndex((op) => op.op === 'move' && op.id === 'x'),
+    )
   })
 
   it('removes a card and leaves the group it was in to the server', () => {

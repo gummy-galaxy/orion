@@ -148,7 +148,8 @@ end
 return table.freeze({
 	help = "Select cards or groups in the app and zoom the canvas to them",
 	mcp = {
-		description = "Select cards or groups in the open Orion app and zoom the canvas to them, opening the group they share. Opens the app when it's closed. Set selectOnly to select without moving the camera.",
+		description = "Select cards or groups in the open Orion app and zoom the canvas to them, opening the group "
+			.. "they share. Opens the app when it's closed. Set selectOnly to select without moving the camera.",
 	},
 	define = function(parser: cli.Parser)
 		addArgument(parser, "ids", "variadic", { help = "Item or group ids to reveal", mcp = { required = true } })

@@ -559,6 +559,22 @@ Source adapters are Lute packages built on a shared core package. Long term, the
 
 2026-10-11 · [#54](https://github.com/vocksel/orion/issues/54), [#98](https://github.com/vocksel/orion/issues/98)
 
+### Adapters have source verbs and agent verbs
+
+An adapter offers source verbs, which bring work in as cards and refs, agent verbs, which find an agent tool's sessions and talk to them, or both. The agent verbs are list, read, resume, and start, and each session an adapter lists has the same fields whatever the agent, such as its folder, branch, and whether it's working or waiting on you. Orion calls only the verbs an adapter has, and [Adapters](/development/engineering/adapters) documents the contract.
+
+**Why:** sessions run in many tools, and a second agent should plug in the way a second source does, with no change to the app. Keeping the agent verbs apart from the source verbs lets an agent adapter skip collecting cards, since sessions attach to cards that already exist.
+
+2026-10-26 · [#293](https://github.com/gummy-galaxy/orion/issues/293), [#606](https://github.com/gummy-galaxy/orion/issues/606)
+
+### Session refs store state, never what was said
+
+A session ref keeps the session's state and its label, such as "Waiting on you in Claude Code", and nothing from its transcript. The last message and recent turns are read live from the agent's own records through its adapter whenever the app shows them, and never written to a canvas's files, so `--json` shows only the stored state.
+
+**Why:** sources stay the source of truth, and a stored message would be a copy of the transcript that drifts. Canvas files can go in git and be shared, and a session's words can quote secrets or private context.
+
+2026-10-26 · [#608](https://github.com/gummy-galaxy/orion/issues/608)
+
 ### Programs Orion runs are chosen on this machine
 
 A person picks any program Orion runs, such as a Jira source's command or the agent `suggestion find` hands cards to, at the CLI. The command lives in this machine's config, never in a canvas's files, and no MCP tool takes one. The tool catalog refuses a tool that would. Setting up a source that runs nothing of its own choosing, such as GitHub or hop, is open to MCP. Jira's setup stays in the CLI until its command moves to local config. Adapter packages replace `--command` later, so a custom integration is something a person installs on purpose.
@@ -632,6 +648,16 @@ The docs site lives at the bare `oriongraph.app`, served from the root path, by 
 **Why:** the domain stays the same when the repository changes owners, while a GitHub Pages address would change with it. Cloudflare deploys while the repository is private, which GitHub Pages can't, and it sits beside the domain's DNS in Cloudflare. Deploying from CI rather than Cloudflare's own builds keeps every build in one place.
 
 2026-10-25 · [#327](https://github.com/vocksel/orion/pull/327) · [#575](https://github.com/vocksel/orion/issues/575)
+
+## Telemetry
+
+### Only the person chooses whether to share usage data
+
+The app asks once on launch, and Settings changes the answer. `orion telemetry on` and `off` cover machines without the app. The CLI and MCP server never prompt, and agents get `orion_telemetry_status` but no tool to change the choice. `DO_NOT_TRACK` and `ORION_TELEMETRY=0` turn telemetry off whatever was chosen. The choice and the anonymous install id live in `telemetry.json` in the data folder, outside `settings.json`, so they never travel with exported or synced settings.
+
+**Why:** consent an agent can give isn't the person's consent. A prompt from the CLI would hang an agent that runs it, so the CLI stays silent and sends nothing until someone opts in.
+
+2026-10-28 · [#507](https://github.com/gummy-galaxy/orion/issues/507), [#433](https://github.com/gummy-galaxy/orion/issues/433)
 
 ## Releases
 
