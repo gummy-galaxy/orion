@@ -19,6 +19,7 @@ local serializeDerived = require("@root/server/serializeDerived")
 local sessions = require("@root/server/sessions")
 local storeTypes = require("@root/store/types")
 local sync = require("@root/server/sync")
+local telemetrySender = require("@root/server/telemetrySender")
 local types = require("@root/types")
 local watcher = require("@root/server/watcher")
 local writeRuntime = require("@root/server/writeRuntime")
@@ -88,6 +89,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 	)
 
 	local sessionLoop = sessions.create(root, router.getActive)
+	local sender = telemetrySender.create(root, { environment = process.env, isDevServer = devPort ~= nil })
 
 	local trustedPorts: { number } = {}
 	if devPort then
@@ -136,6 +138,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 	writeRuntime(root, runtime)
 	monitor.start()
 	sessionLoop.start()
+	sender.start()
 	task.delay(5, function()
 		while true do
 			syncLoop.tickAsync()
@@ -149,6 +152,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 		close = function()
 			assert(monitor).close()
 			sessionLoop.close()
+			sender.close()
 			running.close()
 			removeRuntime(root, runtime)
 			clearAllFocus()

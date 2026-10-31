@@ -110,6 +110,9 @@ function routes.create(
 		if route == "/api/telemetry" then
 			return telemetry.handle(request, root)
 		end
+		if route == "/api/telemetry/events" then
+			return telemetry.handleEvents(request, root)
+		end
 
 		if route == "/api/canvases" or route == "/api/canvases/active" then
 			return canvases.handle(request, root, router.getActive, router.switchTo)

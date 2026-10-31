@@ -18,4 +18,6 @@ return table.freeze({
 	commands = "commands.json",
 	themes = "themes",
 	telemetry = "telemetry.json",
+	telemetryQueue = "telemetry-queue.jsonl",
+	telemetrySending = "telemetry-queue.sending.jsonl",
 })
