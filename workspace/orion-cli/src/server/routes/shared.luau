@@ -1,8 +1,8 @@
 local json = require("@std/json")
 local net = require("@lute/net/server")
 
-local getWorkspaces = require("@root/store/getWorkspaces")
-local isValidWorkspace = require("@root/store/isValidWorkspace")
+local getWorkspaces = require("@root/storage/canvases/getWorkspaces")
+local isValidWorkspace = require("@root/storage/canvases/isValidWorkspace")
 
 export type Response = { status: number, body: string, headers: { [string]: string } }
 

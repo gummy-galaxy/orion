@@ -2,10 +2,10 @@ local fs = require("@std/fs")
 local json = require("@std/json")
 local path = require("@std/path")
 
-local encodeStableJson = require("@root/store/encodeStableJson")
+local encodeStableJson = require("@root/storage/files/encodeStableJson")
 local fileNames = require("@root/fileNames")
-local replaceFile = require("@root/store/replaceFile")
-local runWithLock = require("@root/store/runWithLock")
+local replaceFile = require("@root/storage/files/replaceFile")
+local runWithLock = require("@root/storage/transactions/runWithLock")
 
 local function readFile(file: string): json.Object
 	if not fs.exists(file) then

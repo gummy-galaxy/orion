@@ -2,10 +2,10 @@ local json = require("@std/json")
 local net = require("@lute/net/server")
 local test = require("@std/test")
 
-local loadDoc = require("@root/store/loadDoc")
+local loadDoc = require("@root/storage/canvases/loadDoc")
 local routes = require("@root/server/routes")
 local testing = require("@root/testing")
-local writeDoc = require("@root/store/writeDoc")
+local writeDoc = require("@root/storage/canvases/writeDoc")
 
 local function createRequest(method: string, route: string, value: json.Object?): net.ReceivedRequest
 	return {
