@@ -66,7 +66,8 @@ local function migratePlacements(root: string, options: Options?): boolean
 	if server then
 		local build = if server.version then ` {server.version}` else ""
 		error(
-			`another Orion{build} is serving {root} (pid {server.pid}); quit it so Orion can move card positions into placements`,
+			`another Orion{build} is serving {root} (pid {server.pid}); `
+				.. "quit it so Orion can move card positions into placements",
 			0
 		)
 	end

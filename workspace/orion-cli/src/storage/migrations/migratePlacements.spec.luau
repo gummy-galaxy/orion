@@ -20,7 +20,10 @@ local LEGACY_CANVAS = [[{
 	"settings": {},
 	"nodes": [
 		{ "id": "group", "type": "cluster", "position": { "x": 100, "y": 50 }, "data": { "label": "Launch" } },
-		{ "id": "card", "type": "task", "position": { "x": 8, "y": 16 }, "parentId": "group", "data": { "label": "Ship" } }
+		{
+			"id": "card", "type": "task", "position": { "x": 8, "y": 16 },
+			"parentId": "group", "data": { "label": "Ship" }
+		}
 	],
 	"links": []
 }]]

@@ -95,7 +95,16 @@ test.case("GET gives each node the position and group of its first placement", f
 	fs.createDirectory(root, { makeParents = true })
 	testing.writeCanvasText(
 		root,
-		[[{"version":3,"settings":{},"nodes":[{"id":"g","type":"cluster","data":{}},{"id":"a","type":"task","data":{}}],"links":[],"placements":[{"id":"p1","node":"g","position":{"x":5,"y":6}},{"id":"p2","node":"a","parentId":"g","position":{"x":1,"y":2}}]}]]
+		[[{
+			"version": 3,
+			"settings": {},
+			"nodes": [{"id": "g", "type": "cluster", "data": {}}, {"id": "a", "type": "task", "data": {}}],
+			"links": [],
+			"placements": [
+				{"id": "p1", "node": "g", "position": {"x": 5, "y": 6}},
+				{"id": "p2", "node": "a", "parentId": "g", "position": {"x": 1, "y": 2}}
+			]
+		}]]
 	)
 	local response = decodeResponse(router.handleAsync(createRequest("GET", "/api/orion")))
 	local nodes = json.asArray(response.nodes) :: json.Array
