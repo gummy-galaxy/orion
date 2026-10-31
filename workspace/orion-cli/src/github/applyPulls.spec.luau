@@ -214,7 +214,7 @@ test.case("a new pull request attaches to the one card recorded on its head bran
 
 	local item = doc.nodes[1]
 	assert.eq((findRef(item, "pull") :: types.Ref).key, "flipbook-labs/flipbook#1")
-	assert.eq(item.data.itemKind, "pr")
+	assert.eq(testing.primaryType(item), "pr")
 	assert.eq(item.data.status, "review")
 	assert.eq(report.changes[1].toStatus, "review")
 end)

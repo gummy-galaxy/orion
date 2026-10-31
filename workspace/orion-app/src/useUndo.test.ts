@@ -11,7 +11,7 @@ const makeNode = (id: string, x = 0, label = id): AppNode => ({
   id,
   type: 'task',
   position: { x, y: 0 },
-  data: { kind: 'task', label, itemKind: 'step', status: 'todo' },
+  data: { kind: 'task', label, status: 'todo' },
 })
 const makeDoc = (...nodes: AppNode[]): Saved => ({ nodes, links: [], stickers: [], stickerLoadout: [] })
 const positions = (doc: Saved) => Object.fromEntries(doc.nodes.map((node) => [node.id, node.position.x]))

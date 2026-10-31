@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ancestors, byId, isCluster, getTaskTag, type AppNode } from '../model'
+import { ancestors, byId, isCluster, isComponent, isNote, getTaskTag, type AppNode } from '../model'
 import { RECENT_BOOST, recentKey, type Recent } from '../recents'
 
 export type Command = { id: string; label: string; detail: string; hint?: string; run: () => void }
@@ -360,18 +360,15 @@ export function Palette({
                     ? 'Group'
                     : node.type === 'image'
                       ? 'Image'
-                      : node.data.itemKind === 'note'
+                      : isNote(node)
                         ? 'Note'
-                        : node.data.itemKind === 'component'
+                        : isComponent(node)
                           ? 'Component'
                           : 'Card'}
                 </span>
                 <span className="palette-details">
                   <span className="palette-label">
-                    {highlighted(
-                      node.data.label || (node.type === 'task' && node.data.itemKind === 'note' ? 'Untitled note' : ''),
-                      result.labelMatch,
-                    )}
+                    {highlighted(node.data.label || (isNote(node) ? 'Untitled note' : ''), result.labelMatch)}
                   </span>
                   <span className="palette-path">
                     {result.path || 'All work'}

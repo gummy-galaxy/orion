@@ -1,7 +1,6 @@
 local getItem = require("@root/graph/getItem")
 local getRefs = require("@root/refs/getRefs")
 local isGroup = require("@root/graph/isGroup")
-local refreshItemKind = require("@root/graph/refreshItemKind")
 local removeRef = require("@root/refs/removeRef")
 local types = require("@root/types")
 
@@ -23,7 +22,6 @@ local function detachRef(doc: Doc, id: string, key: string, kind: string?): Item
 	end
 
 	assert(matched, `"{id}" has no ref {key}`)
-	refreshItemKind(item)
 	return item
 end
 

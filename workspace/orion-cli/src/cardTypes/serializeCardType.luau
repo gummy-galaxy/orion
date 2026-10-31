@@ -45,11 +45,17 @@ local function serializeCardType(cardType: CardType): json.Object
 	end
 
 	local meaning = cardType.meaning
+	local supersedes: json.Array = {}
+
+	for _, name in cardType.supersedes or {} do
+		table.insert(supersedes, name)
+	end
 
 	return json.object({
 		name = cardType.name,
 		label = cardType.label,
 		pack = cardType.pack,
+		supersedes = supersedes,
 		fields = fields,
 		face = face,
 		states = states,

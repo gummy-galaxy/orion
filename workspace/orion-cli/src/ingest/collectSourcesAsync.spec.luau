@@ -161,7 +161,7 @@ test.case("hop step converts to a pull request without changing placement or not
 
 	placeRecords(doc, collectSourcesAsync(doc, COMMANDS, runHop, NOW))
 	local step = doc.nodes[2]
-	assert.eq(step.data.itemKind, "step")
+	assert.eq(testing.primaryType(step), "step")
 	assert.eq(step.data.label, "feature ABC-123 avatar fix")
 	assert.eq(step.parentId, "unsorted")
 	step.data.note = "Keep this note"
@@ -187,7 +187,7 @@ test.case("hop step converts to a pull request without changing placement or not
 	local report = placeRecords(doc, collectSourcesAsync(doc, COMMANDS, runCommand, NOW))
 	assert.eq(report.sources[1].updated, 1)
 	assert.eq(doc.nodes[2].id, id)
-	assert.eq(doc.nodes[2].data.itemKind, "pr")
+	assert.eq(testing.primaryType(doc.nodes[2]), "pr")
 	assert.eq(doc.nodes[2].data.note, "Keep this note")
 	assert.eq(doc.nodes[2].parentId, "unsorted")
 end)
@@ -217,7 +217,7 @@ test.case("hop resolves bare repository names without changing case and matches 
 	assert.eq(first.sources[1].added, 1)
 	local step = doc.nodes[3]
 	assert.eq(step.data.repo, "Roblox/Avatar")
-	assert.eq(step.data.itemKind, "step")
+	assert.eq(testing.primaryType(step), "step")
 	assert.eq((findRef(step, "branch") :: any).key, "Roblox/Avatar@feature/new")
 
 	local function runLowercaseHop(argv: { string })

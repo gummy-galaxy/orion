@@ -4,6 +4,7 @@ local checkDataVersion = require("@root/store/checkDataVersion")
 local fillPullFacts = require("@root/github/fillPullFacts")
 local getStringField = require("@root/getStringField")
 local migrateImageCanvas = require("@root/migrations/migrateImageCanvas")
+local migrateItemKind = require("@root/migrations/migrateItemKind")
 local types = require("@root/types")
 
 type CheckSnooze = types.CheckSnooze
@@ -126,6 +127,9 @@ local function decodeDocObject(root: json.Object): Doc
 
 	for _, item in nodes do
 		if item.type == "task" then
+			-- Cards from before types keep `itemKind` until read. Remove at
+			-- 0.1.0 with the rest of `migrations/`.
+			migrateItemKind(item)
 			fillPullFacts(item)
 		end
 

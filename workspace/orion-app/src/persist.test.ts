@@ -73,7 +73,7 @@ describe('adopting a server document', () => {
     "nodes": [
       {
         "id": "loose", "type": "task", "position": { "y": 40, "x": 900 },
-        "data": { "status": "todo", "label": "Loose card", "kind": "task", "itemKind": "step" }
+        "data": { "status": "todo", "label": "Loose card", "kind": "task" }
       },
       {
         "id": "picture", "type": "image", "position": { "y": 600, "x": 0 }, "width": 200, "height": 150,
@@ -85,11 +85,11 @@ describe('adopting a server document', () => {
       },
       {
         "id": "inside", "type": "task", "parentId": "group", "position": { "y": 78, "x": 32 },
-        "data": { "kind": "task", "label": "Inside", "itemKind": "step", "status": "active" }
+        "data": { "kind": "task", "label": "Inside", "status": "active" }
       },
       {
         "id": "aside", "type": "task", "position": { "y": 300, "x": 900 },
-        "data": { "kind": "task", "label": "a\\nb\\nc\\nd\\ne\\nf", "itemKind": "note", "status": "todo" }
+        "data": { "kind": "task", "label": "a\\nb\\nc\\nd\\ne\\nf", "type": "note", "status": "todo" }
       }
     ],
     "links": [{ "to": "inside", "kind": "blocks", "id": "link", "from": "loose" }]

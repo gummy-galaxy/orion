@@ -9,7 +9,7 @@ test.case("removeGroup removes a group with everything inside, reconnecting arou
 		testing.group("g", "Group"),
 		testing.group("inner", "Inner", "g"),
 		testing.task("a", "A", "todo"),
-		testing.task("n", "Note", "todo", "inner", { itemKind = "note" }),
+		testing.task("n", "Note", "todo", "inner", { type = "note" }),
 		testing.task("b", "B", "todo"),
 	}, { { "a", "n" }, { "n", "b" } })
 	removeGroup(doc, "g")

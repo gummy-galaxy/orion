@@ -47,7 +47,6 @@ local function collectAsync(source: Source, run: CommandRunner, context: Context
 			ref = ref,
 			label = pull.title,
 			repo = repo,
-			itemKind = "pr",
 			createStatus = "todo",
 			findFallback = function(doc: Doc)
 				local item = if pull.branch then findBranch(doc, repo, pull.branch) else nil
@@ -72,7 +71,6 @@ local function collectAsync(source: Source, run: CommandRunner, context: Context
 			},
 			label = issue.title,
 			repo = `{issue.owner}/{issue.name}`,
-			itemKind = "placeholder",
 			createStatus = "todo",
 			createWho = "you",
 		})

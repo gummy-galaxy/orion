@@ -48,7 +48,7 @@ function addOp(node: StoredNode): Operation {
 
   if (node.type === 'image') return { op: 'addImage', ...fields }
 
-  return { op: (node.data as { itemKind?: unknown }).itemKind === 'note' ? 'addNote' : 'addCard', ...fields }
+  return { op: (node.data as TaskData).type === 'note' ? 'addNote' : 'addCard', ...fields }
 }
 
 /**

@@ -2,7 +2,6 @@ local findRepository = require("@root/github/findRepository")
 local getItem = require("@root/graph/getItem")
 local identifyRef = require("@root/github/identifyRef")
 local isGroup = require("@root/graph/isGroup")
-local refreshItemKind = require("@root/graph/refreshItemKind")
 local setRef = require("@root/refs/setRef")
 local types = require("@root/types")
 
@@ -21,7 +20,6 @@ local function attachRef(doc: Doc, id: string, resolved: types.ResolvedRef): Ite
 		item.data.repo = if found then found.name else resolved.repo
 	end
 
-	refreshItemKind(item)
 	return item
 end
 

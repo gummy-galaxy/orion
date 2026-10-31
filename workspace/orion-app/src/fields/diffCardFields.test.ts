@@ -2,13 +2,7 @@ import { expect, test } from 'vitest'
 import { diffCardFields } from './diffCardFields'
 import type { TaskData } from '../model'
 
-const card = (extra: Partial<TaskData> = {}): TaskData => ({
-  kind: 'task',
-  label: 'Ship',
-  itemKind: 'step',
-  status: 'todo',
-  ...extra,
-})
+const card = (extra: Partial<TaskData> = {}): TaskData => ({ kind: 'task', label: 'Ship', status: 'todo', ...extra })
 const pull = (key: string) => ({ source: 'github', kind: 'pull', key })
 
 test('sends only the fields that changed, with an empty string for one cleared', () => {
@@ -22,15 +16,13 @@ test('sends only the fields that changed, with an empty string for one cleared',
 })
 
 test('leaves out the kind the server works out from the repository', () => {
-  expect(diffCardFields(card(), card({ repo: 'vocksel/orion', itemKind: 'placeholder' }))).toEqual({
-    repo: 'vocksel/orion',
-  })
+  expect(diffCardFields(card(), card({ repo: 'vocksel/orion' }))).toEqual({ repo: 'vocksel/orion' })
 })
 
 test('sends a kind given or taken away', () => {
-  expect(diffCardFields(card(), card({ itemKind: 'gate' }))).toEqual({ kind: 'gate' })
-  expect(diffCardFields(card({ itemKind: 'gate' }), card({ itemKind: 'pr' }))).toEqual({ kind: 'step' })
-  expect(diffCardFields(card({ itemKind: 'note' }), card())).toEqual({ kind: 'step' })
+  expect(diffCardFields(card(), card({ type: 'gate' }))).toEqual({ kind: 'gate' })
+  expect(diffCardFields(card({ type: 'gate' }), card({}))).toEqual({ kind: 'step' })
+  expect(diffCardFields(card({ type: 'note' }), card())).toEqual({ kind: 'step' })
 })
 
 test('sends the pull request number in place of its ref, and leaves the server its other refs', () => {

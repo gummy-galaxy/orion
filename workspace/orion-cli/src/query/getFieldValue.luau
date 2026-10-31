@@ -1,6 +1,7 @@
 local json = require("@std/json")
 
 local findRef = require("@root/refs/findRef")
+local getItemTypes = require("@root/cardTypes/getItemTypes")
 local getRefs = require("@root/refs/getRefs")
 local isGroup = require("@root/graph/isGroup")
 local queryTypes = require("@root/query/types")
@@ -17,7 +18,8 @@ local function getFieldValue(scope: queryTypes.Scope, item: Item, field: string)
 	local value: json.Value = nil
 
 	if field == "kind" then
-		value = if isGroup(item) then "group" elseif item.type == "image" then "image" else item.data.itemKind or "step"
+		local itemTypes = getItemTypes(item)
+		value = if itemTypes then itemTypes.primary else "group"
 	elseif field == "status" then
 		value = derived.status[item.id]
 	elseif field == "recordedStatus" then

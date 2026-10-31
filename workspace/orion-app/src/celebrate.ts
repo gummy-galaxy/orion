@@ -1,3 +1,4 @@
+import { getCardType } from './cardTypes/getCardType'
 import type { Link, TaskData } from './model'
 
 /**
@@ -109,7 +110,7 @@ export function chainFinale(delays: ReadonlyMap<string, number>): Map<string, nu
 
 /** Whether a patch finishes a card in the app. Those close out at once, so their Done stamp lands right away. */
 export function closesOut(data: TaskData, patch: Partial<TaskData>): boolean {
-  const kind = patch.itemKind ?? data.itemKind
+  const cardType = getCardType({ ...data, ...patch })
 
-  return patch.status === 'done' && data.status !== 'done' && kind !== 'note' && kind !== 'component'
+  return patch.status === 'done' && data.status !== 'done' && cardType.meaning.isWork
 }

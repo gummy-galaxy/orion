@@ -3,7 +3,6 @@ local findRef = require("@root/refs/findRef")
 local getItem = require("@root/graph/getItem")
 local getStringField = require("@root/getStringField")
 local isGroup = require("@root/graph/isGroup")
-local refreshItemKind = require("@root/graph/refreshItemKind")
 local removeRef = require("@root/refs/removeRef")
 local resolveRef = require("@root/adapters/resolveRef")
 local types = require("@root/types")
@@ -19,7 +18,6 @@ local function setPullRequest(doc: Doc, id: string, number: number?)
 
 	if number == nil then
 		removeRef(item, "pull")
-		refreshItemKind(item)
 		return
 	end
 

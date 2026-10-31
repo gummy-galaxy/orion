@@ -40,7 +40,7 @@ test.case("GitHub adapter collects pull and issue records without writing cards"
 	assert.eq(#records, 2)
 	assert.eq(records[1].ref.key, "owner/repo#2")
 	assert.eq(records[1].ref.status, "draft")
-	assert.eq(records[1].itemKind, "pr")
+	assert.eq(records[1].ref.type, "pr")
 	assert.eq(records[1].mentionText, "Fix ABC-1 ABC-1-fix Closes #3")
 	local updateStatus = records[1].updateStatus
 	assert.eq(updateStatus ~= nil, true)

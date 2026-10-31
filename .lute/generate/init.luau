@@ -6,6 +6,11 @@
 	lute run generate [--check]
 		Runs every generator below.
 
+	lute run generate cardTypes [--check]
+		Writes workspace/orion-app/src/cardTypes/builtinTypes.json from the
+		card types the CLI ships. Run it after changing
+		workspace/orion-cli/src/cardTypes/builtinTypes.luau.
+
 	lute run generate docs [--check]
 		Writes the CLI, MCP, and telemetry reference pages in docs/reference/.
 		Run it after changing a command, an option, an MCP tool, or a telemetry
@@ -26,11 +31,13 @@ local process = require("@std/process")
 
 local runScript = require("@cli/runScript")
 
+local generateCardTypes = require("@self/cardTypes")
 local generateDocs = require("@self/docs")
 local generateGeometry = require("@self/geometry")
 local generateTelemetry = require("@self/telemetry")
 
 local GENERATORS: { [string]: (checkOnly: boolean) -> boolean } = {
+	cardTypes = generateCardTypes,
 	docs = generateDocs,
 	geometry = generateGeometry,
 	telemetry = generateTelemetry,
@@ -42,12 +49,13 @@ runScript(function()
 	local upToDate = true
 
 	if name == nil or name == "--check" then
+		upToDate = generateCardTypes(checkOnly) and upToDate
 		upToDate = generateDocs(checkOnly) and upToDate
 		upToDate = generateGeometry(checkOnly) and upToDate
 		upToDate = generateTelemetry(checkOnly) and upToDate
 	else
 		local generator = GENERATORS[name]
-		assert(generator, `unknown generator {name}; try docs, geometry, or telemetry`)
+		assert(generator, `unknown generator {name}; try cardTypes, docs, geometry, or telemetry`)
 		upToDate = generator(checkOnly)
 	end
 

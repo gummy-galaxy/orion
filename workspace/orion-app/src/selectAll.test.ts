@@ -8,7 +8,7 @@ const task = (id: string, parentId?: string, selected?: boolean): AppNode => ({
   parentId,
   selected,
   position: { x: 0, y: 0 },
-  data: { kind: 'task', label: id, itemKind: 'step', status: 'todo' },
+  data: { kind: 'task', label: id, status: 'todo' },
 })
 
 const many = (count: number, parentId?: string) =>

@@ -7,7 +7,7 @@ const task = (id: string, parentId?: string): AppNode => ({
   type: 'task',
   parentId,
   position: { x: 0, y: 0 },
-  data: { kind: 'task', label: id, itemKind: 'step', status: 'todo' },
+  data: { kind: 'task', label: id, status: 'todo' },
 })
 
 const idsOf = (nodes: AppNode[]) => nodes.map((node) => node.id)
