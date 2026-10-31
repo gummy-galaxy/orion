@@ -1,11 +1,11 @@
-local telemetryTypes = require("@root/telemetry/types")
+local types = require("@root/types")
 
-type Build = telemetryTypes.Build
+type Build = types.Build
 
 -- Why this run never queues or sends usage events, whatever was chosen, or nil
 -- when it may. Dev builds, perf runs, and CI aren't people using Orion, so
 -- their events would only muddy the charts.
-local function getQuietReason(environment: { [string]: string }, build: Build): string?
+local function getTelemetryQuietReason(environment: { [string]: string }, build: Build): string?
 	if build.channel == "dev" then
 		return "a dev build"
 	end
@@ -23,4 +23,4 @@ local function getQuietReason(environment: { [string]: string }, build: Build): 
 	return nil
 end
 
-return getQuietReason
+return getTelemetryQuietReason

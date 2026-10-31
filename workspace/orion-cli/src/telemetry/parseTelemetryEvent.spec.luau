@@ -1,13 +1,13 @@
 local json = require("@std/json")
 local test = require("@std/test")
 
-local parseQueuedEvent = require("@root/telemetry/parseQueuedEvent")
+local parseTelemetryEvent = require("@root/telemetry/parseTelemetryEvent")
 
 local NOW = "2026-10-30T12:00:00Z"
 local SESSION_ID = "0b7e3a52-5d43-4c8e-8f0e-6d3e1f2a9c11"
 
 local function parse(text: string)
-	return parseQueuedEvent(json.deserialize(text) :: json.Value, NOW)
+	return parseTelemetryEvent(json.deserialize(text) :: json.Value, NOW)
 end
 
 test.case("an event keeps its session, time, and flat properties", function(assert)

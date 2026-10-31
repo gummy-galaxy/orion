@@ -3,7 +3,7 @@ local json = require("@std/json")
 local path = require("@std/path")
 
 local fileNames = require("@root/fileNames")
-local parseQueuedEvent = require("@root/telemetry/parseQueuedEvent")
+local parseTelemetryEvent = require("@root/telemetry/parseTelemetryEvent")
 local telemetryTypes = require("@root/telemetry/types")
 
 type QueuedEvent = telemetryTypes.QueuedEvent
@@ -19,7 +19,7 @@ local function readLines(file: string, events: { QueuedEvent }, now: string)
 	for _, line in (text :: string):split("\n") do
 		if line ~= "" then
 			local didParse, event = pcall(function()
-				return parseQueuedEvent(json.deserialize(line) :: json.Value, now)
+				return parseTelemetryEvent(json.deserialize(line) :: json.Value, now)
 			end)
 
 			if didParse then
@@ -35,7 +35,7 @@ end
 	than writing into lines already taken. A line that doesn't parse, such as
 	one cut short, is skipped.
 ]]
-local function takeQueue(root: string, now: string): { QueuedEvent }
+local function drainTelemetryQueue(root: string, now: string): { QueuedEvent }
 	local queue = tostring(path.join(root, fileNames.telemetryQueue))
 	local sending = tostring(path.join(root, fileNames.telemetrySending))
 	local events: { QueuedEvent } = {}
@@ -52,4 +52,4 @@ local function takeQueue(root: string, now: string): { QueuedEvent }
 	return events
 end
 
-return takeQueue
+return drainTelemetryQueue

@@ -1,11 +1,12 @@
 local json = require("@std/json")
 local net = require("@std/net")
 
-local requestAsync = require("@root/telemetry/requestAsync")
-local serializeQueuedEvent = require("@root/telemetry/serializeQueuedEvent")
+local requestTelemetryAsync = require("@root/telemetry/requestTelemetryAsync")
+local serializeTelemetryEvent = require("@root/telemetry/serializeTelemetryEvent")
 local telemetryTypes = require("@root/telemetry/types")
+local types = require("@root/types")
 
-type Build = telemetryTypes.Build
+type Build = types.Build
 type QueuedEvent = telemetryTypes.QueuedEvent
 
 --[[
@@ -13,7 +14,7 @@ type QueuedEvent = telemetryTypes.QueuedEvent
 	not when it wasn't. Nothing here retries: a batch that fails is the caller's
 	to drop.
 ]]
-local function sendBatchAsync(
+local function sendTelemetryBatchAsync(
 	endpoint: string,
 	installId: string,
 	build: Build,
@@ -23,7 +24,7 @@ local function sendBatchAsync(
 	local serialized = {}
 
 	for _, event in events do
-		table.insert(serialized, serializeQueuedEvent(event))
+		table.insert(serialized, serializeTelemetryEvent(event))
 	end
 
 	local body = json.serialize(json.object({
@@ -36,7 +37,7 @@ local function sendBatchAsync(
 		headers = { ["Content-Type"] = "application/json" },
 		body = body,
 	}
-	local response, failure = requestAsync(endpoint, metadata, timeoutSeconds)
+	local response, failure = requestTelemetryAsync(endpoint, metadata, timeoutSeconds)
 
 	if not response then
 		return false, failure
@@ -49,4 +50,4 @@ local function sendBatchAsync(
 	return true, nil
 end
 
-return sendBatchAsync
+return sendTelemetryBatchAsync

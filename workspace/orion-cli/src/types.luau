@@ -160,4 +160,12 @@ export type Focus = {
 	updatedAt: string?,
 }
 
+-- Which build of Orion is running. A release is a build someone installed; a
+-- dev build is a checkout, or a build with uncommitted changes.
+export type Build = {
+	version: string,
+	commit: string,
+	channel: "release" | "dev",
+}
+
 return nil

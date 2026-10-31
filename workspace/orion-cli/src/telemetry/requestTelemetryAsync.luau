@@ -9,7 +9,11 @@ local POLL_SECONDS = 0.1
 	up on and left to finish in the background, since the request itself has no
 	timeout.
 ]]
-local function requestAsync(url: string, metadata: net.Metadata, timeoutSeconds: number): (net.Response?, string?)
+local function requestTelemetryAsync(
+	url: string,
+	metadata: net.Metadata,
+	timeoutSeconds: number
+): (net.Response?, string?)
 	local isDone = false
 	local response: net.Response?
 	local failure: string?
@@ -40,4 +44,4 @@ local function requestAsync(url: string, metadata: net.Metadata, timeoutSeconds:
 	return response, failure
 end
 
-return requestAsync
+return requestTelemetryAsync

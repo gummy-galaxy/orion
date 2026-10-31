@@ -2,8 +2,8 @@ local json = require("@std/json")
 local net = require("@lute/net/server")
 local test = require("@std/test")
 
-local getBuild = require("@root/telemetry/getBuild")
-local takeQueue = require("@root/telemetry/takeQueue")
+local drainTelemetryQueue = require("@root/telemetry/drainTelemetryQueue")
+local getBuild = require("@root/getBuild")
 local telemetry = require("@root/server/routes/telemetry")
 local testing = require("@root/testing")
 
@@ -65,7 +65,7 @@ test.case("the app's events are queued on a machine that opted in", function(ass
 	local root = testing.directory("telemetry-route-events")
 	local release = getBuild("e87813e")
 	telemetry.handle(createRequest("POST", '{"enabled":true}'), root, {}, release)
-	takeQueue(root, NOW)
+	drainTelemetryQueue(root, NOW)
 
 	local response = telemetry.handleEvents(
 		createEventsRequest(
@@ -80,7 +80,7 @@ test.case("the app's events are queued on a machine that opted in", function(ass
 	assert.eq(response.status, 202)
 	assert.eq(decode(response).queued, 1)
 
-	local events = takeQueue(root, NOW)
+	local events = drainTelemetryQueue(root, NOW)
 	assert.eq(#events, 1)
 	assert.eq(events[1].properties.startup_ms, 640)
 end)
@@ -90,7 +90,7 @@ test.case("opting in from the app queues telemetry_opted_in from the app", funct
 
 	telemetry.handle(createRequest("POST", '{"enabled":true}'), root, {}, getBuild("e87813e"))
 
-	local events = takeQueue(root, NOW)
+	local events = drainTelemetryQueue(root, NOW)
 	assert.eq(#events, 1)
 	assert.eq(events[1].properties.surface, "app")
 end)
@@ -107,7 +107,7 @@ test.case("events from a machine that isn't sharing are dropped", function(asser
 
 	assert.eq(response.status, 202)
 	assert.eq(decode(response).queued, 0)
-	assert.eq(#takeQueue(root, NOW), 0)
+	assert.eq(#drainTelemetryQueue(root, NOW), 0)
 end)
 
 test.case("the events route checks only size and shape", function(assert)

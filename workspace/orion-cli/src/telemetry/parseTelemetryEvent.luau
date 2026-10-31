@@ -16,7 +16,7 @@ local TIMESTAMP_PATTERN = "^%d%d%d%d%-%d%d%-%d%dT%d%d:%d%d:%d%d%.?%d*Z$"
 	timestamp the backend can't parse would make it refuse the whole batch, so
 	those are checked strictly.
 ]]
-local function parseQueuedEvent(value: json.Value, now: string): QueuedEvent
+local function parseTelemetryEvent(value: json.Value, now: string): QueuedEvent
 	local object = assert(json.asObject(value), "an event must be an object")
 	local name = object.name
 
@@ -59,4 +59,4 @@ local function parseQueuedEvent(value: json.Value, now: string): QueuedEvent
 	}
 end
 
-return parseQueuedEvent
+return parseTelemetryEvent

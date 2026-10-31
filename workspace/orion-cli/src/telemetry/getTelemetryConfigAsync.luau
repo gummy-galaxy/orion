@@ -1,6 +1,6 @@
 local json = require("@std/json")
 
-local requestAsync = require("@root/telemetry/requestAsync")
+local requestTelemetryAsync = require("@root/telemetry/requestTelemetryAsync")
 local telemetryTypes = require("@root/telemetry/types")
 
 type Limits = telemetryTypes.Limits
@@ -15,9 +15,9 @@ end
 	or answers with something that isn't a pair of limits, so the caller can
 	keep the ones it has.
 ]]
-local function fetchLimitsAsync(eventsEndpoint: string, timeoutSeconds: number): (Limits?, string?)
+local function getTelemetryConfigAsync(eventsEndpoint: string, timeoutSeconds: number): (Limits?, string?)
 	local configEndpoint = eventsEndpoint:gsub("/events$", "/config")
-	local response, failure = requestAsync(configEndpoint, { method = "GET" }, timeoutSeconds)
+	local response, failure = requestTelemetryAsync(configEndpoint, { method = "GET" }, timeoutSeconds)
 
 	if not response then
 		return nil, failure
@@ -37,4 +37,4 @@ local function fetchLimitsAsync(eventsEndpoint: string, timeoutSeconds: number):
 	return { maxEvents = limits.maxEvents, maxBytes = limits.maxBytes }, nil
 end
 
-return fetchLimitsAsync
+return getTelemetryConfigAsync

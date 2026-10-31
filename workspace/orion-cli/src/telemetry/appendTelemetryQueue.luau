@@ -4,7 +4,7 @@ local path = require("@std/path")
 
 local ensureDirectory = require("@root/platform/ensureDirectory")
 local fileNames = require("@root/fileNames")
-local serializeQueuedEvent = require("@root/telemetry/serializeQueuedEvent")
+local serializeTelemetryEvent = require("@root/telemetry/serializeTelemetryEvent")
 local telemetryTypes = require("@root/telemetry/types")
 
 type QueuedEvent = telemetryTypes.QueuedEvent
@@ -19,7 +19,7 @@ local MAX_QUEUE_BYTES = 256 * 1024
 	shouldn't wait on the network, so they leave events here instead of sending
 	them. Returns how many were queued: none once the queue is full.
 ]]
-local function appendQueue(root: string, events: { QueuedEvent }): number
+local function appendTelemetryQueue(root: string, events: { QueuedEvent }): number
 	if #events == 0 then
 		return 0
 	end
@@ -30,7 +30,7 @@ local function appendQueue(root: string, events: { QueuedEvent }): number
 	local lines = {}
 
 	for _, event in events do
-		local line = json.serialize(serializeQueuedEvent(event)) .. "\n"
+		local line = json.serialize(serializeTelemetryEvent(event)) .. "\n"
 
 		if size + #line > MAX_QUEUE_BYTES then
 			break
@@ -57,4 +57,4 @@ local function appendQueue(root: string, events: { QueuedEvent }): number
 	return #lines
 end
 
-return appendQueue
+return appendTelemetryQueue

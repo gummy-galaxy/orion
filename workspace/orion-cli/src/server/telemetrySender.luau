@@ -1,17 +1,18 @@
 local archivist = require("@archivist")
 local task = require("@std/task")
 
-local fetchLimitsAsync = require("@root/telemetry/fetchLimitsAsync")
-local getBuild = require("@root/telemetry/getBuild")
-local getEndpoint = require("@root/telemetry/getEndpoint")
-local getQuietReason = require("@root/telemetry/getQuietReason")
-local getStatus = require("@root/telemetry/getStatus")
-local sendBatchAsync = require("@root/telemetry/sendBatchAsync")
-local splitBatches = require("@root/telemetry/splitBatches")
-local takeQueue = require("@root/telemetry/takeQueue")
+local drainTelemetryQueue = require("@root/telemetry/drainTelemetryQueue")
+local getBuild = require("@root/getBuild")
+local getTelemetryConfigAsync = require("@root/telemetry/getTelemetryConfigAsync")
+local getTelemetryEndpoint = require("@root/telemetry/getTelemetryEndpoint")
+local getTelemetryQuietReason = require("@root/telemetry/getTelemetryQuietReason")
+local getTelemetryStatus = require("@root/telemetry/getTelemetryStatus")
+local sendTelemetryBatchAsync = require("@root/telemetry/sendTelemetryBatchAsync")
+local splitTelemetryBatches = require("@root/telemetry/splitTelemetryBatches")
 local telemetryTypes = require("@root/telemetry/types")
+local types = require("@root/types")
 
-type Build = telemetryTypes.Build
+type Build = types.Build
 type Limits = telemetryTypes.Limits
 
 local logger = archivist.getLogger("orion.telemetry")
@@ -34,8 +35,8 @@ export type Options = {
 	isDevServer: boolean?,
 	build: Build?,
 	-- Stand in for the backend in specs.
-	sendBatchAsync: typeof(sendBatchAsync)?,
-	fetchLimitsAsync: typeof(fetchLimitsAsync)?,
+	sendTelemetryBatchAsync: typeof(sendTelemetryBatchAsync)?,
+	getTelemetryConfigAsync: typeof(getTelemetryConfigAsync)?,
 }
 
 --[[
@@ -51,8 +52,8 @@ export type Options = {
 ]]
 function telemetrySender.create(root: string, options: Options)
 	local build = options.build or getBuild()
-	local send = options.sendBatchAsync or sendBatchAsync
-	local fetchLimits = options.fetchLimitsAsync or fetchLimitsAsync
+	local send = options.sendTelemetryBatchAsync or sendTelemetryBatchAsync
+	local fetchLimits = options.getTelemetryConfigAsync or getTelemetryConfigAsync
 	local limits: Limits?
 	local isClosed = false
 	local isFlushing = false
@@ -67,16 +68,16 @@ function telemetrySender.create(root: string, options: Options)
 		isFlushing = true
 
 		local didFlush, accepted = pcall(function(): number
-			local events = takeQueue(root, os.date("!%Y-%m-%dT%H:%M:%SZ") :: string)
-			local status = getStatus(root, options.environment)
-			local isQuiet = options.isDevServer or getQuietReason(options.environment, build) ~= nil
+			local events = drainTelemetryQueue(root, os.date("!%Y-%m-%dT%H:%M:%SZ") :: string)
+			local status = getTelemetryStatus(root, options.environment)
+			local isQuiet = options.isDevServer or getTelemetryQuietReason(options.environment, build) ~= nil
 			local count = 0
 
 			if #events == 0 or not status.enabled or not status.installId or isQuiet then
 				return count
 			end
 
-			local endpoint = getEndpoint(options.environment)
+			local endpoint = getTelemetryEndpoint(options.environment)
 
 			if not limits then
 				local fetched, failure = fetchLimits(endpoint, telemetrySender.TIMEOUT_SECONDS)
@@ -88,7 +89,7 @@ function telemetrySender.create(root: string, options: Options)
 				limits = fetched
 			end
 
-			for _, batch in splitBatches(events, limits or DEFAULT_LIMITS) do
+			for _, batch in splitTelemetryBatches(events, limits or DEFAULT_LIMITS) do
 				local isAccepted, failure =
 					send(endpoint, status.installId :: string, build, batch, telemetrySender.TIMEOUT_SECONDS)
 

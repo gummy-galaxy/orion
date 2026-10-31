@@ -1,7 +1,7 @@
 local buildInfo = require("@root/buildInfo")
-local telemetryTypes = require("@root/telemetry/types")
+local types = require("@root/types")
 
-type Build = telemetryTypes.Build
+type Build = types.Build
 
 -- The build that events are sent from. A checkout reports its commit as "dev"
 -- and a build with uncommitted changes ends in "-dirty", and neither is a

@@ -38,11 +38,4 @@ export type Limits = {
 	maxBytes: number,
 }
 
--- The build every batch is sent from. "dev" builds never send.
-export type Build = {
-	version: string,
-	commit: string,
-	channel: "release" | "dev",
-}
-
 return nil

@@ -3,14 +3,15 @@ local net = require("@lute/net/server")
 local process = require("@std/process")
 
 local chooseTelemetry = require("@root/telemetry/chooseTelemetry")
-local getStatus = require("@root/telemetry/getStatus")
-local parseQueuedEvent = require("@root/telemetry/parseQueuedEvent")
-local queueEvents = require("@root/telemetry/queueEvents")
-local serializeStatus = require("@root/telemetry/serializeStatus")
+local getTelemetryStatus = require("@root/telemetry/getTelemetryStatus")
+local parseTelemetryEvent = require("@root/telemetry/parseTelemetryEvent")
+local queueTelemetryEvents = require("@root/telemetry/queueTelemetryEvents")
+local serializeTelemetryStatus = require("@root/telemetry/serializeTelemetryStatus")
 local shared = require("@root/server/routes/shared")
 local telemetryTypes = require("@root/telemetry/types")
+local types = require("@root/types")
 
-type Build = telemetryTypes.Build
+type Build = types.Build
 type QueuedEvent = telemetryTypes.QueuedEvent
 type Response = shared.Response
 
@@ -34,7 +35,7 @@ function telemetry.handle(
 	local resolvedEnvironment = environment or process.env
 
 	if request.method == "GET" then
-		return shared.reply(200, serializeStatus(getStatus(root, resolvedEnvironment)))
+		return shared.reply(200, serializeTelemetryStatus(getTelemetryStatus(root, resolvedEnvironment)))
 	end
 
 	if request.method ~= "POST" then
@@ -47,7 +48,7 @@ function telemetry.handle(
 
 		chooseTelemetry(root, enabled, "app", resolvedEnvironment, build)
 
-		return shared.reply(200, serializeStatus(getStatus(root, resolvedEnvironment)))
+		return shared.reply(200, serializeTelemetryStatus(getTelemetryStatus(root, resolvedEnvironment)))
 	end)
 
 	return if didSucceed then response :: Response else shared.reply(400, json.object({ error = tostring(response) }))
@@ -82,10 +83,10 @@ function telemetry.handleEvents(
 		local events: { QueuedEvent } = {}
 
 		for _, rawEvent in rawEvents do
-			table.insert(events, parseQueuedEvent(rawEvent, now))
+			table.insert(events, parseTelemetryEvent(rawEvent, now))
 		end
 
-		local queued = queueEvents(root, events, environment or process.env, build)
+		local queued = queueTelemetryEvents(root, events, environment or process.env, build)
 
 		return shared.reply(202, json.object({ queued = queued }))
 	end)
