@@ -14,7 +14,8 @@ type Build = telemetryTypes.Build
 type QueuedEvent = telemetryTypes.QueuedEvent
 type Response = shared.Response
 
--- The most the app may post at once, matching what one backend batch takes.
+-- The most the app may post at once. Only this route checks them: serve splits
+-- what it queues by the backend's own limits, so these needn't match.
 local MAX_EVENTS = 100
 local MAX_BODY_BYTES = 64 * 1024
 

@@ -9,6 +9,7 @@ local testing = require("@root/testing")
 local writeConsent = require("@root/telemetry/writeConsent")
 
 type Build = telemetryTypes.Build
+type Limits = telemetryTypes.Limits
 type QueuedEvent = telemetryTypes.QueuedEvent
 
 type Sent = { endpoint: string, installId: string, build: Build, count: number }
@@ -50,13 +51,21 @@ local function createFake(isAccepted: boolean)
 		end
 end
 
+-- A backend whose config can't be reached, so the built-in limits apply.
+local function offlineLimitsAsync(_endpoint: string, _timeoutSeconds: number): (Limits?, string?)
+	return nil, "the backend answered 503"
+end
+
 test.case("an opted-in machine sends its queue in batches and empties it", function(assert)
 	local root = testing.directory("sender-send")
 	local consent = writeConsent(root, true)
 	queue(root, 150)
 	local sent, send = createFake(true)
 
-	local sender = telemetrySender.create(root, { environment = {}, build = RELEASE, sendBatchAsync = send })
+	local sender = telemetrySender.create(
+		root,
+		{ environment = {}, build = RELEASE, sendBatchAsync = send, fetchLimitsAsync = offlineLimitsAsync }
+	)
 
 	assert.eq(sender.flushAsync(), 150)
 	assert.eq(#sent, 2)
@@ -72,7 +81,10 @@ test.case("a batch that fails is dropped, not retried", function(assert)
 	writeConsent(root, true)
 	queue(root, 3)
 	local sent, send = createFake(false)
-	local sender = telemetrySender.create(root, { environment = {}, build = RELEASE, sendBatchAsync = send })
+	local sender = telemetrySender.create(
+		root,
+		{ environment = {}, build = RELEASE, sendBatchAsync = send, fetchLimitsAsync = offlineLimitsAsync }
+	)
 
 	assert.eq(sender.flushAsync(), 0)
 	assert.eq(sender.flushAsync(), 0)
@@ -98,6 +110,7 @@ test.case("the queue is dropped unsent when sending isn't allowed", function(ass
 			build = case.build,
 			isDevServer = case.isDevServer,
 			sendBatchAsync = send,
+			fetchLimitsAsync = offlineLimitsAsync,
 		})
 
 		assert.eq(sender.flushAsync(), 0)
@@ -115,9 +128,60 @@ test.case("ORION_TELEMETRY_ENDPOINT points batches at another backend", function
 		environment = { ORION_TELEMETRY_ENDPOINT = "http://127.0.0.1:3000/telemetry/v1/events" },
 		build = RELEASE,
 		sendBatchAsync = send,
+		fetchLimitsAsync = offlineLimitsAsync,
 	})
 
 	sender.flushAsync()
 
 	assert.eq(sent[1].endpoint, "http://127.0.0.1:3000/telemetry/v1/events")
+end)
+
+test.case("batches follow the backend's limits, asked for once a run", function(assert)
+	local root = testing.directory("sender-limits")
+	writeConsent(root, true)
+	local sent, send = createFake(true)
+	local askedAt: { string } = {}
+	local sender = telemetrySender.create(root, {
+		environment = {},
+		build = RELEASE,
+		sendBatchAsync = send,
+		fetchLimitsAsync = function(endpoint: string, _timeoutSeconds: number): (Limits?, string?)
+			table.insert(askedAt, endpoint)
+			return { maxEvents = 40, maxBytes = 64 * 1024 }
+		end,
+	})
+
+	queue(root, 100)
+	assert.eq(sender.flushAsync(), 100)
+	queue(root, 50)
+	assert.eq(sender.flushAsync(), 50)
+
+	assert.eq(#sent, 5)
+	assert.eq(sent[1].count, 40)
+	assert.eq(#askedAt, 1)
+	assert.eq(askedAt[1], "https://api.oriongraph.app/telemetry/v1/events")
+end)
+
+test.case("without the backend's limits, batches use the built-in ones and the next send asks again", function(assert)
+	local root = testing.directory("sender-limits-offline")
+	writeConsent(root, true)
+	local sent, send = createFake(true)
+	local asked = 0
+	local sender = telemetrySender.create(root, {
+		environment = {},
+		build = RELEASE,
+		sendBatchAsync = send,
+		fetchLimitsAsync = function(endpoint: string, timeoutSeconds: number): (Limits?, string?)
+			asked += 1
+			return offlineLimitsAsync(endpoint, timeoutSeconds)
+		end,
+	})
+
+	queue(root, 150)
+	assert.eq(sender.flushAsync(), 150)
+	queue(root, 1)
+	sender.flushAsync()
+
+	assert.eq(sent[1].count, 100)
+	assert.eq(asked, 2)
 end)

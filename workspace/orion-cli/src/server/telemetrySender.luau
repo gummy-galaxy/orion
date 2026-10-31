@@ -1,6 +1,7 @@
 local archivist = require("@archivist")
 local task = require("@std/task")
 
+local fetchLimitsAsync = require("@root/telemetry/fetchLimitsAsync")
 local getBuild = require("@root/telemetry/getBuild")
 local getEndpoint = require("@root/telemetry/getEndpoint")
 local getQuietReason = require("@root/telemetry/getQuietReason")
@@ -11,8 +12,12 @@ local takeQueue = require("@root/telemetry/takeQueue")
 local telemetryTypes = require("@root/telemetry/types")
 
 type Build = telemetryTypes.Build
+type Limits = telemetryTypes.Limits
 
 local logger = archivist.getLogger("orion.telemetry")
+
+-- What the backend took when this build shipped, used until it says otherwise.
+local DEFAULT_LIMITS: Limits = { maxEvents = 100, maxBytes = 64 * 1024 }
 
 local telemetrySender = {}
 
@@ -28,8 +33,9 @@ export type Options = {
 	-- A server started for the app's dev server, which never sends.
 	isDevServer: boolean?,
 	build: Build?,
-	-- Stands in for sending in specs.
+	-- Stand in for the backend in specs.
 	sendBatchAsync: typeof(sendBatchAsync)?,
+	fetchLimitsAsync: typeof(fetchLimitsAsync)?,
 }
 
 --[[
@@ -38,10 +44,16 @@ export type Options = {
 	override is set, or this is a dev build, perf run, or CI, the queue is
 	dropped rather than kept for later. A batch that fails is dropped too, with
 	no retry and nothing shown to the person beyond a warning in the log.
+
+	Batches are sized by the limits the backend publishes, asked for before the
+	first send of each run. Until it answers, the limits this build shipped with
+	stand in, and the next send asks again.
 ]]
 function telemetrySender.create(root: string, options: Options)
 	local build = options.build or getBuild()
 	local send = options.sendBatchAsync or sendBatchAsync
+	local fetchLimits = options.fetchLimitsAsync or fetchLimitsAsync
+	local limits: Limits?
 	local isClosed = false
 	local isFlushing = false
 	local sender = {}
@@ -66,7 +78,17 @@ function telemetrySender.create(root: string, options: Options)
 
 			local endpoint = getEndpoint(options.environment)
 
-			for _, batch in splitBatches(events) do
+			if not limits then
+				local fetched, failure = fetchLimits(endpoint, telemetrySender.TIMEOUT_SECONDS)
+
+				if not fetched then
+					logger.warn("using built-in batch limits:", failure)
+				end
+
+				limits = fetched
+			end
+
+			for _, batch in splitBatches(events, limits or DEFAULT_LIMITS) do
 				local isAccepted, failure =
 					send(endpoint, status.installId :: string, build, batch, telemetrySender.TIMEOUT_SECONDS)
 

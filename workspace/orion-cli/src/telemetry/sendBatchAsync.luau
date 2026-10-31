@@ -1,21 +1,17 @@
 local json = require("@std/json")
 local net = require("@std/net")
-local task = require("@std/task")
 
+local requestAsync = require("@root/telemetry/requestAsync")
 local serializeQueuedEvent = require("@root/telemetry/serializeQueuedEvent")
 local telemetryTypes = require("@root/telemetry/types")
 
 type Build = telemetryTypes.Build
 type QueuedEvent = telemetryTypes.QueuedEvent
 
-local POLL_SECONDS = 0.1
-
 --[[
 	Posts one batch to the backend and reports whether it was accepted, and why
-	not when it wasn't. A request that takes longer than `timeoutSeconds` is
-	given up on and left to finish in the background, since the request itself
-	has no timeout. Nothing here retries: a batch that fails is the caller's to
-	drop.
+	not when it wasn't. Nothing here retries: a batch that fails is the caller's
+	to drop.
 ]]
 local function sendBatchAsync(
 	endpoint: string,
@@ -40,35 +36,17 @@ local function sendBatchAsync(
 		headers = { ["Content-Type"] = "application/json" },
 		body = body,
 	}
-	local isDone = false
-	local isAccepted = false
-	local failure: string?
+	local response, failure = requestAsync(endpoint, metadata, timeoutSeconds)
 
-	task.spawn(function()
-		local didSend, response = pcall(net.request, endpoint, metadata)
-
-		if not didSend then
-			failure = tostring(response)
-		elseif not response.ok then
-			failure = `the backend answered {response.status}`
-		end
-
-		isAccepted = didSend and response.ok
-		isDone = true
-	end)
-
-	local waited = 0
-
-	while not isDone and waited < timeoutSeconds do
-		task.wait(POLL_SECONDS)
-		waited += POLL_SECONDS
+	if not response then
+		return false, failure
 	end
 
-	if not isDone then
-		return false, `no answer within {timeoutSeconds} seconds`
+	if not response.ok then
+		return false, `the backend answered {response.status}`
 	end
 
-	return isAccepted, failure
+	return true
 end
 
 return sendBatchAsync

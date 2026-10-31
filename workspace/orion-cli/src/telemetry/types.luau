@@ -31,6 +31,13 @@ export type QueuedEvent = {
 	properties: { [string]: PropertyValue },
 }
 
+-- How big a batch the backend takes, which it publishes at its `config`
+-- endpoint.
+export type Limits = {
+	maxEvents: number,
+	maxBytes: number,
+}
+
 -- The build every batch is sent from. "dev" builds never send.
 export type Build = {
 	version: string,

@@ -3,8 +3,11 @@ local test = require("@std/test")
 local splitBatches = require("@root/telemetry/splitBatches")
 local telemetryTypes = require("@root/telemetry/types")
 
+type Limits = telemetryTypes.Limits
 type PropertyValue = telemetryTypes.PropertyValue
 type QueuedEvent = telemetryTypes.QueuedEvent
+
+local LIMITS: Limits = { maxEvents = 100, maxBytes = 64 * 1024 }
 
 local function events(count: number, properties: { [string]: PropertyValue }?): { QueuedEvent }
 	local list: { QueuedEvent } = {}
@@ -17,7 +20,7 @@ local function events(count: number, properties: { [string]: PropertyValue }?): 
 end
 
 test.case("batches hold at most 100 events", function(assert)
-	local batches = splitBatches(events(250))
+	local batches = splitBatches(events(250), LIMITS)
 
 	assert.eq(#batches, 3)
 	assert.eq(#batches[1], 100)
@@ -26,7 +29,7 @@ test.case("batches hold at most 100 events", function(assert)
 end)
 
 test.case("large events split into batches the backend accepts", function(assert)
-	local batches = splitBatches(events(40, { flags = string.rep("x", 4000) }))
+	local batches = splitBatches(events(40, { flags = string.rep("x", 4000) }), LIMITS)
 
 	assert.eq(#batches > 1, true)
 	for _, batch in batches do
@@ -34,6 +37,13 @@ test.case("large events split into batches the backend accepts", function(assert
 	end
 end)
 
+test.case("batches follow the limits the backend publishes", function(assert)
+	local batches = splitBatches(events(25), { maxEvents = 10, maxBytes = 64 * 1024 })
+
+	assert.eq(#batches, 3)
+	assert.eq(#batches[3], 5)
+end)
+
 test.case("no events make no batches", function(assert)
-	assert.eq(#splitBatches({}), 0)
+	assert.eq(#splitBatches({}, LIMITS), 0)
 end)
