@@ -39,7 +39,7 @@ export const Default: Story = {
         <NoteInspector
           node={note}
           focus={false}
-          doneEditing={() => {}}
+          onDoneEditing={() => {}}
           update={() => {}}
           saveFields={() => Promise.resolve(null)}
           remove={() => {}}
