@@ -29,7 +29,6 @@ local CHECK_SECONDS = 0.5
 -- catches a transcript that moved while its process stayed busy.
 local REFRESH_SECONDS = 60
 local logger = archivist.getLogger("orion.sessions")
-local sessions = {}
 
 local function isSameValue(a: unknown, b: unknown): boolean
 	if type(a) ~= "table" or type(b) ~= "table" then
@@ -107,8 +106,7 @@ end
 	It writes the canvas only when a session ref's facts did, and never adds a
 	card.
 ]]
-function sessions.create(root: string, active: () -> string, runner: Runner?)
-	local command = runner or runCommand
+local function createSessionLoop(root: string, active: () -> string, runner: Runner?)
 	local caches: { [string]: SessionCache } = {}
 	local watches: { Watch } = {}
 	local watchedKey = ""
@@ -192,7 +190,7 @@ function sessions.create(root: string, active: () -> string, runner: Runner?)
 				table.insert(results, {
 					source = source,
 					report = { id = source.id, added = 0, updated = 0, linked = 0 },
-					records = collectSessionsAsync(source, entry.agent, command, context, cache),
+					records = collectSessionsAsync(source, entry.agent, runner or runCommand, context, cache),
 				})
 			end
 
@@ -256,4 +254,4 @@ function sessions.create(root: string, active: () -> string, runner: Runner?)
 	return loop
 end
 
-return table.freeze(sessions)
+return createSessionLoop

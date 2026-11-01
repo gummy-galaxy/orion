@@ -20,7 +20,7 @@ function ComponentDemo() {
       <ComponentInspector
         node={node}
         focus={false}
-        doneEditing={() => {}}
+        onDoneEditing={() => {}}
         work={buildWork(toServerFacts(null), [node, store], links)}
         map={map}
         update={(_id, patch) => setNode({ ...node, data: { ...node.data, ...patch } as TaskData })}

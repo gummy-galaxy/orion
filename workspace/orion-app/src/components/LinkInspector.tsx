@@ -5,7 +5,7 @@ export function LinkInspector({
   link,
   map,
   focus,
-  doneEditing,
+  onDoneEditing,
   update,
   flip,
   remove,
@@ -15,7 +15,7 @@ export function LinkInspector({
   map: Map<string, AppNode>
   /** Focuses the label, for a link opened to be labeled. */
   focus: boolean
-  doneEditing: () => void
+  onDoneEditing: () => void
   update: (id: string, patch: Partial<Pick<Link, 'label'>>) => void
   flip: (id: string) => void
   remove: () => void
@@ -50,7 +50,7 @@ export function LinkInspector({
 
           if (label !== (link.label ?? '')) update(link.id, { label: label || undefined })
 
-          doneEditing()
+          onDoneEditing()
         }}
         onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
         onChange={(event) => update(link.id, { label: event.target.value || undefined })}

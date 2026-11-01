@@ -14,8 +14,6 @@ type Subscription = { id: string, canvas: string?, request: json.Object, answere
 
 local EVENT = "orion:query"
 
-local queries = {}
-
 -- Queries the app keeps open over the event socket. The app sends
 -- `{ type = "query", id, ... }` with POST /api/query's fields, plus an
 -- optional `canvas`, and hears `orion:query` with the id and the answer right
@@ -23,7 +21,7 @@ local queries = {}
 -- replaces the query, and `{ type = "unquery", id }` drops it. A query that
 -- fails answers `{ id, error }` instead. The server watches only the active
 -- canvas, so a query naming another one updates when it becomes active.
-function queries.create(root: string)
+local function createOpenQueries(root: string)
 	local bySocket: { [Socket]: { [string]: Subscription } } = {}
 	local hub = {}
 
@@ -96,4 +94,4 @@ function queries.create(root: string)
 	return hub
 end
 
-return table.freeze(queries)
+return createOpenQueries
