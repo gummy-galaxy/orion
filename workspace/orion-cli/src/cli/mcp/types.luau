@@ -37,9 +37,9 @@ export type Run = (argv: { string }, write: (string) -> ()) -> ()
 -- Lets the server report what it serves, for usage telemetry.
 export type Hooks = {
 	-- A client connected, giving the name it introduced itself with, if any.
-	connected: ((clientName: string?) -> ())?,
+	onConnected: ((clientName: string?) -> ())?,
 	-- A tool call finished, under the tool's current name.
-	toolCalled: ((name: string, durationMs: number, failed: boolean) -> ())?,
+	onToolCalled: ((name: string, durationMs: number, failed: boolean) -> ())?,
 }
 
 return nil

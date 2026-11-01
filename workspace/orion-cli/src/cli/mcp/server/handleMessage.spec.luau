@@ -249,10 +249,10 @@ test.case("hooks hear the client's name and each tool call under its current nam
 	local clientName: string? = nil
 	local calls: { { name: string, failed: boolean } } = {}
 	local hooks: mcpTypes.Hooks = {
-		connected = function(name: string?)
+		onConnected = function(name: string?)
 			clientName = name
 		end,
-		toolCalled = function(name: string, durationMs: number, failed: boolean)
+		onToolCalled = function(name: string, durationMs: number, failed: boolean)
 			assert.eq(durationMs >= 0, true)
 			table.insert(calls, { name = name, failed = failed })
 		end,

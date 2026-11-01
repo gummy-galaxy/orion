@@ -50,10 +50,10 @@ return table.freeze({
 
 		local clientName: string? = nil
 		local hooks: Hooks = {
-			connected = function(name: string?)
+			onConnected = function(name: string?)
 				clientName = if name then name:sub(1, MAX_CLIENT_NAME_LENGTH) else nil
 			end,
-			toolCalled = function(name: string, durationMs: number, failed: boolean)
+			onToolCalled = function(name: string, durationMs: number, failed: boolean)
 				local properties: { [string]: string | number | boolean } =
 					{ tool = name, duration_ms = durationMs, failed = failed }
 

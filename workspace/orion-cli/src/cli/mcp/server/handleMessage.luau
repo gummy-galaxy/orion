@@ -92,8 +92,8 @@ local function callTool(id: json.Value, params: json.Object, tools: { Tool }, ru
 		end)
 	end)
 
-	if hooks and hooks.toolCalled then
-		pcall(hooks.toolCalled, tool.name, math.floor(time.since(startedAt) * 1000), not ok)
+	if hooks and hooks.onToolCalled then
+		pcall(hooks.onToolCalled, tool.name, math.floor(time.since(startedAt) * 1000), not ok)
 	end
 
 	if ok then
@@ -137,10 +137,10 @@ local function handleMessage(line: string, tools: { Tool }, run: Run, stale: boo
 	local method = message.method
 
 	if method == "initialize" then
-		if hooks and hooks.connected then
+		if hooks and hooks.onConnected then
 			local clientInfo = json.asObject(params.clientInfo :: json.Value)
 			local clientName = if clientInfo and type(clientInfo.name) == "string" then clientInfo.name else nil
-			pcall(hooks.connected, clientName)
+			pcall(hooks.onConnected, clientName)
 		end
 
 		return createSuccess(id, initialize(params))
