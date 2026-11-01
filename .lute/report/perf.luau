@@ -15,8 +15,8 @@ local fs = require("@std/fs")
 local path = require("@std/path")
 local process = require("@std/process")
 
-local command = require("@cli/common/process/command")
-local upsertCommentAsync = require("@cli/sources/github/api/upsertCommentAsync")
+local command = require("@root/common/process/command")
+local upsertCommentAsync = require("@root/sources/github/api/upsertCommentAsync")
 
 local MARKER = "<!-- orion-perf -->"
 

@@ -25,8 +25,8 @@ local process = require("@std/process")
 local project = require("@repository/project")
 local system = require("@std/system")
 
-local run = require("@cli/common/process/run")
-local runScript = require("@cli/common/process/runScript")
+local run = require("@root/common/process/run")
+local runScript = require("@root/common/process/runScript")
 
 local isWindows = system.win32
 

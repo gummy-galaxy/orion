@@ -23,7 +23,7 @@ local time = require("@std/time")
 local findMutations = require("./lib/mutation/findMutations")
 local mutationTypes = require("./lib/mutation/types")
 
-local runScript = require("@cli/common/process/runScript")
+local runScript = require("@root/common/process/runScript")
 
 type Mutation = mutationTypes.Mutation
 type Outcome = mutationTypes.Outcome

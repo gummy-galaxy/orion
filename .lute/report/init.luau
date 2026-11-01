@@ -17,7 +17,7 @@
 ]]
 local process = require("@std/process")
 
-local runScript = require("@cli/common/process/runScript")
+local runScript = require("@root/common/process/runScript")
 
 local commentStorybook = require("@self/storybook")
 local recordPerfHistory = require("@self/perfHistory")

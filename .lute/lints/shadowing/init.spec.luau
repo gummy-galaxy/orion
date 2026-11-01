@@ -1,7 +1,7 @@
 local test = require("@std/test")
 
 local shadowing = require("@repository/.lute/lints/shadowing")
-local testing = require("@cli/testing")
+local testing = require("@root/testing")
 
 test.case("shadowing flags a callback parameter that reuses the local it's assigned to", function(assert)
 	local source = [[

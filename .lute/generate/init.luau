@@ -24,7 +24,7 @@
 ]]
 local process = require("@std/process")
 
-local runScript = require("@cli/common/process/runScript")
+local runScript = require("@root/common/process/runScript")
 
 local generateDocs = require("@self/docs")
 local generateGeometry = require("@self/geometry")
