@@ -20,8 +20,6 @@ type Watch = typeof(fs.watch(""))
 
 local logger = archivist.getLogger("orion.watcher")
 
-local watcher = {}
-
 -- Every write replaces the canvas's local.json last, so its stamp moves once
 -- per write.
 local function getWrittenPath(dir: string): string
@@ -68,13 +66,13 @@ local function hasStampChanged(previous: Stamp?, current: Stamp?): boolean
 	return previous.size ~= current.size or previous.modified ~= current.modified
 end
 
-function watcher.create(
+local function createWatcher(
 	root: string,
 	active: () -> string,
 	switchTo: (string) -> (),
-	changed: (number, Doc, boolean) -> (),
-	workspacesChanged: (WorkspaceList) -> (),
-	logChanged: (string) -> ()
+	onChanged: (number, Doc, boolean) -> (),
+	onWorkspacesChanged: (WorkspaceList) -> (),
+	onLogChanged: (string) -> ()
 )
 	local isClosed = false
 	local dataFile = getWrittenPath(getWorkspaceDir(root, active()))
@@ -166,13 +164,13 @@ function watcher.create(
 
 			if doc.revision ~= lastRevision then
 				lastRevision, lastFingerprint = doc.revision, fingerprint
-				changed(doc.revision, doc, false)
+				onChanged(doc.revision, doc, false)
 			elseif fingerprint ~= lastFingerprint then
 				-- Files changed outside Orion, such as by a `git pull`, without
 				-- a new revision.
 				lastFingerprint = fingerprint
 				logger.info("re-indexed", getWorkspaceDir(root, active()), "after files changed outside Orion")
-				changed(doc.revision, doc, true)
+				onChanged(doc.revision, doc, true)
 			end
 		end)
 	end
@@ -190,7 +188,7 @@ function watcher.create(
 
 		if hasStampChanged(lastLogStamp, current) then
 			lastLogStamp = current
-			logChanged(logName)
+			onLogChanged(logName)
 		end
 	end
 
@@ -209,7 +207,7 @@ function watcher.create(
 		end
 
 		lastManifestStamp = current
-		workspacesChanged(list)
+		onWorkspacesChanged(list)
 
 		if list.active ~= lastManifestActive then
 			lastManifestActive = list.active
@@ -262,4 +260,4 @@ function watcher.create(
 	return monitor
 end
 
-return table.freeze(watcher)
+return createWatcher

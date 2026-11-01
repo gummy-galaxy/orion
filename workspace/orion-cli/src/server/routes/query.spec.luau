@@ -2,7 +2,7 @@ local json = require("@std/json")
 local net = require("@lute/net/server")
 local test = require("@std/test")
 
-local routes = require("@root/server/routes")
+local createRouter = require("@root/server/routes/createRouter")
 local testing = require("@root/testing")
 local writeDoc = require("@root/storage/canvases/writeDoc")
 
@@ -20,10 +20,10 @@ local function decodeResponse(response): json.Object
 	return assert(json.asObject(json.deserialize(response.body) :: json.Value))
 end
 
-local function createRouter(name: string)
+local function createTestRouter(name: string)
 	local root = testing.directory(name)
 	local status = json.object({ state = "idle" })
-	local router = routes.create(root, "default", {
+	local router = createRouter(root, "default", {
 		getStatus = function()
 			return status
 		end,
@@ -58,7 +58,7 @@ local function getRowIds(body: json.Object): string
 end
 
 test.case("POST answers a sorted page of rows with derived fields", function(assert)
-	local router = createRouter("query-route-page")
+	local router = createTestRouter("query-route-page")
 	local response = router.handleAsync(
 		createRequest(
 			"POST",
@@ -80,14 +80,14 @@ test.case("POST answers a sorted page of rows with derived fields", function(ass
 end)
 
 test.case("a blank where matches every open node", function(assert)
-	local router = createRouter("query-route-blank")
+	local router = createTestRouter("query-route-blank")
 	local body = decodeResponse(router.handleAsync(createRequest("POST", json.object({ where = "  " }))))
 	assert.eq(getRowIds(body), "ws ci pub")
 	assert.eq(getRowIds(decodeResponse(router.handleAsync(createRequest("POST", json.object({}))))), "ws ci pub")
 end)
 
 test.case("bad requests answer 400 with the parser's error", function(assert)
-	local router = createRouter("query-route-errors")
+	local router = createTestRouter("query-route-errors")
 	local response = router.handleAsync(createRequest("POST", json.object({ where = "owner = 'me'" })))
 	assert.eq(response.status, 400)
 	assert.eq(decodeResponse(response).error, "query at column 6: unknown field 'owner'")
@@ -101,7 +101,7 @@ test.case("bad requests answer 400 with the parser's error", function(assert)
 end)
 
 test.case("unknown canvases answer 404, and other methods 405", function(assert)
-	local router = createRouter("query-route-canvas")
+	local router = createTestRouter("query-route-canvas")
 	assert.eq(router.handleAsync(createRequest("POST", json.object({}), "nowhere")).status, 404)
 	assert.eq(router.handleAsync(createRequest("GET")).status, 405)
 end)

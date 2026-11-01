@@ -9,7 +9,7 @@ import { LinkList } from './LinkList'
 export function ComponentInspector({
   node,
   focus,
-  doneEditing,
+  onDoneEditing,
   work,
   map,
   update,
@@ -25,7 +25,7 @@ export function ComponentInspector({
   node: AppNode
   /** Focuses the name, for a component that was just added. */
   focus: boolean
-  doneEditing: () => void
+  onDoneEditing: () => void
   work: Work
   map: Map<string, AppNode>
   update: (id: string, patch: Partial<TaskData>) => void
@@ -66,7 +66,7 @@ export function ComponentInspector({
         value={data.label}
         autoFocus={focus}
         placeholder="A service, app, or data store"
-        onBlur={doneEditing}
+        onBlur={onDoneEditing}
         onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
         onChange={(event) => update(node.id, { label: event.target.value })}
       />

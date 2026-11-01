@@ -2,39 +2,39 @@ local json = require("@std/json")
 local test = require("@std/test")
 
 local clearFocus = require("@root/storage/focus/clearFocus")
+local createSyncLoop = require("@root/server/createSyncLoop")
 local getWorkspaceDir = require("@root/storage/canvases/getWorkspaceDir")
 local loadDoc = require("@root/storage/canvases/loadDoc")
 local putFocus = require("@root/storage/focus/putFocus")
-local sync = require("@root/server/sync")
 local testing = require("@root/testing")
 
 test.case("sync throttles repeated requests and force bypasses the throttle", function(assert)
 	local root = testing.createHarness("sync-throttle")
 	local calls = 0
 	local now = 100
-	local loop = sync.create(root, "default", function(_status: json.Object) end, function(_argv)
+	local syncLoop = createSyncLoop(root, "default", function(_status: json.Object) end, function(_argv)
 		calls += 1
 		error("offline")
 	end, function()
 		return now
 	end)
 
-	loop.runAsync()
+	syncLoop.runAsync()
 	local first = calls
 	assert.that(first > 0)
-	loop.runAsync()
+	syncLoop.runAsync()
 	assert.eq(calls, first)
-	loop.runAsync(true)
+	syncLoop.runAsync(true)
 	assert.that(calls > first)
 	now += 61
 	local before = calls
-	loop.runAsync()
+	syncLoop.runAsync()
 	assert.that(calls > before)
 end)
 
 test.case("sync applies what it fetched and reports the part that failed", function(assert)
 	local root = testing.createHarness("sync-partial")
-	local loop = sync.create(root, "default", function(_status: json.Object) end, function(argv)
+	local syncLoop = createSyncLoop(root, "default", function(_status: json.Object) end, function(argv)
 		local query = argv[#argv]
 
 		if query:find("pullRequests(first:", 1, true) then
@@ -46,7 +46,7 @@ test.case("sync applies what it fetched and reports the part that failed", funct
 		return testing.result(true, [[{"data":{}}]])
 	end)
 
-	local status = loop.runAsync()
+	local status = syncLoop.runAsync()
 	assert.eq(status.state, "error")
 	assert.strContains(status.message :: string, "Couldn't fetch your open pull requests")
 	assert.eq(status.lastRun ~= nil, true)
@@ -58,7 +58,7 @@ test.case("sync ticks poll and sweep quietly between full passes and write only 
 	local now = 100
 	local calls: { string } = {}
 	local states: { string } = {}
-	local loop = sync.create(root, "default", function(status: json.Object)
+	local syncLoop = createSyncLoop(root, "default", function(status: json.Object)
 		table.insert(states, status.state :: string)
 	end, function(argv)
 		local query = argv[#argv]
@@ -93,7 +93,7 @@ test.case("sync ticks poll and sweep quietly between full passes and write only 
 		return now
 	end)
 
-	loop.tickAsync()
+	syncLoop.tickAsync()
 	local revision = loadDoc(dir).revision
 	-- The first full pass gives the card's ref its repository's id, so later
 	-- passes don't ask again.
@@ -103,25 +103,25 @@ test.case("sync ticks poll and sweep quietly between full passes and write only 
 	table.clear(calls)
 	table.clear(states)
 	now += 30
-	loop.tickAsync()
+	syncLoop.tickAsync()
 	assert.eq(#calls, 0)
 
 	table.clear(states)
 	now += 31
-	loop.tickAsync()
+	syncLoop.tickAsync()
 	assert.eq(table.concat(calls, ","), "poll")
 	assert.eq(table.concat(states, ","), "idle")
 
 	table.clear(calls)
 	now += 60
-	loop.tickAsync()
+	syncLoop.tickAsync()
 	assert.eq(table.concat(calls, ","), "poll,sweep,authored")
 	assert.eq(loadDoc(dir).revision, revision)
 	assert.eq(table.find(states, "running"), nil)
 
 	table.clear(calls)
 	now = 100 + 15 * 60
-	loop.tickAsync()
+	syncLoop.tickAsync()
 	assert.eq(table.concat(calls, ","), "authored,full")
 	assert.eq(loadDoc(dir).revision, revision + 1)
 end)
@@ -131,7 +131,7 @@ test.case("sync sweeps the cards in view every 30 seconds between full sweeps", 
 	local dir = getWorkspaceDir(root, "default")
 	local now = 100
 	local calls: { string } = {}
-	local loop = sync.create(root, "default", function(_status: json.Object) end, function(argv)
+	local syncLoop = createSyncLoop(root, "default", function(_status: json.Object) end, function(argv)
 		local query = argv[#argv]
 
 		if argv[3] == "--include" then
@@ -161,41 +161,41 @@ test.case("sync sweeps the cards in view every 30 seconds between full sweeps", 
 		return now
 	end)
 
-	loop.tickAsync()
+	syncLoop.tickAsync()
 	local revision = loadDoc(dir).revision
 	putFocus(dir, "tab", nil, { "pub" })
 
 	table.clear(calls)
 	now += 30
-	loop.tickAsync()
+	syncLoop.tickAsync()
 	assert.eq(table.concat(calls, ","), "sweep")
 	assert.eq(loadDoc(dir).revision, revision)
 
 	table.clear(calls)
 	now += 15
-	loop.tickAsync()
+	syncLoop.tickAsync()
 	assert.eq(#calls, 0)
 
 	clearFocus(dir)
 	table.clear(calls)
 	now += 15
-	loop.tickAsync()
+	syncLoop.tickAsync()
 	assert.eq(table.concat(calls, ","), "poll")
 
 	putFocus(dir, "tab", "ws", {})
 	table.clear(calls)
 	now += 30
-	loop.tickAsync()
+	syncLoop.tickAsync()
 	assert.eq(table.concat(calls, ","), "sweep")
 
 	table.clear(calls)
 	now += 30
-	loop.tickAsync()
+	syncLoop.tickAsync()
 	assert.eq(table.concat(calls, ","), "poll,sweep,authored")
 
 	table.clear(calls)
 	now += 30
-	loop.tickAsync()
+	syncLoop.tickAsync()
 	assert.eq(table.concat(calls, ","), "sweep")
 end)
 
@@ -203,7 +203,7 @@ test.case("an unforced sync request sweeps once a full pass has run", function(a
 	local root = testing.createHarness("sync-request")
 	local now = 100
 	local calls: { string } = {}
-	local loop = sync.create(root, "default", function(_status: json.Object) end, function(argv)
+	local syncLoop = createSyncLoop(root, "default", function(_status: json.Object) end, function(argv)
 		local query = argv[#argv]
 
 		if argv[3] == "--include" then
@@ -226,11 +226,11 @@ test.case("an unforced sync request sweeps once a full pass has run", function(a
 		return now
 	end)
 
-	loop.runAsync()
+	syncLoop.runAsync()
 	assert.eq(table.find(calls, "full") ~= nil, true)
 	table.clear(calls)
 	now += 61
-	loop.runAsync()
+	syncLoop.runAsync()
 	assert.eq(table.find(calls, "sweep") ~= nil, true)
 	assert.eq(table.find(calls, "full"), nil)
 end)
