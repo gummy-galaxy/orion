@@ -12,7 +12,7 @@ The guides below hold the rest of the rules, one topic per file, so changes to d
 
 - @agents/canvas.md: reading and changing the canvas with the CLI, and what the person is looking at.
 - @agents/changelog.md: when a change needs a `.changes/` entry, and how to choose its fields and word it.
-- @agents/code-style.md: naming, components, and logging.
+- @agents/code-style.md: naming, modules, components, and logging, in both languages.
 - @agents/desktop-build.md: building the desktop app and installing it for someone to try.
 - @agents/dev-data.md: the scratch data folder dev servers use, and keeping branch builds off the real one.
 - @agents/docs.md: the docs site and its generated reference.

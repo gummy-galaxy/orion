@@ -2,7 +2,7 @@
 
 `orion`, written in Luau and compiled with [Lute](https://github.com/luau-lang/lute). It owns Orion's data: the app, agents, and MCP all go through it. [`CONTRIBUTING.md`](../../CONTRIBUTING.md) covers building and testing it, and the [CLI reference](../../docs/reference/cli/index.md) covers its commands.
 
-Each module exports one function and has its spec beside it as `<module>.spec.luau`.
+Each module exports one function and has its spec beside it as `<module>.spec.luau`. Constant tables, data lists, and command modules export tables instead.
 
 `src` is grouped in layers. A folder requires from its own layer or one below it, never above:
 
