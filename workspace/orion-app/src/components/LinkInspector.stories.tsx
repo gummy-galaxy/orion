@@ -20,7 +20,7 @@ function LinkDemo() {
         link={link}
         map={map}
         focus={false}
-        doneEditing={() => {}}
+        onDoneEditing={() => {}}
         update={(_id, patch) => setLink({ ...link, ...patch })}
         flip={() => setLink({ ...link, kind: link.kind === 'blocks' ? 'related' : 'blocks' })}
         remove={() => {}}

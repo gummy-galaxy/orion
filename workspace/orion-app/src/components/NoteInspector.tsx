@@ -4,14 +4,14 @@ import type { AppNode, TaskData } from '../model'
 export function NoteInspector({
   node,
   focus,
-  doneEditing,
+  onDoneEditing,
   update,
   saveFields,
   remove,
 }: {
   node: AppNode
   focus: boolean
-  doneEditing: () => void
+  onDoneEditing: () => void
   update: (id: string, patch: Partial<TaskData>) => void
   /** Saves fields the server checks, and resolves once it answers. */
   saveFields: SaveFields
@@ -28,7 +28,7 @@ export function NoteInspector({
         value={data.label}
         autoFocus={focus}
         placeholder="A detail to remember, or a plan that might become a pull request"
-        onBlur={doneEditing}
+        onBlur={onDoneEditing}
         onChange={(event) => update(node.id, { label: event.target.value })}
       />
       <p className="facts">Notes pass blocking through but never count as work.</p>

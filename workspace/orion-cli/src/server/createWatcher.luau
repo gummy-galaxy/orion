@@ -70,9 +70,9 @@ local function createWatcher(
 	root: string,
 	active: () -> string,
 	switchTo: (string) -> (),
-	changed: (number, Doc, boolean) -> (),
-	workspacesChanged: (WorkspaceList) -> (),
-	logChanged: (string) -> ()
+	onChanged: (number, Doc, boolean) -> (),
+	onWorkspacesChanged: (WorkspaceList) -> (),
+	onLogChanged: (string) -> ()
 )
 	local isClosed = false
 	local dataFile = getWrittenPath(getWorkspaceDir(root, active()))
@@ -164,13 +164,13 @@ local function createWatcher(
 
 			if doc.revision ~= lastRevision then
 				lastRevision, lastFingerprint = doc.revision, fingerprint
-				changed(doc.revision, doc, false)
+				onChanged(doc.revision, doc, false)
 			elseif fingerprint ~= lastFingerprint then
 				-- Files changed outside Orion, such as by a `git pull`, without
 				-- a new revision.
 				lastFingerprint = fingerprint
 				logger.info("re-indexed", getWorkspaceDir(root, active()), "after files changed outside Orion")
-				changed(doc.revision, doc, true)
+				onChanged(doc.revision, doc, true)
 			end
 		end)
 	end
@@ -188,7 +188,7 @@ local function createWatcher(
 
 		if hasStampChanged(lastLogStamp, current) then
 			lastLogStamp = current
-			logChanged(logName)
+			onLogChanged(logName)
 		end
 	end
 
@@ -207,7 +207,7 @@ local function createWatcher(
 		end
 
 		lastManifestStamp = current
-		workspacesChanged(list)
+		onWorkspacesChanged(list)
 
 		if list.active ~= lastManifestActive then
 			lastManifestActive = list.active

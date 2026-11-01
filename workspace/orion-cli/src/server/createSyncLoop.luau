@@ -46,7 +46,7 @@ local logger = archivist.getLogger("orion.sync")
 local function createSyncLoop(
 	root: string,
 	initialWorkspace: string,
-	publish: (json.Object) -> (),
+	onStatusChanged: (json.Object) -> (),
 	runner: Runner?,
 	clock: (() -> number)?
 )
@@ -64,7 +64,7 @@ local function createSyncLoop(
 
 	local function setStatus(nextStatus: json.Object)
 		status = nextStatus
-		publish(status)
+		onStatusChanged(status)
 	end
 
 	-- Runs a full pass without `want`, or a pass limited to what changed with
