@@ -375,7 +375,7 @@ Runs `orion next`.
 
 ## orion_apply
 
-Apply a plan of cards, notes, groups, and links in one call. The plan is a list of operations that run in order, and it lands whole or not at all. addCard and addNote create items, and group wraps items; each may declare a handle, and later operations refer to it as "@handle". Existing cards and groups are named by id. Other operations: setFields, link, unlink, insert, move, ungroup, tidy, remove, removeGroup. Use dryRun to preview the plan and the ids each handle gets.
+Apply a plan of cards, notes, groups, and links in one call. The plan is a list of operations that run in order, and it lands whole or not at all. addCard and addNote create items, and group wraps items; each may declare a handle, and later operations refer to it as "@handle". Existing cards and groups are named by id. Other operations: setFields, link (with an optional label, empty to clear), unlink, insert, move, ungroup, tidy, remove, removeGroup, and attachRef and detachRef, which take id and ref and change only Orion's record of a card, never the source. Use dryRun to preview the plan, the ids each handle gets, and the items, links, and refs it would change.
 
 Runs `orion apply`.
 

@@ -173,3 +173,78 @@ test.case("a plan places its new cards once their links are in, so a chain lands
 	assert.eq(positions.Three.x > positions.Two.x, true)
 	assert.eq(doc.nodes[#doc.nodes].parentId, "ws")
 end)
+
+test.case("a plan attaches and takes off refs and labels links in one write", function(assert)
+	local dir, run = testing.createHarness("apply-associations")
+	local output = run({
+		"apply",
+		"--plan",
+		[=[[
+			{"op":"attachRef","id":"pub","ref":"https://github.com/flipbook-labs/flipbook/pull/12"},
+			{"op":"detachRef","id":"ci","ref":"flipbook-labs/flipbook#658"},
+			{"op":"link","from":"ci","to":"pub","label":"Release notes"}
+		]]=],
+	})
+	assert.strContains(output, "Applied 3 operations at revision 0 → 1")
+	assert.strContains(output, '  ~ link ci → pub (blocks) "Release notes"')
+	assert.strContains(output, "  + ref flipbook-labs/flipbook#12 on pub")
+	assert.strContains(output, "  - ref flipbook-labs/flipbook#658 on ci")
+	local doc = loadDoc(dir)
+	assert.strContains(run({ "node", "show", "pub" }), "flipbook-labs/flipbook#12")
+	assert.eq(getItem(doc, "ci").data.refs, nil)
+	assert.eq(doc.links[1].label, "Release notes")
+
+	run({ "apply", "--plan", [=[[{"op":"link","from":"ci","to":"pub","label":""}]]=] })
+	assert.eq(loadDoc(dir).links[1].label, nil)
+end)
+
+test.case("a dry run lists the items, links, and refs a plan would change", function(assert)
+	local dir, run = testing.createHarness("apply-preview")
+	local value = json.asObject(json.deserialize(run({
+		"apply",
+		"--plan",
+		[=[[
+			{"op":"addCard","handle":"docs","label":"Write docs","group":"ws"},
+			{"op":"link","from":"pub","to":"@docs","kind":"related"},
+			{"op":"unlink","from":"ci","to":"pub"},
+			{"op":"detachRef","id":"ci","ref":"https://github.com/flipbook-labs/flipbook/pull/658"}
+		]]=],
+		"--dry-run",
+		"--json",
+	})) :: json.Value)
+	local changes = json.asObject(value and value.changes :: json.Value) :: json.Object
+	local items = json.asObject(changes.items) :: json.Object
+	local links = json.asObject(changes.links) :: json.Object
+	local refs = json.asObject(changes.refs) :: json.Object
+	local docs = (json.asObject(value and value.ids :: json.Value) :: json.Object).docs
+	assert.eq((json.asArray(items.added) :: json.Array)[1], docs)
+	assert.eq((json.asArray(items.changed) :: json.Array)[1], "ci")
+	local added = json.asObject((json.asArray(links.added) :: json.Array)[1]) :: json.Object
+	assert.eq(added.from, "pub")
+	assert.eq(added.to, docs)
+	assert.eq(added.kind, "related")
+	local removed = json.asObject((json.asArray(links.removed) :: json.Array)[1]) :: json.Object
+	assert.eq(removed.from, "ci")
+	local detached = json.asObject((json.asArray(refs.detached) :: json.Array)[1]) :: json.Object
+	assert.eq(detached.id, "ci")
+	assert.eq(detached.key, "flipbook-labs/flipbook#658")
+	assert.eq(#(json.asArray(refs.attached) :: json.Array), 0)
+	assert.eq(loadDoc(dir).revision, 0)
+end)
+
+test.case("a ref step refuses a group and a ref the card doesn't have", function(assert)
+	local _, run = testing.createHarness("apply-ref-refuse")
+	assert.throwsWith("operation 1 (attachRef): groups don't take refs; attach it to an item", function()
+		run({
+			"apply",
+			"--plan",
+			[=[[{"op":"attachRef","id":"ws","ref":"https://github.com/flipbook-labs/flipbook/pull/1"}]]=],
+		})
+	end)
+	assert.throwsWith('operation 1 (detachRef): "pub" has no ref flipbook-labs/flipbook#658', function()
+		run({ "apply", "--plan", [=[[{"op":"detachRef","id":"pub","ref":"flipbook-labs/flipbook#658"}]]=] })
+	end)
+	assert.throwsWith("operation 1: ref is required", function()
+		run({ "apply", "--plan", [=[[{"op":"attachRef","id":"pub"}]]=] })
+	end)
+end)
