@@ -147,8 +147,9 @@ local function addCanvasOption(parser: cli.Parser)
 	parser:add("canvas", "option", { help = "Use this canvas for this command" })
 end
 
--- Every command takes --json. Commands that print JSON of their own define it,
--- and the rest take it here, so a failure under it still prints JSON.
+-- Every command takes --json. Commands with JSON output define the flag
+-- themselves, and this adds it to the rest. That way any command run with
+-- --json reports a failure as JSON, even one with no JSON output of its own.
 local function addJsonFlags(parser: cli.Parser)
 	if #parser.commands > 0 then
 		for _, command in parser.commands do
@@ -273,8 +274,9 @@ local function commandHelp(name: string, help: string?, parser: cli.Parser): str
 	return `{help or ""}\n\n{parser:usage(`orion {name}`)}\n\n{parser:help()}{syntax}`
 end
 
--- Returns the help for the outermost command on the path that was given --help,
--- if any.
+-- `orion card list --help` shows help for `card list`, but `--help` could sit
+-- on any command along the path. This finds the outermost command that has it
+-- and returns that command's help, or nil when none does.
 local function helpFor(root: cli.Parser, names: { string }): string?
 	for depth = 1, #names do
 		local path = table.move(names, 1, depth, 1, {})
@@ -306,8 +308,9 @@ local function selectedPath(root: cli.Parser): ({ string }, cli.Parser)
 	end
 end
 
--- Lute's io only reaches stdout, so notices go through the stderr device to
--- keep --json output clean.
+-- The io library in Lute, the runtime the CLI runs on, only writes to stdout.
+-- Notices go to stderr through its device file instead, so they never mix into
+-- --json output. Windows has no such file, so there the notice is dropped.
 local function writeStderr(line: string)
 	local opened, handle = pcall(fs.open, "/dev/stderr", "a")
 
