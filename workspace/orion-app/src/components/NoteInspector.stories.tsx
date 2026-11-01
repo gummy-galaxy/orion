@@ -17,7 +17,7 @@ function NoteDemo() {
       <NoteInspector
         node={node}
         focus={false}
-        doneEditing={() => {}}
+        onDoneEditing={() => {}}
         update={(_id, patch) => setNode({ ...node, data: { ...node.data, ...patch } as TaskData })}
         saveFields={() => Promise.resolve(null)}
         remove={() => setNode({ ...node, data: { ...node.data, label: 'Deleted note' } })}
