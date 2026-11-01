@@ -68,8 +68,8 @@
     "link": "/reference/cli/theme"
   },
   {
-    "text": "backup",
-    "link": "/reference/cli/backup"
+    "text": "history",
+    "link": "/reference/cli/history"
   },
   {
     "text": "telemetry",

@@ -39,9 +39,9 @@ On a generated canvas of 5,000 cards, opening it and answering `orion next` took
 
 ## Rolling backups
 
-Before a write, the writer saves the whole canvas it replaces as one JSON file in the canvas's `backups` folder, named with the revision it replaces and a UTC timestamp. Backups are kept for the last 24 hours, plus the newest backup from each UTC day for 30 days. Pruning only removes files that match that name pattern. A backup that fails doesn't stop the write.
+Before a write, the writer saves the whole canvas it replaces as one JSON file in the canvas's `backups` folder, named with the revision it replaces and a UTC timestamp. After the write, it appends the new revision, its time, and its writer to `backups/revisions.jsonl`. A CLI command records itself by path, as `cli` or as `mcp` when an MCP tool ran it, and `orion server start`'s writes record `app`. The newest 200 backups are kept, plus the newest backup from each UTC day for 30 days, and the log drops the lines for revisions whose backups are gone. Pruning only removes files that match that name pattern. A backup or log line that fails doesn't stop the write.
 
-`orion backup list` shows the saved revisions, newest first. `orion backup restore <revision>` brings one back as a new revision, after backing up the current file first ([#18](https://github.com/vocksel/orion/pull/18)). A restore is never destructive, so a mistaken restore can be undone the same way.
+`orion history list` shows the current revision and the saved ones, newest first, with who made each. `orion history set <revision>` gives the canvas a saved revision's nodes, links, and settings as a new revision, after backing up the current file first ([#18](https://github.com/vocksel/orion/pull/18)). A jump is never destructive, so the revisions after it stay listed and a mistaken jump can be undone the same way. It takes `--dry-run`, which lists what would change, and `--if-revision`.
 
 ## Merging saves that lost a race
 

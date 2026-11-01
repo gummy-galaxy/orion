@@ -11,6 +11,7 @@ local getBackupName = require("@root/storage/backups/getBackupName")
 local joinCanvasFiles = require("@root/storage/files/joinCanvasFiles")
 local journalCanvasWrite = require("@root/storage/transactions/journalCanvasWrite")
 local pruneBackups = require("@root/storage/backups/pruneBackups")
+local recordRevision = require("@root/storage/backups/recordRevision")
 local splitDocObject = require("@root/storage/files/splitDocObject")
 local storeTypes = require("@root/storage/types")
 
@@ -63,7 +64,8 @@ end
 	any file moves, so `recoverCanvasWrite` can finish one that stops partway.
 	Callers hold the lock, and pass what they read under it as `previous`, with
 	its files, whose canvas is backed up first. Fields that changed since
-	`previous` are stamped with the current time.
+	`previous` are stamped with the current time. The revision the write makes
+	then goes in the revision log with its writer.
 ]]
 local function writeCanvasFiles(dir: string, document: json.Object, previous: CanvasSnapshot?)
 	local files = splitDocObject(document, previous, os.date("!%Y-%m-%dT%H:%M:%SZ") :: string)
@@ -102,6 +104,12 @@ local function writeCanvasFiles(dir: string, document: json.Object, previous: Ca
 	end
 
 	fs.remove(marker)
+
+	-- Like a backup, the log is best-effort, and only a write that replaces a
+	-- canvas makes a revision worth listing.
+	if previous and revision then
+		pcall(recordRevision, dir, revision, os.date("!%Y-%m-%dT%H:%M:%SZ") :: string)
+	end
 end
 
 return writeCanvasFiles

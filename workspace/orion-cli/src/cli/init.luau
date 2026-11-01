@@ -4,7 +4,6 @@ local process = require("@std/process")
 local aliasEntries = require("@root/cli/aliases/entries")
 local aliasTypes = require("@root/cli/aliases/types")
 local apply = require("@root/cli/commands/apply")
-local backup = require("@root/cli/commands/backup")
 local canvas = require("@root/cli/commands/canvas")
 local card = require("@root/cli/commands/card")
 local ci = require("@root/cli/commands/ci")
@@ -21,6 +20,7 @@ local getDataRoot = require("@root/storage/getDataRoot")
 local getVersion = require("@root/common/getVersion")
 local getWorkspaceDir = require("@root/storage/canvases/getWorkspaceDir")
 local group = require("@root/cli/commands/group")
+local history = require("@root/cli/commands/history")
 local ingest = require("@root/cli/commands/ingest")
 local json = require("@std/json")
 local link = require("@root/cli/commands/link")
@@ -36,6 +36,7 @@ local ref = require("@root/cli/commands/ref")
 local reportFailure = require("@root/cli/output/reportFailure")
 local resolveArguments = require("@root/cli/aliases/resolveArguments")
 local reveal = require("@root/cli/commands/reveal")
+local runAsWriter = require("@root/storage/transactions/runAsWriter")
 local serializeCommands = require("@root/cli/serializeCommands")
 local server = require("@root/cli/commands/server")
 local source = require("@root/cli/commands/source")
@@ -58,6 +59,7 @@ type Resolved = {
 	workspace: string?,
 	now: () -> string,
 	exit: (code: number) -> (),
+	via: "cli" | "mcp",
 }
 
 local SUMMARY = "orion — keep a graph of work up to date from the command line"
@@ -65,12 +67,12 @@ local SUMMARY = "orion — keep a graph of work up to date from the command line
 -- Each top-level command's module defines its subcommands and runs them.
 local COMMANDS: { [string]: Command } = {
 	apply = apply,
-	backup = backup,
 	canvas = canvas,
 	card = card,
 	ci = ci,
 	focus = focus,
 	group = group,
+	history = history,
 	ingest = ingest,
 	link = link,
 	log = log,
@@ -107,7 +109,7 @@ local COMMAND_ORDER = {
 	"suggestion",
 	"ci",
 	"theme",
-	"backup",
+	"history",
 	"telemetry",
 	"mcp",
 	"focus",
@@ -335,6 +337,7 @@ local function dependencies(options: Dependencies?): Resolved
 		exit = given.exit or function(code: number)
 			process.exit(code)
 		end,
+		via = given.via or "cli",
 	}
 end
 
@@ -440,7 +443,9 @@ local function execute(args: { string }, options: Dependencies?)
 		describe = describe,
 	}
 
-	COMMANDS[command].run(assert(parsers.commands[command], `unknown command: {command}`), commandContext)
+	runAsWriter({ by = deps.via, command = table.concat(names, " ") }, function()
+		COMMANDS[command].run(assert(parsers.commands[command], `unknown command: {command}`), commandContext)
+	end)
 end
 
 -- Lute passes the program path as the first argument.

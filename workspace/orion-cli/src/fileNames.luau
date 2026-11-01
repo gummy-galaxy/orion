@@ -12,6 +12,7 @@ return table.freeze({
 	lock = "orion.lock",
 	lockQueue = "orion.lock-queue",
 	backups = "backups",
+	revisions = "revisions.jsonl",
 	canvases = "canvases.json",
 	runtime = "serve.json",
 	settings = "settings.json",

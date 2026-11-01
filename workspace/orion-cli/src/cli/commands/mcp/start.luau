@@ -29,6 +29,7 @@ return table.freeze({
 				write = write,
 				runner = options.runner,
 				now = options.now,
+				via = "mcp",
 				-- A nonzero status reports findings, such as canvas check's
 				-- layout problems, which the output already carries. Exiting
 				-- would stop this server, so the call returns instead.

@@ -56,4 +56,22 @@ export type Snapshot = {
 	stickerLoadout: json.Array?,
 }
 
+-- A ref attached to or taken off an item, named the way orion node show lists
+-- it.
+export type RefChange = { id: string, source: string, kind: string, key: string }
+
+-- What an edit changed, for previews: the items it added, changed, and
+-- removed by id, the links it added, changed, and removed as they are now or
+-- last were, and the refs it attached and took off.
+export type Changes = {
+	added: { string },
+	changed: { string },
+	removed: { string },
+	linked: { Link },
+	relinked: { Link },
+	unlinked: { Link },
+	attached: { RefChange },
+	detached: { RefChange },
+}
+
 return nil

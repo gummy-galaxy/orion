@@ -18,6 +18,9 @@ export type Dependencies = {
 	workspace: string?,
 	now: (() -> string)?,
 	exit: ((code: number) -> ())?,
+	-- How the command was run, which the revision log records with each write
+	-- it makes. Defaults to cli.
+	via: ("cli" | "mcp")?,
 }
 
 export type Context = {

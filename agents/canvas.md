@@ -11,7 +11,7 @@ Run `orion help --all` before working with the canvas. It prints every command a
 - Query values are quoted strings, numbers and booleans included: `pr = "86"`, `draft = "true"`. A missing field never matches, even under `not`. Quotes are syntax, not shell commands; expressions can't evaluate code or read arbitrary data paths. `orion help node query` lists the fields and operators, and [the query reference](../docs/reference/query.md) explains each one.
 - `orion canvas check` reports layout problems that come from stored positions and sizes, in canvas coordinates. It exits nonzero when it finds any, and `--json` prints a flat list of `{kind, ids, bounds}` entries, with `bounds` null for a dangling link.
 - Pass `--canvas <name>` to work on a specific canvas, or rely on the active one. `orion canvas list` and `orion canvas current` show the available and active canvases.
-- If a change was a mistake, `orion backup restore <revision>` restores the newest backup with that revision as a new revision, and backs up the current file first.
+- If a change was a mistake, `orion history list` shows the recent revisions and who made each, and `orion history set <revision>` jumps the canvas back to one as a new revision. Preview the jump with `--dry-run`. The revisions after it stay listed, so a wrong jump is undone by jumping again.
 
 ## What the person is looking at
 
