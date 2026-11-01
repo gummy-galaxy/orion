@@ -6,8 +6,8 @@ local encodeDocObject = require("@root/storage/files/encodeDocObject")
 local getDocPath = require("@root/storage/canvases/getDocPath")
 local getWorkspaceDir = require("@root/storage/canvases/getWorkspaceDir")
 local readDoc = require("@root/storage/canvases/readDoc")
-local serializeDerived = require("@root/server/serializeDerived")
 local serializeCardTypeRegistry = require("@root/canvas/cardTypes/serializeCardTypeRegistry")
+local serializeDerived = require("@root/server/serializeDerived")
 local shared = require("@root/server/routes/shared")
 
 type Response = shared.Response
