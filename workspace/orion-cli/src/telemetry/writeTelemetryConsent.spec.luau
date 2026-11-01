@@ -14,7 +14,7 @@ test.case("a machine with no telemetry.json is undecided", function(assert)
 	assert.eq(getTelemetryStatus(root, {}).enabled, false)
 end)
 
-test.case("opting in creates an install id and keeps it until opting out", function(assert)
+test.case("opting in creates an install id that opting out and back in keeps", function(assert)
 	local root = testing.directory("telemetry-opt-in")
 
 	local first = writeTelemetryConsent(root, true)
@@ -26,9 +26,10 @@ test.case("opting in creates an install id and keeps it until opting out", funct
 
 	local off = writeTelemetryConsent(root, false)
 	assert.eq(off.choice, "off")
-	assert.eq(off.installId, nil)
-	assert.eq(readTelemetryConsent(root).installId, nil)
-	assert.neq(writeTelemetryConsent(root, true).installId, first.installId)
+	assert.eq(off.installId, first.installId)
+	assert.eq(readTelemetryConsent(root).installId, first.installId)
+	assert.eq(getTelemetryStatus(root, {}).enabled, false)
+	assert.eq(writeTelemetryConsent(root, true).installId, first.installId)
 end)
 
 test.case("an override keeps an opted-in machine from sending", function(assert)

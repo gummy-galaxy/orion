@@ -21,9 +21,7 @@ type TelemetryConfig = telemetryTypes.TelemetryConfig
 
 local logger = archivist.getLogger("orion.telemetry")
 
-local telemetrySender = {}
-
-export type Options = {
+type Options = {
 	environment: { [string]: string },
 	-- True when the app's dev server started this server for local work on the
 	-- app, which `--dev-port` marks. Such a server never sends.
@@ -54,11 +52,9 @@ export type Options = {
 	backend can't be reached, the server uses the limits this build shipped with
 	and asks again on the next send.
 ]]
-function telemetrySender.create(root: string, options: Options)
-	local build = options.build or getBuild()
-	local send = options.sendTelemetryBatchAsync or sendTelemetryBatchAsync
-	local getConfigAsync = options.getTelemetryConfigAsync or getTelemetryConfigAsync
-	local config: TelemetryConfig?
+local function createTelemetrySender(root: string, options: Options)
+	local buildInfo = options.build or getBuild()
+	local telemetryConfig: TelemetryConfig?
 	local isClosed = false
 	local isFlushing = false
 	local sender = {}
@@ -74,25 +70,28 @@ function telemetrySender.create(root: string, options: Options)
 		local didFlush, accepted = pcall(function(): number
 			local events = drainTelemetryQueue(root, formatTimestamp())
 			local status = getTelemetryStatus(root, options.environment)
-			local isQuiet = options.isDevServer or getTelemetryQuietReason(options.environment, build) ~= nil
+			local isQuiet = options.isDevServer or getTelemetryQuietReason(options.environment, buildInfo) ~= nil
 			local count = 0
 
 			if #events == 0 or not status.enabled or not status.installId or isQuiet then
 				return count
 			end
 
-			if not config then
+			if not telemetryConfig then
 				local configEndpoint = getTelemetryEndpoint(options.environment, "config")
-				local fetched, failure = getConfigAsync(configEndpoint, telemetryConstants.TIMEOUT_SECONDS)
+				local fetched, failure = (options.getTelemetryConfigAsync or getTelemetryConfigAsync)(
+					configEndpoint,
+					telemetryConstants.TIMEOUT_SECONDS
+				)
 
 				if not fetched then
 					logger.warn("using built-in batch limits:", failure)
 				end
 
-				config = fetched
+				telemetryConfig = fetched
 			end
 
-			local limits = if config then config.limits else telemetryConstants.DEFAULT_LIMITS
+			local limits = if telemetryConfig then telemetryConfig.limits else telemetryConstants.DEFAULT_LIMITS
 			local eventsEndpoint = getTelemetryEndpoint(options.environment, "events")
 
 			local batches = splitTelemetryBatches(events, limits)
@@ -118,8 +117,13 @@ function telemetrySender.create(root: string, options: Options)
 					break
 				end
 
-				local isAccepted, failure =
-					send(eventsEndpoint, status.installId :: string, build, batch, telemetryConstants.TIMEOUT_SECONDS)
+				local isAccepted, failure = (options.sendTelemetryBatchAsync or sendTelemetryBatchAsync)(
+					eventsEndpoint,
+					status.installId :: string,
+					buildInfo,
+					batch,
+					telemetryConstants.TIMEOUT_SECONDS
+				)
 
 				if isAccepted then
 					count += #batch
@@ -157,4 +161,4 @@ function telemetrySender.create(root: string, options: Options)
 	return sender
 end
 
-return table.freeze(telemetrySender)
+return createTelemetrySender
