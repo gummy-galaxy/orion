@@ -4,13 +4,13 @@ local task = require("@std/task")
 local test = require("@std/test")
 
 local appendLog = require("@root/storage/log/appendLog")
+local createWatcher = require("@root/server/createWatcher")
 local createWorkspace = require("@root/storage/canvases/createWorkspace")
 local getWorkspaceDir = require("@root/storage/canvases/getWorkspaceDir")
 local runTransaction = require("@root/storage/transactions/runTransaction")
 local storeTypes = require("@root/storage/types")
 local testing = require("@root/testing")
 local useWorkspace = require("@root/storage/canvases/useWorkspace")
-local watcher = require("@root/server/watcher")
 local writeDoc = require("@root/storage/canvases/writeDoc")
 
 type WorkspaceList = storeTypes.WorkspaceList
@@ -37,19 +37,19 @@ test.case("watcher announces external edits and follows manifest switches", func
 	local active = "default"
 	local revisions: { number } = {}
 	local workspaceLists: { WorkspaceList } = {}
-	local monitor
-	monitor = watcher.create(root, function()
+	local watcher
+	watcher = createWatcher(root, function()
 		return active
 	end, function(name)
 		active = name
-		assert(monitor).switchTo(name)
+		assert(watcher).switchTo(name)
 	end, function(revision)
 		table.insert(revisions, revision)
 	end, function(list)
 		table.insert(workspaceLists, list)
 	end, function() end)
 
-	monitor.start()
+	watcher.start()
 	createWorkspace(root, "new")
 	waitUntil(function()
 		return #workspaceLists >= 1
@@ -76,7 +76,7 @@ test.case("watcher announces external edits and follows manifest switches", func
 	end)
 	expect.eq(#revisions, 2)
 	expect.eq(revisions[2], 1)
-	monitor.close()
+	watcher.close()
 end)
 
 test.case("watcher announces log appends for the canvas they land in, not document revisions", function(expect)
@@ -86,19 +86,19 @@ test.case("watcher announces log appends for the canvas they land in, not docume
 	local active = "default"
 	local revisions: { number } = {}
 	local logNames: { string } = {}
-	local monitor
-	monitor = watcher.create(root, function()
+	local watcher
+	watcher = createWatcher(root, function()
 		return active
 	end, function(name)
 		active = name
-		assert(monitor).switchTo(name)
+		assert(watcher).switchTo(name)
 	end, function(revision)
 		table.insert(revisions, revision)
 	end, function() end, function(name)
 		table.insert(logNames, name)
 	end)
 
-	monitor.start()
+	watcher.start()
 	appendLog(root, function()
 		return {
 			id = "log-1",
@@ -132,7 +132,7 @@ test.case("watcher announces log appends for the canvas they land in, not docume
 	end)
 	expect.eq(logNames[#logNames], "other")
 	expect.eq(#revisions, 0)
-	monitor.close()
+	watcher.close()
 end)
 
 test.case("watcher announces node and link files changed outside Orion without a new revision", function(expect)
@@ -142,7 +142,7 @@ test.case("watcher announces node and link files changed outside Orion without a
 		testing.createDoc({ testing.task("a", "A", "todo"), testing.task("b", "B", "todo") }, { { "a", "b" } })
 	)
 	local announced: { { revision: number, labels: string, isReindexed: boolean } } = {}
-	local monitor = watcher.create(root, function()
+	local watcher = createWatcher(root, function()
 		return "default"
 	end, function() end, function(revision, doc, isReindexed)
 		local labels = {}
@@ -154,7 +154,7 @@ test.case("watcher announces node and link files changed outside Orion without a
 		table.insert(announced, { revision = revision, labels = table.concat(labels, ","), isReindexed = isReindexed })
 	end, function() end, function() end)
 
-	monitor.start()
+	watcher.start()
 
 	-- What a `git pull` does to the folder: one card changes, one arrives, and
 	-- one goes with its link.
@@ -168,7 +168,7 @@ test.case("watcher announces node and link files changed outside Orion without a
 	waitUntil(function()
 		return #announced >= 1 and announced[#announced].labels == "A pulled,C"
 	end)
-	monitor.close()
+	watcher.close()
 
 	local last = announced[#announced]
 	expect.eq(last.labels, "A pulled,C")

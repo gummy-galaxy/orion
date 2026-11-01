@@ -1,8 +1,8 @@
 local json = require("@std/json")
 local test = require("@std/test")
 
+local createOpenQueries = require("@root/server/createOpenQueries")
 local loadDoc = require("@root/storage/canvases/loadDoc")
-local queries = require("@root/server/queries")
 local testing = require("@root/testing")
 local writeDoc = require("@root/storage/canvases/writeDoc")
 
@@ -32,7 +32,7 @@ local function createHub(name: string)
 		})
 	)
 
-	return root, queries.create(root)
+	return root, createOpenQueries(root)
 end
 
 local function getRowIds(answer: json.Object): string

@@ -4,24 +4,25 @@ local process = require("@std/process")
 local task = require("@std/task")
 
 local clearFocus = require("@root/storage/focus/clearFocus")
+local createEventHub = require("@root/server/createEventHub")
+local createOpenQueries = require("@root/server/createOpenQueries")
+local createRouter = require("@root/server/routes/createRouter")
+local createSessionLoop = require("@root/server/createSessionLoop")
+local createSyncLoop = require("@root/server/createSyncLoop")
 local createTelemetrySender = require("@root/server/createTelemetrySender")
+local createWatcher = require("@root/server/createWatcher")
 local derive = require("@root/canvas/derive")
 local ensureDirectory = require("@root/common/platform/ensureDirectory")
-local events = require("@root/server/events")
 local getVersion = require("@root/common/getVersion")
 local getWorkspaceDir = require("@root/storage/canvases/getWorkspaceDir")
 local getWorkspaces = require("@root/storage/canvases/getWorkspaces")
 local isTrustedRequest = require("@root/server/isTrustedRequest")
-local queries = require("@root/server/queries")
 local readRuntime = require("@root/storage/runtime/readRuntime")
 local removeRuntime = require("@root/storage/runtime/removeRuntime")
-local routes = require("@root/server/routes")
 local serializeDerived = require("@root/server/serializeDerived")
-local sessions = require("@root/server/sessions")
+local serverConstants = require("@root/server/constants")
 local storeTypes = require("@root/storage/types")
-local sync = require("@root/server/sync")
 local types = require("@root/types")
-local watcher = require("@root/server/watcher")
 local writeRuntime = require("@root/storage/runtime/writeRuntime")
 
 type Runtime = readRuntime.Runtime
@@ -44,27 +45,27 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 		end
 	end
 	clearAllFocus()
-	local hub = events.create()
-	local syncLoop = sync.create(root, workspace, function(status: json.Object)
-		hub.publish("orion:sync", status)
+	local eventHub = createEventHub()
+	local syncLoop = createSyncLoop(root, workspace, function(status: json.Object)
+		eventHub.publish("orion:sync", status)
 	end)
 
-	local monitor
-	local openQueries = queries.create(root)
-	local router = routes.create(root, workspace, syncLoop, function(name: string)
-		assert(monitor).switchTo(name)
+	local watcher
+	local openQueries = createOpenQueries(root)
+	local router = createRouter(root, workspace, syncLoop, function(name: string)
+		assert(watcher).switchTo(name)
 		syncLoop.switchTo(name)
 		if runtime then
 			runtime.canvas = name
 			writeRuntime(root, runtime)
 		end
-		hub.publish("orion:canvas", json.object({ active = name }))
+		eventHub.publish("orion:canvas", json.object({ active = name }))
 		openQueries.refresh(name)
 		task.spawn(function()
 			syncLoop.runAsync(true)
 		end)
-	end, staticDir, hub)
-	monitor = watcher.create(
+	end, staticDir, eventHub)
+	watcher = createWatcher(
 		root,
 		router.getActive,
 		router.switchTo,
@@ -77,18 +78,18 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 				event.reindexed = true
 			end
 
-			hub.publish("orion:changed", event)
+			eventHub.publish("orion:changed", event)
 			openQueries.refresh(router.getActive())
 		end,
 		function(list: WorkspaceList)
-			hub.publish("orion:canvases", json.object({ active = list.active, canvases = list.workspaces }))
+			eventHub.publish("orion:canvases", json.object({ active = list.active, canvases = list.workspaces }))
 		end,
 		function(name: string)
-			hub.publish("orion:log", json.object({ canvas = name }))
+			eventHub.publish("orion:log", json.object({ canvas = name }))
 		end
 	)
 
-	local sessionLoop = sessions.create(root, router.getActive)
+	local sessionLoop = createSessionLoop(root, router.getActive)
 	local telemetrySender = createTelemetrySender(root, { environment = process.env, isDevServer = devPort ~= nil })
 
 	local trustedPorts: { number } = {}
@@ -116,12 +117,12 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 		end,
 
 		websocket = {
-			open = hub.open,
+			open = eventHub.open,
 			message = function(socket, message)
 				openQueries.receive(socket, message, router.getActive())
 			end,
 			close = function(socket)
-				hub.close(socket)
+				eventHub.close(socket)
 				openQueries.close(socket)
 			end,
 		},
@@ -136,13 +137,13 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 		version = getVersion() :: string?,
 	}
 	writeRuntime(root, runtime)
-	monitor.start()
+	watcher.start()
 	sessionLoop.start()
 	telemetrySender.start()
 	task.delay(5, function()
 		while true do
 			syncLoop.tickAsync()
-			task.wait(sync.TICK_SECONDS)
+			task.wait(serverConstants.SYNC_TICK_SECONDS)
 		end
 	end)
 
@@ -150,7 +151,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 		hostname = running.hostname,
 		port = running.port,
 		close = function()
-			assert(monitor).close()
+			assert(watcher).close()
 			sessionLoop.close()
 			telemetrySender.close()
 			running.close()
