@@ -1,6 +1,6 @@
 local cardTypes = require("@root/canvas/cardTypes/types")
 local findCardType = require("@root/canvas/cardTypes/findCardType")
-local getItemTypes = require("@root/canvas/cardTypes/getItemTypes")
+local getItemCardTypes = require("@root/canvas/cardTypes/getItemCardTypes")
 local getStringField = require("@root/common/getStringField")
 local types = require("@root/types")
 
@@ -16,7 +16,7 @@ local MEANINGS: { [string]: boolean } =
 -- type doesn't declare, is still to do.
 local function getStateMeaning(item: Item): StateMeaning
 	local recorded = getStringField(item.data.status)
-	local itemTypes = getItemTypes(item)
+	local itemTypes = getItemCardTypes(item)
 	local cardType = if itemTypes then findCardType(itemTypes.primary) else nil
 
 	local states = if cardType then cardType.states else {}
