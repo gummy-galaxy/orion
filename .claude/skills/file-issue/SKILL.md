@@ -18,6 +18,8 @@ Read the whole message before writing. Pull out:
 
 Keep their phrasing where it carries meaning, such as a name they coined or an analogy they drew. Drop filler, false starts, and repetition.
 
+When the message carries more than one idea, list them in a line each and ask which to file. File only the ones they pick.
+
 ## 2. Check what's already there
 
 Search open issues for overlap:
@@ -46,4 +48,4 @@ When the person asked for the issue, file it without a separate draft review, un
 gh issue create --repo gummy-galaxy/orion --label "needs grooming" --title "<title>" --body-file <file>
 ```
 
-Write the body file in your scratchpad. Reply with the link and a one-line summary of the open questions. File only this one issue. Don't break it into more.
+Write the body file in your scratchpad. Reply with the link and a one-line summary of the open questions. File one issue per idea the person picked, and don't split an idea into more.
