@@ -1,10 +1,11 @@
-import type { ItemKind, ViewStatus } from '../model'
+import type { ViewStatus } from '../model'
 
 /** One card as the Table tab lists it. */
 export type TableRow = {
   id: string
   label: string
-  kind: ItemKind
+  /** The name of the card's primary type, such as `pr` or `gate`. */
+  kind: string
   /** Undefined for notes and components, which aren't work. */
   status?: ViewStatus
   /** The label of the group that directly holds the card, if any. */
