@@ -3,7 +3,7 @@ local json = require("@std/json")
 local coreFields = require("@root/canvas/cardTypes/coreFields")
 local findItem = require("@root/canvas/items/findItem")
 local getFieldValues = require("@root/canvas/cardTypes/getFieldValues")
-local getItemTypes = require("@root/canvas/cardTypes/getItemTypes")
+local getItemCardTypes = require("@root/canvas/cardTypes/getItemCardTypes")
 local getLabel = require("@root/canvas/items/getLabel")
 local getPrimaryRef = require("@root/canvas/refs/getPrimaryRef")
 local graphTypes = require("@root/canvas/types")
@@ -68,7 +68,7 @@ function render.itemJson(doc: Doc, derived: graphTypes.Derived, item: Item): jso
 	local object: json.Object = json.object({
 		id = item.id,
 	})
-	local itemTypes = assert(getItemTypes(item))
+	local itemTypes = assert(getItemCardTypes(item))
 	object.kind = itemTypes.primary
 	object.types = itemTypes.types :: any
 	-- The fields a card's types declare beyond the ones listed above.

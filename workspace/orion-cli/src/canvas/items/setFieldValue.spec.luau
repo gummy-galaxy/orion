@@ -82,9 +82,12 @@ end)
 test.case("setFieldValue refuses fields no type on the card declares, and core fields", function(assert)
 	local doc = testing.createDoc({ testing.task("a", "A", "todo") })
 
-	assert.throwsWith(`none of "a"'s types has a field named stage; orion type show lists a type's fields`, function()
-		setFieldValue(doc, "a", "stage", "final")
-	end)
+	assert.throwsWith(
+		`none of "a"'s types has a field named stage; orion card type-show lists a type's fields`,
+		function()
+			setFieldValue(doc, "a", "stage", "final")
+		end
+	)
 	assert.throwsWith("set who with --who", function()
 		setFieldValue(doc, "a", "who", "you")
 	end)

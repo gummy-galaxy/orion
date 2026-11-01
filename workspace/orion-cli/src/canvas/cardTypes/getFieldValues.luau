@@ -3,7 +3,7 @@ local json = require("@std/json")
 local cardTypes = require("@root/canvas/cardTypes/types")
 local coreFields = require("@root/canvas/cardTypes/coreFields")
 local findCardType = require("@root/canvas/cardTypes/findCardType")
-local getItemTypes = require("@root/canvas/cardTypes/getItemTypes")
+local getItemCardTypes = require("@root/canvas/cardTypes/getItemCardTypes")
 local types = require("@root/types")
 
 type FieldValue = cardTypes.FieldValue
@@ -12,7 +12,7 @@ type Item = types.Item
 -- Every field a card's types declare, primary type first and each name once,
 -- with the card's value or else the field's default.
 local function getFieldValues(item: Item): { FieldValue }
-	local itemTypes = getItemTypes(item)
+	local itemTypes = getItemCardTypes(item)
 	local stored = json.asObject(item.data.fields) or json.object({})
 	local result: { FieldValue } = {}
 	local seen: { [string]: boolean } = {}

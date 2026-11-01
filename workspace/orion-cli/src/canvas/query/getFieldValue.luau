@@ -1,7 +1,7 @@
 local json = require("@std/json")
 
 local findRef = require("@root/canvas/refs/findRef")
-local getItemTypes = require("@root/canvas/cardTypes/getItemTypes")
+local getItemCardTypes = require("@root/canvas/cardTypes/getItemCardTypes")
 local getRefs = require("@root/canvas/refs/getRefs")
 local isGroup = require("@root/canvas/groups/isGroup")
 local queryTypes = require("@root/canvas/query/types")
@@ -18,7 +18,7 @@ local function getFieldValue(scope: queryTypes.Scope, item: Item, field: string)
 	local value: json.Value = nil
 
 	if field == "kind" then
-		local itemTypes = getItemTypes(item)
+		local itemTypes = getItemCardTypes(item)
 		value = if itemTypes then itemTypes.primary else "group"
 	elseif field == "status" then
 		value = derived.status[item.id]

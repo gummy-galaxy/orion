@@ -33,7 +33,7 @@ local FIELDS: { Field } = {
 	{
 		name = "type",
 		help = "Any card type the node carries, from itself, its sources, or a person, such as `pr` or `gate`. "
-			.. "`orion type list` lists them.",
+			.. "`orion card types` lists them.",
 		example = [[type = "gate"]],
 	},
 	{

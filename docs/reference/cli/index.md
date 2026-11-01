@@ -18,7 +18,6 @@ Every command also takes `--canvas <name>` to work on a specific canvas, and `--
 | [`orion node`](./node)             | Any item or group                                                    |
 | [`orion group`](./group)           | Groups of items                                                      |
 | [`orion ref`](./ref)               | Outside work attached to cards                                       |
-| [`orion type`](./type)             | Card types: what a card is, its fields, face, and states             |
 | [`orion next`](./next)             | List items that can start now, most unblocking first                 |
 | [`orion apply`](./apply)           | Apply a plan of cards, notes, groups, and links in one step          |
 | [`orion canvas`](./canvas)         | Canvases and their layout                                            |

@@ -1,5 +1,5 @@
 local getFieldValue = require("@root/canvas/query/getFieldValue")
-local getItemTypes = require("@root/canvas/cardTypes/getItemTypes")
+local getItemCardTypes = require("@root/canvas/cardTypes/getItemCardTypes")
 local getRefs = require("@root/canvas/refs/getRefs")
 local parseExpression = require("@root/canvas/query/parseExpression")
 local queryTypes = require("@root/canvas/query/types")
@@ -54,7 +54,7 @@ local function matchesExpression(scope: queryTypes.Scope, item: Item, expression
 			end
 
 			if field == "type" then
-				local itemTypes = getItemTypes(item)
+				local itemTypes = getItemCardTypes(item)
 
 				if not itemTypes then
 					return nil
