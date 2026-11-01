@@ -1,5 +1,11 @@
 import { afterEach, expect, it, vi } from 'vitest'
-import { chooseTelemetry, readTelemetry, shouldAskTelemetry } from './telemetry'
+import {
+  chooseTelemetry,
+  readTelemetry,
+  sendTelemetryEvents,
+  shouldAskTelemetry,
+  TELEMETRY_SESSION_ID,
+} from './telemetry'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -31,4 +37,49 @@ it('asks only an undecided machine with no override', () => {
   expect(shouldAskTelemetry({ choice: 'undecided', override: 'DO_NOT_TRACK', enabled: false })).toBe(false)
   expect(shouldAskTelemetry({ choice: 'off', enabled: false })).toBe(false)
   expect(shouldAskTelemetry(null)).toBe(false)
+})
+
+it("tags the app's events with the session and posts them to the server", async () => {
+  const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 202 })
+
+  vi.stubGlobal('fetch', fetchMock)
+
+  await sendTelemetryEvents([{ name: 'app_started', properties: { startup_ms: 640 } }])
+
+  const [url, init] = fetchMock.mock.calls[0]
+  const [event] = JSON.parse(init.body).events
+
+  expect(url).toBe('/api/telemetry/events')
+  expect(event).toMatchObject({ name: 'app_started', sessionId: TELEMETRY_SESSION_ID, properties: { startup_ms: 640 } })
+  expect(event.timestamp).toMatch(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d+Z$/)
+})
+
+it('warns and drops events when the server is gone', async () => {
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+  const failure = new TypeError('Failed to fetch')
+
+  vi.stubGlobal('fetch', vi.fn().mockRejectedValue(failure))
+
+  await expect(sendTelemetryEvents([{ name: 'app_started' }])).resolves.toBeUndefined()
+  expect(warn).toHaveBeenCalledWith('Could not queue usage events', failure)
+  warn.mockRestore()
+})
+
+it('warns when the server refuses the events', async () => {
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 413 }))
+
+  await sendTelemetryEvents([{ name: 'app_started' }])
+  expect(warn).toHaveBeenCalledWith('Could not queue usage events', 413)
+  warn.mockRestore()
+})
+
+it('posts nothing for no events', async () => {
+  const fetchMock = vi.fn()
+
+  vi.stubGlobal('fetch', fetchMock)
+  await sendTelemetryEvents([])
+
+  expect(fetchMock).not.toHaveBeenCalled()
 })
