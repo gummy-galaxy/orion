@@ -10,13 +10,13 @@ local telemetryTypes = require("@root/telemetry/types")
 type Consent = telemetryTypes.Consent
 
 -- Saves the choice for this machine. Opting in keeps an existing install id
--- or creates one, and opting out deletes it, so a later opt-in starts a new
--- anonymous install.
+-- or creates one. Opting out keeps it too, so data shared before then can
+-- still be deleted under it.
 local function writeTelemetryConsent(root: string, enabled: boolean): Consent
 	local current = readTelemetryConsent(root)
 	local consent: Consent = if enabled
 		then { choice = "on", installId = current.installId or createId() }
-		else { choice = "off" }
+		else { choice = "off", installId = current.installId }
 
 	ensureDirectory(root)
 	replaceFile(

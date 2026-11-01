@@ -31,12 +31,14 @@ test.case("the app reads an undecided machine and records its answer", function(
 	assert.eq(before.enabled, false)
 
 	local response = telemetry.handle(createRequest("POST", '{"enabled":true}'), root, {})
+	local on = decode(response)
 	assert.eq(response.status, 200)
-	assert.eq(decode(response).enabled, true)
+	assert.eq(on.enabled, true)
 
 	local off = decode(telemetry.handle(createRequest("POST", '{"enabled":false}'), root, {}))
 	assert.eq(off.choice, "off")
-	assert.eq(off.installId, nil)
+	assert.eq(off.enabled, false)
+	assert.eq(off.installId, on.installId)
 end)
 
 test.case("the route reports an override from the server's environment", function(assert)

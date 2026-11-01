@@ -2,7 +2,8 @@
 -- nobody has answered yet, which the app asks about once on launch.
 export type Choice = "undecided" | "on" | "off"
 
--- What `telemetry.json` holds. Only a machine that opted in has an install id.
+-- What `telemetry.json` holds. A machine gets an install id when it first
+-- opts in and keeps it after opting out, until its shared data is deleted.
 export type Consent = {
 	choice: Choice,
 	installId: string?,
