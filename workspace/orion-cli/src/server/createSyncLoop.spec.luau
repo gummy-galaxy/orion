@@ -1,0 +1,236 @@
+local json = require("@std/json")
+local test = require("@std/test")
+
+local clearFocus = require("@root/storage/focus/clearFocus")
+local createSyncLoop = require("@root/server/createSyncLoop")
+local getWorkspaceDir = require("@root/storage/canvases/getWorkspaceDir")
+local loadDoc = require("@root/storage/canvases/loadDoc")
+local putFocus = require("@root/storage/focus/putFocus")
+local testing = require("@root/testing")
+
+test.case("sync throttles repeated requests and force bypasses the throttle", function(assert)
+	local root = testing.createHarness("sync-throttle")
+	local calls = 0
+	local now = 100
+	local syncLoop = createSyncLoop(root, "default", function(_status: json.Object) end, function(_argv)
+		calls += 1
+		error("offline")
+	end, function()
+		return now
+	end)
+
+	syncLoop.runAsync()
+	local first = calls
+	assert.that(first > 0)
+	syncLoop.runAsync()
+	assert.eq(calls, first)
+	syncLoop.runAsync(true)
+	assert.that(calls > first)
+	now += 61
+	local before = calls
+	syncLoop.runAsync()
+	assert.that(calls > before)
+end)
+
+test.case("sync applies what it fetched and reports the part that failed", function(assert)
+	local root = testing.createHarness("sync-partial")
+	local syncLoop = createSyncLoop(root, "default", function(_status: json.Object) end, function(argv)
+		local query = argv[#argv]
+
+		if query:find("pullRequests(first:", 1, true) then
+			return testing.result(false, "", "gh: HTTP 401")
+		elseif query:find("viewer { login }", 1, true) then
+			return testing.result(true, [[{"data":{"viewer":{"login":"vocksel"}}}]])
+		end
+
+		return testing.result(true, [[{"data":{}}]])
+	end)
+
+	local status = syncLoop.runAsync()
+	assert.eq(status.state, "error")
+	assert.strContains(status.message :: string, "Couldn't fetch your open pull requests")
+	assert.eq(status.lastRun ~= nil, true)
+end)
+
+test.case("sync ticks poll and sweep quietly between full passes and write only what changed", function(assert)
+	local root = testing.createHarness("sync-tick")
+	local dir = getWorkspaceDir(root, "default")
+	local now = 100
+	local calls: { string } = {}
+	local states: { string } = {}
+	local syncLoop = createSyncLoop(root, "default", function(status: json.Object)
+		table.insert(states, status.state :: string)
+	end, function(argv)
+		local query = argv[#argv]
+
+		if argv[3] == "--include" then
+			table.insert(calls, "poll")
+			return testing.result(
+				false,
+				"HTTP/2.0 304 Not Modified\nLast-Modified: Sun, 18 Oct 2026 15:53:33 GMT\nX-Poll-Interval: 60\n\n",
+				"gh: HTTP 304"
+			)
+		elseif query:find("pullRequests(first:", 1, true) then
+			table.insert(calls, "authored")
+			return testing.result(
+				true,
+				[[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[],"pageInfo":{"hasNextPage":false}}}}}]]
+			)
+		elseif query:find("{ updatedAt }", 1, true) then
+			table.insert(calls, "sweep")
+			return testing.result(true, [[{"data":{"p1":{"pullRequest":{"updatedAt":"2026-10-18T00:00:00Z"}}}}]])
+		elseif query:find("r1: repository(", 1, true) then
+			table.insert(calls, "repositories")
+			return testing.result(true, [[{"data":{"r1":{"databaseId":1,"nameWithOwner":"flipbook-labs/flipbook"}}}]])
+		end
+
+		table.insert(calls, "full")
+		return testing.result(
+			true,
+			[[{"data":{"p1":{"pullRequest":{"number":658,"state":"OPEN","url":"u","updatedAt":"2026-10-18T00:00:00Z"}}}}]]
+		)
+	end, function()
+		return now
+	end)
+
+	syncLoop.tickAsync()
+	local revision = loadDoc(dir).revision
+	-- The first full pass gives the card's ref its repository's id, so later
+	-- passes don't ask again.
+	assert.eq(table.concat(calls, ","), "repositories,authored,full")
+	assert.eq(table.concat(states, ","), "running,idle")
+
+	table.clear(calls)
+	table.clear(states)
+	now += 30
+	syncLoop.tickAsync()
+	assert.eq(#calls, 0)
+
+	table.clear(states)
+	now += 31
+	syncLoop.tickAsync()
+	assert.eq(table.concat(calls, ","), "poll")
+	assert.eq(table.concat(states, ","), "idle")
+
+	table.clear(calls)
+	now += 60
+	syncLoop.tickAsync()
+	assert.eq(table.concat(calls, ","), "poll,sweep,authored")
+	assert.eq(loadDoc(dir).revision, revision)
+	assert.eq(table.find(states, "running"), nil)
+
+	table.clear(calls)
+	now = 100 + 15 * 60
+	syncLoop.tickAsync()
+	assert.eq(table.concat(calls, ","), "authored,full")
+	assert.eq(loadDoc(dir).revision, revision + 1)
+end)
+
+test.case("sync sweeps the cards in view every 30 seconds between full sweeps", function(assert)
+	local root = testing.createHarness("sync-sooner")
+	local dir = getWorkspaceDir(root, "default")
+	local now = 100
+	local calls: { string } = {}
+	local syncLoop = createSyncLoop(root, "default", function(_status: json.Object) end, function(argv)
+		local query = argv[#argv]
+
+		if argv[3] == "--include" then
+			table.insert(calls, "poll")
+			return testing.result(
+				false,
+				"HTTP/2.0 304 Not Modified\nLast-Modified: Sun, 18 Oct 2026 15:53:33 GMT\nX-Poll-Interval: 60\n\n",
+				"gh: HTTP 304"
+			)
+		elseif query:find("pullRequests(first:", 1, true) then
+			table.insert(calls, "authored")
+			return testing.result(
+				true,
+				[[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[],"pageInfo":{"hasNextPage":false}}}}}]]
+			)
+		elseif query:find("{ updatedAt }", 1, true) then
+			table.insert(calls, "sweep")
+			return testing.result(true, [[{"data":{"p1":{"pullRequest":{"updatedAt":"2026-10-18T00:00:00Z"}}}}]])
+		end
+
+		table.insert(calls, "full")
+		return testing.result(
+			true,
+			[[{"data":{"p1":{"pullRequest":{"number":658,"state":"OPEN","url":"u","updatedAt":"2026-10-18T00:00:00Z"}}}}]]
+		)
+	end, function()
+		return now
+	end)
+
+	syncLoop.tickAsync()
+	local revision = loadDoc(dir).revision
+	putFocus(dir, "tab", nil, { "pub" })
+
+	table.clear(calls)
+	now += 30
+	syncLoop.tickAsync()
+	assert.eq(table.concat(calls, ","), "sweep")
+	assert.eq(loadDoc(dir).revision, revision)
+
+	table.clear(calls)
+	now += 15
+	syncLoop.tickAsync()
+	assert.eq(#calls, 0)
+
+	clearFocus(dir)
+	table.clear(calls)
+	now += 15
+	syncLoop.tickAsync()
+	assert.eq(table.concat(calls, ","), "poll")
+
+	putFocus(dir, "tab", "ws", {})
+	table.clear(calls)
+	now += 30
+	syncLoop.tickAsync()
+	assert.eq(table.concat(calls, ","), "sweep")
+
+	table.clear(calls)
+	now += 30
+	syncLoop.tickAsync()
+	assert.eq(table.concat(calls, ","), "poll,sweep,authored")
+
+	table.clear(calls)
+	now += 30
+	syncLoop.tickAsync()
+	assert.eq(table.concat(calls, ","), "sweep")
+end)
+
+test.case("an unforced sync request sweeps once a full pass has run", function(assert)
+	local root = testing.createHarness("sync-request")
+	local now = 100
+	local calls: { string } = {}
+	local syncLoop = createSyncLoop(root, "default", function(_status: json.Object) end, function(argv)
+		local query = argv[#argv]
+
+		if argv[3] == "--include" then
+			table.insert(calls, "poll")
+			return testing.result(true, "HTTP/2.0 200 OK\n\n[]")
+		elseif query:find("{ updatedAt }", 1, true) then
+			table.insert(calls, "sweep")
+		elseif query:find("pullRequests(first:", 1, true) then
+			table.insert(calls, "authored")
+			return testing.result(
+				true,
+				[[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[],"pageInfo":{"hasNextPage":false}}}}}]]
+			)
+		else
+			table.insert(calls, "full")
+		end
+
+		return testing.result(true, [[{"data":{}}]])
+	end, function()
+		return now
+	end)
+
+	syncLoop.runAsync()
+	assert.eq(table.find(calls, "full") ~= nil, true)
+	table.clear(calls)
+	now += 61
+	syncLoop.runAsync()
+	assert.eq(table.find(calls, "sweep") ~= nil, true)
+	assert.eq(table.find(calls, "full"), nil)
+end)

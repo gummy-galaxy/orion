@@ -9,7 +9,7 @@
 	lute run generate cardTypes [--check]
 		Writes workspace/orion-app/src/cardTypes/builtinTypes.json from the
 		card types the CLI ships. Run it after changing
-		workspace/orion-cli/src/canvas/cardTypes/builtinTypes.luau.
+		workspace/orion-cli/src/canvas/cardTypes/builtinCardTypes.luau.
 
 	lute run generate docs [--check]
 		Writes the CLI, MCP, and telemetry reference pages in docs/reference/.

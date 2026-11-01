@@ -9,7 +9,7 @@ local system = require("@std/system")
 local cli = require("@root/cli")
 local encodeStableJson = require("@root/storage/files/encodeStableJson")
 local ensureDirectory = require("@root/common/platform/ensureDirectory")
-local getItemTypes = require("@root/canvas/cardTypes/getItemTypes")
+local getItemCardTypes = require("@root/canvas/cardTypes/getItemCardTypes")
 local githubTypes = require("@root/sources/github/types")
 local readCanvasFiles = require("@root/storage/files/readCanvasFiles")
 local types = require("@root/types")
@@ -77,7 +77,7 @@ end
 
 -- The type that picks a card's face, from what it carries.
 function testing.primaryType(item: Item): string?
-	local itemTypes = getItemTypes(item)
+	local itemTypes = getItemCardTypes(item)
 	return if itemTypes then itemTypes.primary else nil
 end
 

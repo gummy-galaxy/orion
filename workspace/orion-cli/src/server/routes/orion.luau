@@ -7,7 +7,7 @@ local getDocPath = require("@root/storage/canvases/getDocPath")
 local getWorkspaceDir = require("@root/storage/canvases/getWorkspaceDir")
 local readDoc = require("@root/storage/canvases/readDoc")
 local serializeDerived = require("@root/server/serializeDerived")
-local serializeRegistry = require("@root/canvas/cardTypes/serializeRegistry")
+local serializeCardTypeRegistry = require("@root/canvas/cardTypes/serializeCardTypeRegistry")
 local shared = require("@root/server/routes/shared")
 
 type Response = shared.Response
@@ -28,7 +28,7 @@ function orion.handle(request: net.ReceivedRequest, root: string, active: string
 			end
 			local body = encodeDocObject(doc)
 			body.derived = serializeDerived(derive(doc))
-			body.types = serializeRegistry()
+			body.types = serializeCardTypeRegistry()
 			return shared.reply(200, body)
 		end
 		return shared.reply(405, json.object({ error = "method not allowed" }))

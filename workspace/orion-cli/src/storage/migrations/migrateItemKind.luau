@@ -1,6 +1,6 @@
 local json = require("@std/json")
 
-local getRefType = require("@root/canvas/cardTypes/getRefType")
+local getRefCardType = require("@root/canvas/cardTypes/getRefCardType")
 local getStringField = require("@root/common/getStringField")
 local types = require("@root/types")
 
@@ -18,7 +18,7 @@ local function migrateItemKind(item: Item)
 		local ref = json.asObject(value)
 
 		if ref and ref.type == nil and type(ref.kind) == "string" and type(ref.key) == "string" then
-			ref.type = getRefType(ref :: any)
+			ref.type = getRefCardType(ref :: any)
 		end
 	end
 

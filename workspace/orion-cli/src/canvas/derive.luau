@@ -1,5 +1,5 @@
 local cardTypes = require("@root/canvas/cardTypes/types")
-local getMeaning = require("@root/canvas/cardTypes/getMeaning")
+local getCardTypeMeaning = require("@root/canvas/cardTypes/getCardTypeMeaning")
 local getSnoozedFacts = require("@root/sources/github/pulls/getSnoozedFacts")
 local getStringField = require("@root/common/getStringField")
 local graphTypes = require("@root/canvas/types")
@@ -153,7 +153,7 @@ local function derive(doc: Doc, now: string?): Derived
 	for _, item in doc.nodes do
 		if item.type == "task" then
 			tasks[item.id] = item
-			meanings[item.id] = getMeaning(item) :: Meaning
+			meanings[item.id] = getCardTypeMeaning(item) :: Meaning
 			pulls[item.id] = getSnoozedFacts(item, doc.settings.checkSnoozes, clock)
 		end
 
