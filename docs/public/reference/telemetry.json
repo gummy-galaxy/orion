@@ -9,7 +9,6 @@
     "canvas_measured": {
       "properties": {
         "card_count": "integer",
-        "comment_count": "integer",
         "group_count": "integer",
         "link_count": "integer",
         "media_count": "integer",

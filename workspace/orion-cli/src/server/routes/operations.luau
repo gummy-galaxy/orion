@@ -7,7 +7,9 @@ local getErrorText = require("@root/common/errors/getErrorText")
 local getWorkspaceDir = require("@root/storage/canvases/getWorkspaceDir")
 local parseOperations = require("@root/canvas/operations/parseOperations")
 local runTransaction = require("@root/storage/transactions/runTransaction")
+local serverTypes = require("@root/server/types")
 local shared = require("@root/server/routes/shared")
+local time = require("@std/time")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -36,7 +38,12 @@ end
 -- failed, and the file is left alone. `baseRevision`, when sent, must still be
 -- the saved revision. The answer's `results` holds what each edit answered,
 -- such as a chain close, or null, in the order of the list.
-function operations.handle(request: net.ReceivedRequest, root: string, active: string): Response
+function operations.handle(
+	request: net.ReceivedRequest,
+	root: string,
+	active: string,
+	timings: serverTypes.Timings?
+): Response
 	if request.method ~= "POST" then
 		return shared.reply(405, json.object({ error = "method not allowed" }))
 	end
@@ -67,6 +74,7 @@ function operations.handle(request: net.ReceivedRequest, root: string, active: s
 
 	local dir = getWorkspaceDir(root, active)
 	local started = os.clock()
+	local startedAt = time.now()
 	local answers: json.Array = {}
 	local succeeded, result = xpcall(runTransaction, captureFailure, dir, function(doc: Doc)
 		if change.baseRevision ~= nil and change.baseRevision ~= doc.revision then
@@ -80,6 +88,10 @@ function operations.handle(request: net.ReceivedRequest, root: string, active: s
 
 	if succeeded then
 		local doc = result :: Doc
+
+		if timings then
+			timings.record("server_flush", time.since(startedAt) * 1000)
+		end
 
 		if elapsed >= SLOW_APPLY_MS then
 			logger.warn("applied", #change.operations, "operations to", active, "in", elapsed, "ms")

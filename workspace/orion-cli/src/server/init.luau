@@ -6,12 +6,13 @@ local task = require("@std/task")
 local clearFocus = require("@root/storage/focus/clearFocus")
 local createEventHub = require("@root/server/createEventHub")
 local createOpenQueries = require("@root/server/createOpenQueries")
+local createPerformanceSummaries = require("@root/server/createPerformanceSummaries")
 local createRouter = require("@root/server/routes/createRouter")
 local createSessionLoop = require("@root/server/createSessionLoop")
 local createSyncLoop = require("@root/server/createSyncLoop")
 local createTelemetrySender = require("@root/server/createTelemetrySender")
 local createWatcher = require("@root/server/createWatcher")
-local derive = require("@root/canvas/derive")
+local deriveTimed = require("@root/server/deriveTimed")
 local ensureDirectory = require("@root/common/platform/ensureDirectory")
 local getVersion = require("@root/common/getVersion")
 local getWorkspaceDir = require("@root/storage/canvases/getWorkspaceDir")
@@ -52,6 +53,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 
 	local watcher
 	local openQueries = createOpenQueries(root)
+	local performanceSummaries = createPerformanceSummaries(root, { environment = process.env })
 	local router = createRouter(root, workspace, syncLoop, function(name: string)
 		assert(watcher).switchTo(name)
 		syncLoop.switchTo(name)
@@ -64,13 +66,14 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 		task.spawn(function()
 			syncLoop.runAsync(true)
 		end)
-	end, staticDir, eventHub)
+	end, staticDir, eventHub, performanceSummaries)
 	watcher = createWatcher(
 		root,
 		router.getActive,
 		router.switchTo,
 		function(revision: number, doc: types.Doc, isReindexed)
-			local event = json.object({ revision = revision, derived = serializeDerived(derive(doc)) })
+			local event =
+				json.object({ revision = revision, derived = serializeDerived(deriveTimed(doc, performanceSummaries)) })
 
 			-- Files changed outside Orion without a new revision, so the app
 			-- reloads despite seeing its own revision.
@@ -140,6 +143,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 	watcher.start()
 	sessionLoop.start()
 	telemetrySender.start()
+	performanceSummaries.start()
 	task.delay(5, function()
 		while true do
 			syncLoop.tickAsync()
@@ -154,6 +158,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 			assert(watcher).close()
 			sessionLoop.close()
 			telemetrySender.close()
+			performanceSummaries.close()
 			running.close()
 			removeRuntime(root, runtime)
 			clearAllFocus()

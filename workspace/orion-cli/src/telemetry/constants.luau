@@ -50,4 +50,14 @@ return table.freeze({
 	-- match those.
 	MAX_APP_EVENTS = 100,
 	MAX_APP_BODY_BYTES = 64 * 1024,
+
+	-- How often the server queues the timings it has gathered so far. The
+	-- desktop app may stop the server without warning, so waiting for the end
+	-- of a session would lose most of them.
+	PERFORMANCE_SUMMARY_SECONDS = 300,
+
+	-- How many timings of each kind the server keeps between summaries. The
+	-- p50, p95, and max come from the first this many. Later timings still
+	-- count toward a summary's sample_count.
+	MAX_PERFORMANCE_SAMPLES = 1000,
 })
