@@ -5,9 +5,9 @@ local deriveTimed = require("@root/server/deriveTimed")
 local encodeDocObject = require("@root/storage/files/encodeDocObject")
 local getDocPath = require("@root/storage/canvases/getDocPath")
 local getWorkspaceDir = require("@root/storage/canvases/getWorkspaceDir")
-local performanceSummaries = require("@root/server/performanceSummaries")
 local readDoc = require("@root/storage/canvases/readDoc")
 local serializeDerived = require("@root/server/serializeDerived")
+local serverTypes = require("@root/server/types")
 local shared = require("@root/server/routes/shared")
 
 type Response = shared.Response
@@ -18,7 +18,7 @@ function orion.handle(
 	request: net.ReceivedRequest,
 	root: string,
 	active: string,
-	timings: performanceSummaries.Timings?
+	timings: serverTypes.Timings?
 ): Response
 	local didSucceed, response = pcall(function(): Response
 		if request.method == "GET" then

@@ -6,8 +6,8 @@ local applyOperations = require("@root/canvas/operations/applyOperations")
 local getErrorText = require("@root/common/errors/getErrorText")
 local getWorkspaceDir = require("@root/storage/canvases/getWorkspaceDir")
 local parseOperations = require("@root/canvas/operations/parseOperations")
-local performanceSummaries = require("@root/server/performanceSummaries")
 local runTransaction = require("@root/storage/transactions/runTransaction")
+local serverTypes = require("@root/server/types")
 local shared = require("@root/server/routes/shared")
 local time = require("@std/time")
 local types = require("@root/types")
@@ -42,7 +42,7 @@ function operations.handle(
 	request: net.ReceivedRequest,
 	root: string,
 	active: string,
-	timings: performanceSummaries.Timings?
+	timings: serverTypes.Timings?
 ): Response
 	if request.method ~= "POST" then
 		return shared.reply(405, json.object({ error = "method not allowed" }))

@@ -2,35 +2,21 @@ local task = require("@std/task")
 
 local formatTimestamp = require("@root/common/time/formatTimestamp")
 local queueTelemetryEvents = require("@root/telemetry/queueTelemetryEvents")
+local serverTypes = require("@root/server/types")
 local summarizeDurations = require("@root/telemetry/summarizeDurations")
+local telemetryConstants = require("@root/telemetry/constants")
 local telemetryTypes = require("@root/telemetry/types")
 local types = require("@root/types")
 
 type Build = types.Build
+type Metric = serverTypes.Metric
 type QueuedEvent = telemetryTypes.QueuedEvent
-
-export type Metric = "derive" | "server_flush"
 
 local METRICS: { Metric } = { "derive", "server_flush" }
 
-local performanceSummaries = {}
-
--- How often the timings gathered so far are queued. The desktop app may stop
--- the server without warning, so waiting for the end of a session would lose
--- most of them.
-performanceSummaries.SUMMARY_SECONDS = 300
--- Enough samples for a steady p95 over a stretch. Later ones still count
--- toward sample_count.
-performanceSummaries.MAX_SAMPLES = 1000
-
-export type Options = {
+type Options = {
 	environment: { [string]: string },
 	build: Build?,
-}
-
-export type Timings = {
-	record: (metric: Metric, durationMs: number) -> (),
-	setCanvasSize: (cardCount: number, groupCount: number) -> (),
 }
 
 --[[
@@ -40,7 +26,7 @@ export type Timings = {
 	carries the size of the canvas last derived, so timings can be compared on
 	canvases of the same size.
 ]]
-function performanceSummaries.create(root: string, options: Options)
+local function createPerformanceSummaries(root: string, options: Options)
 	local samples: { [Metric]: { number } } = { derive = {}, server_flush = {} }
 	local counts: { [Metric]: number } = { derive = 0, server_flush = 0 }
 	local cardCount = 0
@@ -51,7 +37,7 @@ function performanceSummaries.create(root: string, options: Options)
 	function summaries.record(metric: Metric, durationMs: number)
 		counts[metric] += 1
 
-		if #samples[metric] < performanceSummaries.MAX_SAMPLES then
+		if #samples[metric] < telemetryConstants.MAX_PERFORMANCE_SAMPLES then
 			table.insert(samples[metric], durationMs)
 		end
 	end
@@ -96,7 +82,7 @@ function performanceSummaries.create(root: string, options: Options)
 	function summaries.start()
 		task.spawn(function()
 			while true do
-				task.wait(performanceSummaries.SUMMARY_SECONDS)
+				task.wait(telemetryConstants.PERFORMANCE_SUMMARY_SECONDS)
 
 				if isClosed then
 					return
@@ -121,4 +107,4 @@ function performanceSummaries.create(root: string, options: Options)
 	return summaries
 end
 
-return table.freeze(performanceSummaries)
+return createPerformanceSummaries

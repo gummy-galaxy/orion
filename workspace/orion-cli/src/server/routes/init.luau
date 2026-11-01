@@ -14,9 +14,9 @@ local log = require("@root/server/routes/log")
 local merge = require("@root/server/routes/merge")
 local operations = require("@root/server/routes/operations")
 local orion = require("@root/server/routes/orion")
-local performanceSummaries = require("@root/server/performanceSummaries")
 local query = require("@root/server/routes/query")
 local reveal = require("@root/server/routes/reveal")
+local serverTypes = require("@root/server/types")
 local sessions = require("@root/server/routes/sessions")
 local settings = require("@root/server/routes/settings")
 local shared = require("@root/server/routes/shared")
@@ -43,7 +43,7 @@ function routes.create(
 	onSwitch: (string) -> (),
 	staticDir: string?,
 	hub: RevealHub?,
-	timings: performanceSummaries.Timings?
+	timings: serverTypes.Timings?
 )
 	local active = initialWorkspace
 	local router = {}
