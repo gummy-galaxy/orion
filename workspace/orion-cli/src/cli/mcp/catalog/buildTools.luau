@@ -9,8 +9,9 @@ type CommandDescription = describeCommands.CommandDescription
 type Field = mcpTypes.Field
 type Tool = mcpTypes.Tool
 
--- Every command takes --canvas, so describeCommands leaves it out and each tool
--- gets this field unless it omits it.
+-- Every command takes --canvas, so describeCommands leaves it out of each
+-- command's own arguments. Tools add it back with this field instead, unless a
+-- command's MCP declaration omits it.
 local CANVAS_FIELD: Field = table.freeze({
 	name = "canvas",
 	argument = "canvas",
@@ -24,8 +25,9 @@ local function toCamelCase(name: string): string
 	return (name:gsub("%-(%w)", string.upper))
 end
 
--- Positionals and words are required unless an argument says otherwise, since
--- commands fail without them.
+-- A command fails without its positionals or its free text, such as a card's
+-- label, so their fields are required by default. An argument can still mark
+-- itself required, or set `mcp.required` to change the default.
 local function isRequired(argument: Argument): boolean
 	if argument.required then
 		return true
@@ -49,8 +51,11 @@ local function getField(argument: Argument): Field
 	}
 end
 
--- The old tool names that still reach a command: one for each command alias
--- whose new path starts its path.
+-- A renamed command keeps working under its old name for a release, through a
+-- command alias. MCP clients may still call the old tool name too. This lists
+-- those old names for one command: one for each alias that renamed the command
+-- or one of its parents. If `card` was once called `task`, the tool for
+-- `card list` also answers to `orion_task_list`.
 local function getToolAliases(words: { string }, aliases: { Alias }): { string }
 	local names: { string } = {}
 
@@ -77,8 +82,8 @@ local function getToolAliases(words: { string }, aliases: { Alias }): { string }
 	return names
 end
 
--- The old argument names a command's tool still takes, after its options were
--- renamed.
+-- Option aliases do the same for renamed options. This maps each old argument
+-- name for one command's tool to the field it now fills.
 local function getRenamedArguments(path: string, aliases: { Alias }): { [string]: string }
 	local renamed: { [string]: string } = {}
 
@@ -181,10 +186,18 @@ local function collectTools(command: CommandDescription, aliases: { Alias }, too
 	end
 end
 
--- Builds a tool for every command in the table that doesn't skip MCP, in the
--- order orion help lists them. Fails when a command declares no tool or omits
--- an option it doesn't take, so MCP can't fall behind the CLI. Each tool keeps
--- the old names that aliases give it, which default to the shipped entries.
+-- MCP clients call Orion through tools, one for each command that runs on its
+-- own, such as `card list`. Groups like `card` get none. This builds the tools
+-- from the command descriptions, in the order `orion help` lists the commands.
+-- A command can opt out with `mcp.skip` and a reason.
+--
+-- Every other command has to declare its tool, and may omit options the tool
+-- shouldn't take. Building fails when a command declares nothing, or omits an
+-- option it doesn't have, so a new command or a renamed option can't quietly
+-- leave MCP behind the CLI.
+--
+-- Specs can pass their own aliases. Otherwise the tools pick up the aliases
+-- Orion ships with.
 local function buildTools(root: CommandDescription, aliases: { Alias }?): { Tool }
 	local tools: { Tool } = {}
 	local problems: { string } = {}
