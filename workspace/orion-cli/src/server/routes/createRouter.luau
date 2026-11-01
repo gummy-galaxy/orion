@@ -30,13 +30,7 @@ type Response = shared.Response
 type SyncLoop = sync.SyncLoop
 type RevealHub = reveal.Hub
 
-local routes = {}
-
-function routes.serveStatic(folder: string, requestPath: string, host: string?): Response
-	return static.serve(folder, requestPath, host)
-end
-
-function routes.create(
+local function createRouter(
 	root: string,
 	initialWorkspace: string,
 	syncLoop: SyncLoop,
@@ -128,7 +122,7 @@ function routes.create(
 			return shared.reply(404, json.object({ error = "not found" }))
 		end
 		if staticDir and request.method == "GET" then
-			return routes.serveStatic(staticDir, route, request.headers.host)
+			return static.serve(staticDir, route, request.headers.host)
 		end
 		return shared.reply(404, json.object({ error = "not found" }))
 	end
@@ -136,4 +130,4 @@ function routes.create(
 	return router
 end
 
-return table.freeze(routes)
+return createRouter

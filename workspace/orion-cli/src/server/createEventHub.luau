@@ -3,9 +3,7 @@ local net = require("@lute/net/server")
 
 type Socket = net.ServerWebSocket
 
-local events = {}
-
-function events.create()
+local function createEventHub()
 	local clients: { [Socket]: boolean } = {}
 	local hub = {}
 
@@ -46,4 +44,4 @@ function events.create()
 	return hub
 end
 
-return table.freeze(events)
+return createEventHub
