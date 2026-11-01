@@ -32,11 +32,6 @@ local FULL_SECONDS = 15 * 60
 -- run moves neither `updatedAt` nor notifications.
 local CHECKS_SECONDS = 30
 local logger = archivist.getLogger("orion.sync")
-local sync = {}
-
--- How often `orion server start` calls `tickAsync`. Each tick runs at most one
--- pass, and only when one is due.
-sync.TICK_SECONDS = 15
 
 --[[
 	Keeps the active canvas's pull request cards current. A full pass fetches
@@ -48,7 +43,7 @@ sync.TICK_SECONDS = 15
 	in view, have their `updatedAt` swept every 30 seconds instead. Background
 	passes don't report `running`, so they stay quiet in the app.
 ]]
-function sync.create(
+local function createSyncLoop(
 	root: string,
 	initialWorkspace: string,
 	onStatusChanged: (json.Object) -> (),
@@ -65,8 +60,6 @@ function sync.create(
 	local nextChecks = 0
 	local poll: PollState = { lastModified = {}, interval = 60 }
 	local status = json.object({ state = "idle" })
-	local now = clock or os.time
-	local command = runner or runCommand
 	local loop = {}
 
 	local function setStatus(nextStatus: json.Object)
@@ -111,7 +104,7 @@ function sync.create(
 			local apply: ((types.Doc) -> githubTypes.Report)?
 
 			if want == nil then
-				apply = assert(verbs.refreshAsync)(snapshot, command, { now = timestamp })
+				apply = assert(verbs.refreshAsync)(snapshot, runner or runCommand, { now = timestamp })
 			else
 				if sweepsSooner and not want.sweep then
 					local cards = findRefreshSooner(snapshot, readFocus(dir))
@@ -122,7 +115,7 @@ function sync.create(
 					end
 				end
 
-				local changed = assert(verbs.refreshChangedAsync)(snapshot, command, poll, want, timestamp)
+				local changed = assert(verbs.refreshChangedAsync)(snapshot, runner or runCommand, poll, want, timestamp)
 				failures, fetched, apply = changed.failures, changed.fetched, changed.apply
 			end
 
@@ -160,7 +153,7 @@ function sync.create(
 				setStatus(json.object({ state = "error", lastRun = finishedAt, message = message }))
 			end
 
-			local finished = now()
+			local finished = (clock or os.time)()
 
 			if want == nil then
 				lastFull = finished
@@ -220,7 +213,7 @@ function sync.create(
 			return runPassAsync(nil, false)
 		end
 
-		if now() - lastSweep < THROTTLE_SECONDS then
+		if (clock or os.time)() - lastSweep < THROTTLE_SECONDS then
 			return status
 		end
 
@@ -233,7 +226,7 @@ function sync.create(
 			return
 		end
 
-		local current = now()
+		local current = (clock or os.time)()
 
 		if lastFull == 0 then
 			runPassAsync(nil, false)
@@ -258,4 +251,4 @@ function sync.create(
 	return loop
 end
 
-return table.freeze(sync)
+return createSyncLoop

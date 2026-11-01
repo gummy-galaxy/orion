@@ -5,6 +5,7 @@ local path = require("@std/path")
 local test = require("@std/test")
 
 local appendLog = require("@root/storage/log/appendLog")
+local createRouter = require("@root/server/routes/createRouter")
 local createWorkspace = require("@root/storage/canvases/createWorkspace")
 local getBackups = require("@root/storage/backups/getBackups")
 local getDocPath = require("@root/storage/canvases/getDocPath")
@@ -12,7 +13,6 @@ local getWorkspaceDir = require("@root/storage/canvases/getWorkspaceDir")
 local insertFile = require("@root/storage/media/insertFile")
 local loadDoc = require("@root/storage/canvases/loadDoc")
 local readDoc = require("@root/storage/canvases/readDoc")
-local routes = require("@root/server/routes")
 local testing = require("@root/testing")
 local writeDoc = require("@root/storage/canvases/writeDoc")
 
@@ -41,11 +41,11 @@ local function decodeResponse(response): json.Object
 	return assert(json.asObject(json.deserialize(response.body) :: json.Value))
 end
 
-local function createRouter(name: string)
+local function createTestRouter(name: string)
 	local root = testing.directory(name)
 	local status = json.object({ state = "idle" })
 	local router
-	router = routes.create(root, "default", {
+	router = createRouter(root, "default", {
 		getStatus = function()
 			return status
 		end,
@@ -69,7 +69,7 @@ local function createOperation(id: string): json.Object
 end
 
 test.case("GET returns the document with unknown root data", function(assert)
-	local root, router = createRouter("routes-unknown-data")
+	local root, router = createTestRouter("routes-unknown-data")
 	fs.createDirectory(root, { makeParents = true })
 	testing.writeCanvasText(
 		root,
@@ -91,7 +91,7 @@ test.case("GET returns the document with unknown root data", function(assert)
 end)
 
 test.case("GET sends derived values beside the document without storing them", function(assert)
-	local root, router = createRouter("routes-derived")
+	local root, router = createTestRouter("routes-derived")
 	fs.createDirectory(root, { makeParents = true })
 	testing.writeCanvasText(
 		root,
@@ -112,7 +112,7 @@ test.case("GET sends derived values beside the document without storing them", f
 end)
 
 test.case("image routes import and serve workspace-local bytes", function(assert)
-	local root, router = createRouter("routes-images")
+	local root, router = createTestRouter("routes-images")
 	createWorkspace(root, "ideas")
 	local bytes = string.char(137, 80, 78, 71, 13, 10, 26, 10) .. "image bytes"
 	local function request(method: string, route: string, workspace: string, body: string?): net.ReceivedRequest
@@ -162,7 +162,7 @@ test.case("image routes import and serve workspace-local bytes", function(assert
 end)
 
 test.case("GET reports a missing file and an operation list creates it, guarded by its revision", function(assert)
-	local root, router = createRouter("routes-missing")
+	local root, router = createTestRouter("routes-missing")
 	local missing = router.handleAsync(createRequest("GET", "/api/orion"))
 	assert.eq(missing.status, 404)
 	assert.eq(decodeResponse(missing).path, getDocPath(root))
@@ -182,7 +182,7 @@ test.case("GET reports a missing file and an operation list creates it, guarded 
 end)
 
 test.case("an operation list retains unknown top-level fields and rejects a stale workspace", function(assert)
-	local root, router = createRouter("routes-preserve")
+	local root, router = createTestRouter("routes-preserve")
 	local doc = testing.createDoc({}, {})
 	doc.raw = json.object({ extra = json.object({ held = true }) })
 	writeDoc(root, doc)
@@ -196,7 +196,7 @@ test.case("an operation list retains unknown top-level fields and rejects a stal
 end)
 
 test.case("sticker operations save stickers, and other edits leave them alone", function(assert)
-	local root, router = createRouter("routes-stickers")
+	local root, router = createTestRouter("routes-stickers")
 	writeDoc(root, testing.createDoc({}, {}))
 	local stickers: json.Array = { json.object({ id = "one", emoji = "⭐" }) }
 	local loadout: json.Array = { "one", json.null }
@@ -230,7 +230,7 @@ test.case("sticker operations save stickers, and other edits leave them alone", 
 end)
 
 test.case("focus reports use the workspace and tab without changing the document", function(assert)
-	local root, router = createRouter("routes-focus")
+	local root, router = createTestRouter("routes-focus")
 	writeDoc(root, testing.createDoc({}, {}))
 	createWorkspace(root, "other")
 	local other = getWorkspaceDir(root, "other")
@@ -306,7 +306,7 @@ test.case("focus reports use the workspace and tab without changing the document
 end)
 
 test.case("workspace routes create, list, and switch", function(assert)
-	local root, router = createRouter("routes-workspaces")
+	local root, router = createTestRouter("routes-workspaces")
 	local created = router.handleAsync(
 		createRequest("POST", "/api/canvases", json.object({ name = "planning", label = "Planning" }))
 	)
@@ -333,7 +333,7 @@ test.case("workspace routes create, list, and switch", function(assert)
 end)
 
 test.case("GET reads the workspace a request names", function(assert)
-	local root, router = createRouter("routes-requested")
+	local root, router = createTestRouter("routes-requested")
 	createWorkspace(root, "planning", "Planning")
 	local planning = router.handleAsync(createRequest("GET", "/api/orion", nil, "planning"))
 	assert.eq(planning.status, 200)
@@ -346,7 +346,7 @@ test.case("GET reads the workspace a request names", function(assert)
 end)
 
 test.case("GET /api/log returns the entries of the canvas it names, oldest first", function(assert)
-	local root, router = createRouter("routes-log")
+	local root, router = createTestRouter("routes-log")
 	createWorkspace(root, "planning", "Planning")
 	appendLog(getWorkspaceDir(root, "planning"), function()
 		return {
@@ -377,12 +377,12 @@ test.case("GET /api/log returns the entries of the canvas it names, oldest first
 end)
 
 test.case("static route serves files and falls back to index outside the API", function(assert)
-	local root, _router = createRouter("routes-static")
+	local root, _router = createTestRouter("routes-static")
 	local folder = tostring(path.join(root, "site"))
 	fs.createDirectory(folder, { makeParents = true })
 	fs.writeStringToFile(path.join(folder, "index.html"), "home")
 	fs.writeStringToFile(path.join(folder, "app.js"), "code")
-	local router = routes.create(root, "default", {
+	local router = createRouter(root, "default", {
 		getStatus = function()
 			return json.object({ state = "idle" })
 		end,
@@ -406,7 +406,7 @@ test.case("static route serves files and falls back to index outside the API", f
 end)
 
 test.case("settings routes merge preferences beside the workspaces", function(assert)
-	local root, router = createRouter("routes-settings")
+	local root, router = createTestRouter("routes-settings")
 	assert.eq(router.handleAsync(createRequest("GET", "/api/settings")).body, "{}")
 
 	local saved =
@@ -432,7 +432,7 @@ test.case("settings routes merge preferences beside the workspaces", function(as
 end)
 
 test.case("PUT /api/orion/style sets and clears the canvas cover and bumps the revision like a save", function(assert)
-	local root, router = createRouter("routes-canvas-style")
+	local root, router = createTestRouter("routes-canvas-style")
 	writeDoc(root, testing.createDoc({ testing.group("ws", "Workspace", nil) }))
 	fs.createDirectory(path.join(root, "assets"), { makeParents = true })
 	fs.writeStringToFile(path.join(root, "assets", "image-logo.png"), "bytes")
@@ -465,7 +465,7 @@ test.case("PUT /api/orion/style sets and clears the canvas cover and bumps the r
 end)
 
 test.case("PUT /api/orion/check-snoozes snoozes and unsnoozes a job and bumps the revision", function(assert)
-	local root, router = createRouter("routes-check-snoozes")
+	local root, router = createTestRouter("routes-check-snoozes")
 	writeDoc(root, testing.createDoc({}))
 	local snoozed = router.handleAsync(createRequest(
 		"PUT",
@@ -500,7 +500,7 @@ test.case("PUT /api/orion/check-snoozes snoozes and unsnoozes a job and bumps th
 end)
 
 test.case("the theme list route serves theme files from the data folder", function(assert)
-	local root, router = createRouter("routes-theme-files")
+	local root, router = createTestRouter("routes-theme-files")
 	local folder = path.join(root, "themes")
 	fs.createDirectory(folder, { makeParents = true })
 	fs.writeStringToFile(path.join(folder, "dusk.json"), '{"name":"Dusk"}')
@@ -524,7 +524,7 @@ local function createRevealRouter(name: string, openClients: number)
 			table.insert(published, { name = eventName, data = data })
 		end,
 	}
-	local router = routes.create(root, "default", {
+	local router = createRouter(root, "default", {
 		getStatus = function()
 			return json.object({ state = "idle" })
 		end,

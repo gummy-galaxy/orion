@@ -20,8 +20,6 @@ type Watch = typeof(fs.watch(""))
 
 local logger = archivist.getLogger("orion.watcher")
 
-local watcher = {}
-
 -- Every write replaces the canvas's local.json last, so its stamp moves once
 -- per write.
 local function getWrittenPath(dir: string): string
@@ -68,7 +66,7 @@ local function hasStampChanged(previous: Stamp?, current: Stamp?): boolean
 	return previous.size ~= current.size or previous.modified ~= current.modified
 end
 
-function watcher.create(
+local function createWatcher(
 	root: string,
 	active: () -> string,
 	switchTo: (string) -> (),
@@ -262,4 +260,4 @@ function watcher.create(
 	return monitor
 end
 
-return table.freeze(watcher)
+return createWatcher
