@@ -1,13 +1,21 @@
 local cli = require("@batteries/cli")
 local io = require("@lute/io")
+local process = require("@std/process")
 
 local buildTools = require("@root/cli/mcp/catalog/buildTools")
 local context = require("@root/cli/context")
+local formatTimestamp = require("@root/common/time/formatTimestamp")
 local getBinaryFingerprint = require("@root/cli/mcp/server/getBinaryFingerprint")
+local mcpTypes = require("@root/cli/mcp/types")
 local queueBehindLock = require("@root/cli/mcp/server/queueBehindLock")
+local queueTelemetryEvents = require("@root/telemetry/queueTelemetryEvents")
 local serve = require("@root/cli/mcp/server/serve")
 
 type Context = context.Context
+type Hooks = mcpTypes.Hooks
+
+-- Client names are product names such as claude-code; anything longer is cut.
+local MAX_CLIENT_NAME_LENGTH = 64
 
 return table.freeze({
 	help = "Serve Orion's agent tools over MCP on stdin and stdout",
@@ -40,6 +48,29 @@ return table.freeze({
 			return started ~= nil and getBinaryFingerprint() ~= started
 		end
 
-		serve(io.read, io.write, tools, queueBehindLock(runTool), isStale)
+		local clientName: string? = nil
+		local hooks: Hooks = {
+			onConnected = function(name: string?)
+				clientName = if name then name:sub(1, MAX_CLIENT_NAME_LENGTH) else nil
+			end,
+			onToolCalled = function(name: string, durationMs: number, failed: boolean)
+				local properties: { [string]: string | number | boolean } =
+					{ tool = name, duration_ms = durationMs, failed = failed }
+
+				if clientName then
+					properties.client = clientName
+				end
+
+				queueTelemetryEvents(options.root, {
+					{
+						name = "mcp_tool_called",
+						timestamp = formatTimestamp(),
+						properties = properties,
+					},
+				}, process.env)
+			end,
+		}
+
+		serve(io.read, io.write, tools, queueBehindLock(runTool), isStale, hooks)
 	end,
 })

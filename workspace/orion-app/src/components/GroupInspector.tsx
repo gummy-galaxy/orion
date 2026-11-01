@@ -13,7 +13,7 @@ export function GroupInspector({
   stats,
   workspace,
   focus,
-  doneEditing,
+  onDoneEditing,
   update,
   arrange,
   changeStyle,
@@ -25,7 +25,7 @@ export function GroupInspector({
   stats: GroupStats | undefined
   workspace: string
   focus: boolean
-  doneEditing: () => void
+  onDoneEditing: () => void
   update: (id: string, patch: Partial<ClusterData>) => void
   arrange: (patch: Pick<ClusterData, 'arrange'>) => void
   changeStyle: (change: StyleChange) => void
@@ -45,7 +45,7 @@ export function GroupInspector({
         value={data.label}
         autoFocus={focus}
         onFocus={(event) => focus && event.target.select()}
-        onBlur={doneEditing}
+        onBlur={onDoneEditing}
         onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
         onChange={(event) => update(node.id, { label: event.target.value })}
       />
