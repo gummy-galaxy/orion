@@ -1,6 +1,7 @@
 # Code style
 
 - Spell identifiers out: `nodes`, not `ns`; `TASK_HEIGHT`, not `TASK_H`; `event`, not `e`. These short names are fine: `doc`/`docs`, `id`, `url`, `ref`, `dir`, `deps`, `repo`, `app`, `pr`, an `ms` suffix, `i`/`j` for indices, `x`/`y` for coordinates, and `a`/`b` in comparators.
+- Refer to a function or value by the name it already has, rather than storing it under a short alias like `local send = ...`. Each alias makes the reader remember what it stands for in this one place. For a dependency a caller can swap in, call it where it's used, such as `(options.sendTelemetryBatchAsync or sendTelemetryBatchAsync)(...)`, since Lute's `shadowing` lint flags a local that reuses the name.
 - Write a table, object, or type with more than one field across lines, one field per line with a trailing comma. A single field or a short list of plain values, such as `{ "a", "b" }`, can stay on one line. StyLua and Prettier keep whatever layout they're given, so a one-line table that later outgrows 120 columns gets rewritten whole, and the diff hides the field that actually changed.
 
   ```luau

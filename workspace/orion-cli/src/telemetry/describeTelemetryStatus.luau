@@ -5,7 +5,7 @@ type Status = telemetryTypes.Status
 local EVENTS_URL = "https://oriongraph.app/reference/telemetry"
 
 -- The status in a sentence or two, as the telemetry commands print it.
-local function describeStatus(status: Status): string
+local function describeTelemetryStatus(status: Status): string
 	local lines = {
 		if status.choice == "on"
 			then `Sharing anonymous usage data as install {status.installId}.`
@@ -24,4 +24,4 @@ local function describeStatus(status: Status): string
 	return table.concat(lines, "\n")
 end
 
-return describeStatus
+return describeTelemetryStatus

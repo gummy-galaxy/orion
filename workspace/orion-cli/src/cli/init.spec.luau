@@ -812,3 +812,25 @@ test.case("failures a script can act on carry a code in their JSON error", funct
 	assert.eq(other.code, nil)
 	assert.eq(other.message, "--if-revision must be a nonnegative integer")
 end)
+
+test.case("a command reports its name and the flag names it was given, never values", function(assert)
+	local dir = testing.directory("command-telemetry")
+	local reported: { { command: string, flags: string } } = {}
+	local function run(argv: { string })
+		cli.execute(argv, {
+			dataDir = dir,
+			write = function(_line: string) end,
+			onCommand = function(command: string, flags: string)
+				table.insert(reported, { command = command, flags = flags })
+			end,
+		})
+	end
+
+	run({ "card", "create", "--note", "--json", "Secret label", "--json" })
+	run({ "--canvas", "default", "node", "query", "--where", 'label ~ "Secret"' })
+
+	assert.eq(reported[1].command, "card create")
+	assert.eq(reported[1].flags, "--json,--note")
+	assert.eq(reported[2].command, "node query")
+	assert.eq(reported[2].flags, "--canvas,--where")
+end)

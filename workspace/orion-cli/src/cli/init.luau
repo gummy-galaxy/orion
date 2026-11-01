@@ -8,6 +8,7 @@ local backup = require("@root/cli/commands/backup")
 local canvas = require("@root/cli/commands/canvas")
 local card = require("@root/cli/commands/card")
 local ci = require("@root/cli/commands/ci")
+local collectTelemetryFlagNames = require("@root/telemetry/collectTelemetryFlagNames")
 local context = require("@root/cli/context")
 local defaultRun = require("@root/common/process/command")
 local definitions = require("@root/cli/definitions")
@@ -15,6 +16,7 @@ local describeCommands = require("@root/cli/describeCommands")
 local focus = require("@root/cli/commands/focus")
 local formatAllHelp = require("@root/cli/formatAllHelp")
 local formatList = require("@root/common/text/formatList")
+local formatTimestamp = require("@root/common/time/formatTimestamp")
 local fs = require("@std/fs")
 local getActiveWorkspace = require("@root/storage/canvases/getActiveWorkspace")
 local getDataRoot = require("@root/storage/getDataRoot")
@@ -32,6 +34,7 @@ local node = require("@root/cli/commands/node")
 local note = require("@root/cli/commands/note")
 local orientation = require("@root/cli/orientation")
 local querySyntax = require("@root/canvas/query/querySyntax")
+local queueTelemetryCommandRan = require("@root/telemetry/queueTelemetryCommandRan")
 local ref = require("@root/cli/commands/ref")
 local reportFailure = require("@root/cli/output/reportFailure")
 local resolveArguments = require("@root/cli/aliases/resolveArguments")
@@ -42,6 +45,7 @@ local source = require("@root/cli/commands/source")
 local suggestion = require("@root/cli/commands/suggestion")
 local telemetry = require("@root/cli/commands/telemetry")
 local theme = require("@root/cli/commands/theme")
+local time = require("@std/time")
 local types = require("@root/types")
 
 type Context = context.Context
@@ -58,6 +62,7 @@ type Resolved = {
 	workspace: string?,
 	now: () -> string,
 	exit: (code: number) -> (),
+	onCommand: (command: string, flags: string) -> (),
 }
 
 local SUMMARY = "orion — keep a graph of work up to date from the command line"
@@ -290,20 +295,22 @@ local function helpFor(root: cli.Parser, names: { string }): string?
 	return nil
 end
 
--- Walks the chosen commands from the root down, returning their names and the
--- deepest parser.
-local function selectedPath(root: cli.Parser): ({ string }, cli.Parser)
+-- Walks the chosen commands from the root down, returning their names, the
+-- deepest parser, and every parser on the way.
+local function selectedPath(root: cli.Parser): ({ string }, cli.Parser, { cli.Parser })
 	local names: { string } = {}
+	local parsers = { root }
 	local current = root
 
 	while true do
 		local name, child = current:selected()
 
 		if not (name and child) then
-			return names, current
+			return names, current, parsers
 		end
 
 		table.insert(names, name)
+		table.insert(parsers, child)
 		current = child
 	end
 end
@@ -330,11 +337,12 @@ local function dependencies(options: Dependencies?): Resolved
 		dataDir = given.dataDir or getDataRoot(),
 		workspace = if given.workspace == nil then process.env.ORION_CANVAS else given.workspace,
 		now = given.now or function()
-			return os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
+			return formatTimestamp()
 		end,
 		exit = given.exit or function(code: number)
 			process.exit(code)
 		end,
+		onCommand = given.onCommand or function(_command: string, _flags: string) end,
 	}
 end
 
@@ -368,8 +376,12 @@ local function execute(args: { string }, options: Dependencies?)
 	end
 
 	parsers.root:parse(resolved)
-	local names, parser = selectedPath(parsers.root)
+	local names, parser, path = selectedPath(parsers.root)
 	local command = names[1]
+
+	if command then
+		deps.onCommand(table.concat(names, " "), collectTelemetryFlagNames(path))
+	end
 
 	if parsers.root:has("version") then
 		deps.write(`orion {getVersion()}`)
@@ -443,15 +455,48 @@ local function execute(args: { string }, options: Dependencies?)
 	COMMANDS[command].run(assert(parsers.commands[command], `unknown command: {command}`), commandContext)
 end
 
--- Lute passes the program path as the first argument.
+-- Lute passes the program path as the first argument. Once a command
+-- finishes, however it exits, it's queued as usage telemetry on a machine that
+-- shares it.
 local function run(argv: { string })
 	local args = { table.unpack(argv, 2) }
-	local succeeded, message = pcall(execute, args, nil)
+	local startedAt = time.now()
+	local ran: { command: string, flags: string }? = nil
+
+	local function record(exitCode: number)
+		if ran == nil then
+			return
+		end
+
+		local finished: queueTelemetryCommandRan.Run = {
+			command = ran.command,
+			flags = ran.flags,
+			durationMs = math.floor(time.since(startedAt) * 1000),
+			exitCode = exitCode,
+		}
+		local options: queueTelemetryCommandRan.Options = { environment = process.env }
+
+		pcall(queueTelemetryCommandRan, getDataRoot(), finished, options)
+	end
+
+	local hooks: Dependencies = {
+		onCommand = function(command: string, flags: string)
+			ran = { command = command, flags = flags }
+		end,
+		exit = function(code: number)
+			record(code)
+			process.exit(code)
+		end,
+	}
+	local succeeded, message = pcall(execute, args, hooks)
 
 	if not succeeded then
 		reportFailure(args, message, print, writeStderr)
+		record(1)
 		process.exit(1)
 	end
+
+	record(0)
 end
 
 return table.freeze({
