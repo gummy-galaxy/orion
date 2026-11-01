@@ -3,10 +3,10 @@ local json = require("@std/json")
 local task = require("@std/task")
 local test = require("@std/test")
 
+local createSessionLoop = require("@root/server/createSessionLoop")
 local findRef = require("@root/canvas/refs/findRef")
 local getWorkspaceDir = require("@root/storage/canvases/getWorkspaceDir")
 local loadDoc = require("@root/storage/canvases/loadDoc")
-local sessions = require("@root/server/sessions")
 local testing = require("@root/testing")
 local writeDoc = require("@root/storage/canvases/writeDoc")
 
@@ -54,31 +54,31 @@ end
 
 test.case("a refresh writes only when a session ref's facts change", function(assert)
 	local root, claudeDir = setUp("server-sessions", "busy")
-	local loop = sessions.create(root, function()
+	local sessionLoop = createSessionLoop(root, function()
 		return "default"
 	end, run)
 
-	assert.eq(loop.refreshAsync(), true)
+	assert.eq(sessionLoop.refreshAsync(), true)
 	assert.eq(getState(root), "working")
 
 	local revision = loadDoc(getWorkspaceDir(root, "default")).revision
-	assert.eq(loop.refreshAsync(), false)
+	assert.eq(sessionLoop.refreshAsync(), false)
 	assert.eq(loadDoc(getWorkspaceDir(root, "default")).revision, revision)
 
 	testing.writeClaudeFixture(claudeDir, { branch = "agent/fix", stop = "tool_use", status = "idle" })
-	assert.eq(loop.refreshAsync(), true)
+	assert.eq(sessionLoop.refreshAsync(), true)
 	assert.eq(getState(root), "waiting")
-	loop.close()
+	sessionLoop.close()
 	fs.removeDirectory(claudeDir, { recursive = true })
 end)
 
 test.case("a change in the sessions folder refreshes on its own", function(assert)
 	local root, claudeDir = setUp("server-sessions-watch", "busy")
-	local loop = sessions.create(root, function()
+	local sessionLoop = createSessionLoop(root, function()
 		return "default"
 	end, run)
 
-	loop.start()
+	sessionLoop.start()
 	waitUntil(function()
 		return getState(root) == "working"
 	end)
@@ -89,18 +89,18 @@ test.case("a change in the sessions folder refreshes on its own", function(asser
 		return getState(root) == "waiting"
 	end)
 	assert.eq(getState(root), "waiting")
-	loop.close()
+	sessionLoop.close()
 	fs.removeDirectory(claudeDir, { recursive = true })
 end)
 
 test.case("a canvas with no agent sources is never written", function(assert)
 	local root = testing.directory("server-sessions-none")
 	writeDoc(root, testing.createDoc({}))
-	local loop = sessions.create(root, function()
+	local sessionLoop = createSessionLoop(root, function()
 		return "default"
 	end, run)
 
-	assert.eq(loop.refreshAsync(), false)
+	assert.eq(sessionLoop.refreshAsync(), false)
 	assert.eq(loadDoc(getWorkspaceDir(root, "default")).revision, 0)
-	loop.close()
+	sessionLoop.close()
 end)
