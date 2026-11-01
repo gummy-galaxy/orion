@@ -2,12 +2,15 @@ use std::{
     env, fs,
     net::{Ipv4Addr, TcpListener, TcpStream},
     process::{Child, Command},
-    sync::{Arc, Mutex},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex,
+    },
     thread,
-    time::{Duration, Instant},
+    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
-use tauri::{Manager, RunEvent, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Emitter, Manager, RunEvent, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 
 #[cfg(target_os = "macos")]
 use objc2::{msg_send, rc::Retained, sel, MainThreadMarker};
@@ -27,6 +30,47 @@ const WEB_CONTENT_NAME: &str = "Orion Web Content";
 
 /// Where the shell remembers its server's port, beside the window state in the app's own folder.
 const PORT_FILE: &str = "server-port";
+
+/// How long quitting waits for the page to hand its usage summaries to the server.
+const QUIT_FLUSH_TIMEOUT: Duration = Duration::from_secs(1);
+
+/// How long the server gets to stop on its own, queueing its last usage summaries, before it's killed.
+#[cfg(unix)]
+const SERVER_STOP_TIMEOUT: Duration = Duration::from_secs(2);
+
+/// Tracks the handshake that lets the page send its usage summaries before the app quits.
+#[derive(Default)]
+struct Quitting {
+    started: AtomicBool,
+    flushed: AtomicBool,
+}
+
+/// The page calls this once it has handed its summaries to the server.
+#[tauri::command]
+fn telemetry_flushed(quitting: tauri::State<Quitting>) {
+    quitting.flushed.store(true, Ordering::SeqCst);
+}
+
+/// Asks the page to send what it has gathered, then quits once it answers or the timeout passes. Returns false when
+/// quitting has already started, so the close or exit that started it goes ahead.
+fn begin_quit(app: &AppHandle) -> bool {
+    if app.state::<Quitting>().started.swap(true, Ordering::SeqCst) {
+        return false;
+    }
+
+    let _ = app.emit_to("main", "orion://quitting", ());
+    let handle = app.clone();
+    thread::spawn(move || {
+        let deadline = Instant::now() + QUIT_FLUSH_TIMEOUT;
+        while Instant::now() < deadline
+            && !handle.state::<Quitting>().flushed.load(Ordering::SeqCst)
+        {
+            thread::sleep(Duration::from_millis(20));
+        }
+        handle.exit(0);
+    });
+    true
+}
 
 fn get_free_port() -> std::io::Result<u16> {
     let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))?;
@@ -69,6 +113,21 @@ fn get_server_port(app: &tauri::App) -> Option<u16> {
 }
 
 fn stop_server(child: &mut Child) {
+    // SIGTERM lets the server queue its last usage summaries before it stops.
+    #[cfg(unix)]
+    {
+        let _ = Command::new("kill")
+            .args(["-TERM", &child.id().to_string()])
+            .status();
+        let deadline = Instant::now() + SERVER_STOP_TIMEOUT;
+        while Instant::now() < deadline {
+            if let Ok(Some(_)) = child.try_wait() {
+                return;
+            }
+            thread::sleep(Duration::from_millis(50));
+        }
+    }
+
     let _ = child.kill();
     let _ = child.wait();
 }
@@ -137,6 +196,11 @@ fn get_webview_configuration() -> Option<Retained<WKWebViewConfiguration>> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Handed to the page so startup counts the wait for the server too.
+    let launched_at = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|elapsed| elapsed.as_millis())
+        .unwrap_or(0);
     let server = Arc::new(Mutex::new(None::<Child>));
     let server_for_setup = Arc::clone(&server);
 
@@ -146,7 +210,18 @@ pub fn run() {
         .menu(menu::build)
         .on_menu_event(menu::handle_event)
         .manage(usage::UsageSamples::default())
-        .invoke_handler(tauri::generate_handler![usage::process_usage])
+        .manage(Quitting::default())
+        .invoke_handler(tauri::generate_handler![
+            usage::process_usage,
+            telemetry_flushed
+        ])
+        .on_window_event(|window, event| {
+            if let WindowEvent::CloseRequested { api, .. } = event {
+                if begin_quit(window.app_handle()) {
+                    api.prevent_close();
+                }
+            }
+        })
         .setup(move |app| {
             let url = if cfg!(debug_assertions) {
                 WebviewUrl::App("index.html".into())
@@ -159,6 +234,7 @@ pub fn run() {
 
             let window = WebviewWindowBuilder::new(app, "main", url)
                 .title("Orion")
+                .initialization_script(format!("window.__ORION_LAUNCHED_AT__ = {launched_at};"))
                 .inner_size(1440.0, 900.0)
                 .min_inner_size(960.0, 640.0);
 
@@ -184,11 +260,17 @@ pub fn run() {
         })
         .build(tauri::generate_context!())
         .expect("error while building Orion")
-        .run(move |_, event| {
-            if matches!(event, RunEvent::Exit) {
+        .run(move |app, event| match event {
+            RunEvent::ExitRequested { api, .. } => {
+                if begin_quit(app) {
+                    api.prevent_exit();
+                }
+            }
+            RunEvent::Exit => {
                 if let Some(mut child) = server.lock().unwrap().take() {
                     stop_server(&mut child);
                 }
             }
+            _ => {}
         });
 }

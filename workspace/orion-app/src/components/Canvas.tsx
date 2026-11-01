@@ -179,8 +179,12 @@ import { useUndo } from '../useUndo'
 import { useGroupResize } from '../resize/useGroupResize'
 import { groupEdgeAt } from '../resize/groupEdgeAt'
 import { useInspecting } from '../useInspecting'
-import { shouldAskTelemetry } from '../telemetry'
+import { sendTelemetryEvents, shouldAskTelemetry, type TelemetryEvent } from '../telemetry'
+import { countCanvasShape } from '../telemetry/countCanvasShape'
+import { getLaunchTime } from '../telemetry/getLaunchTime'
+import { useMoveFrames } from '../useMoveFrames'
 import { useTelemetry } from '../useTelemetry'
+import { useTelemetrySession } from '../useTelemetrySession'
 import {
   attentionAtom,
   celebratingAtom,
@@ -284,6 +288,8 @@ function cardAt(event: MouseEvent | TouchEvent): string | undefined {
     ?.dataset.id
 }
 
+/** How often an open canvas is sized again for usage telemetry. */
+const DAY_MS = 24 * 60 * 60 * 1000
 const SIDEBAR_KEY = 'orion:sidebar'
 const DETAILS_KEY = 'orion:details'
 const SIDEBAR_WIDTH_KEY = 'orion:sidebar-width'
@@ -638,6 +644,65 @@ export function Canvas() {
    */
   const [recents, setRecents] = useState<{ workspace: string; list: Recent[] } | null>(null)
   const [stickers, setStickers] = useState<Sticker[]>([])
+  /** What the canvas's size is counted from, kept current each render and only counted when telemetry asks. */
+  const shapeInputs = useRef({
+    nodes,
+    links,
+    depth: new Map<string, number>() as ReadonlyMap<string, number>,
+    stickers,
+  })
+  const measureCanvas = useCallback(() => {
+    const { nodes, links, depth, stickers } = shapeInputs.current
+
+    return countCanvasShape(nodes, links, depth, stickers)
+  }, [])
+  const usage = useTelemetrySession(measureCanvas)
+  const moveFrames = useMoveFrames(usage)
+  /** Lays out a group the way `reflow` does, timing it for usage telemetry. */
+  const timedReflow = useCallback(
+    async (...args: Parameters<typeof reflow>) => {
+      const startedAt = performance.now()
+      const laidOut = await reflow(...args)
+
+      usage.record('layout', performance.now() - startedAt)
+
+      return laidOut
+    },
+    [usage],
+  )
+
+  useEffect(() => usage.setTool(tool), [usage, tool])
+
+  const reportedStart = useRef(false)
+
+  // Sizes each canvas as it opens and daily while it stays open, and times the first one drawn after launch.
+  useEffect(() => {
+    if (!ready) return
+
+    const frame = requestAnimationFrame(() => {
+      const shape = measureCanvas()
+      const events: TelemetryEvent[] = [{ name: 'canvas_measured', properties: shape }]
+
+      if (!reportedStart.current) {
+        reportedStart.current = true
+        events.unshift({
+          name: 'app_started',
+          properties: { startup_ms: Math.round(Date.now() - getLaunchTime()), card_count: shape.card_count },
+        })
+      }
+
+      void sendTelemetryEvents(events)
+    })
+    const daily = setInterval(
+      () => void sendTelemetryEvents([{ name: 'canvas_measured', properties: measureCanvas() }]),
+      DAY_MS,
+    )
+
+    return () => {
+      cancelAnimationFrame(frame)
+      clearInterval(daily)
+    }
+  }, [ready, measureCanvas])
   const [loadout, setLoadout] = useState<Loadout>(() => loadoutOf())
   const [chosenSticker, setSticker] = useState<string | null>(null)
   /** The stickers picked on the canvas. Picking and deleting them works like the selected cards. */
@@ -1210,7 +1275,7 @@ export function Canvas() {
 
         for (const group of [...marked].sort((a, b) => depth.get(b.id)! - depth.get(a.id)!)) {
           try {
-            next = await reflow(next, links, group.id, cardSize)
+            next = await timedReflow(next, links, group.id, cardSize)
           } catch (error) {
             console.error('Could not lay out group', group.id, error)
           }
@@ -1243,7 +1308,7 @@ export function Canvas() {
         if (pendingLayoutEpoch.current === epoch) pendingLayoutEpoch.current = null
       }
     })()
-  }, [nodes, links, ready, rebaseHistory, setNodes, cardSize])
+  }, [nodes, links, ready, rebaseHistory, setNodes, cardSize, timedReflow])
   const changeWorkspace = useCallback(
     (name: string) => {
       if (name === workspace.current) return
@@ -1332,15 +1397,24 @@ export function Canvas() {
     return () => cancelAnimationFrame(frame)
   }, [ready, nodes, reactFlow])
 
-  const rememberView = useCallback((_: MouseEvent | TouchEvent | null, viewport: Viewport) => {
-    canvasRef.current?.removeAttribute('data-moving')
+  const rememberView = useCallback(
+    (_: MouseEvent | TouchEvent | null, viewport: Viewport) => {
+      canvasRef.current?.removeAttribute('data-moving')
+      moveFrames.end(viewport.zoom)
 
-    if (viewFor.current === workspace.current) writeViewport(workspace.current, viewport)
-  }, [])
+      if (viewFor.current === workspace.current) writeViewport(workspace.current, viewport)
+    },
+    [moveFrames],
+  )
   // An attribute rather than a class, so re-renders mid-move don't clear it.
-  const onMoveStart = useCallback(() => {
-    if (motion.pauseWhileMoving) canvasRef.current?.setAttribute('data-moving', '')
-  }, [motion.pauseWhileMoving])
+  const onMoveStart = useCallback(
+    (_: MouseEvent | TouchEvent | null, viewport: Viewport) => {
+      if (motion.pauseWhileMoving) canvasRef.current?.setAttribute('data-moving', '')
+
+      moveFrames.start(viewport.zoom)
+    },
+    [motion.pauseWhileMoving, moveFrames],
+  )
 
   const switchWorkspace = async (name: string) => {
     const list = await setActiveWorkspace(name)
@@ -1532,6 +1606,10 @@ export function Canvas() {
 
   const nodeIndex = useAtomValue(nodeIndexAtom)
   const map = nodeIndex.byId
+
+  useEffect(() => {
+    shapeInputs.current = { nodes, links, depth: nodeIndex.depth, stickers }
+  })
   const shownMap = useRef(map)
 
   // An edit from anywhere can remove the open group, such as moving its last group out or undoing its creation, so the
@@ -2559,7 +2637,8 @@ export function Canvas() {
 
     setNodes(result.nodes)
     setEditing(result.groupId)
-  }, [nodes, view, setNodes, setEditing, cardSize])
+    usage.count('groups_created')
+  }, [nodes, view, setNodes, setEditing, cardSize, usage])
 
   const doUngroup = useCallback(
     (ids?: string[]) => {
@@ -2616,7 +2695,7 @@ export function Canvas() {
       reflow: (groupId: string) => {
         const { nodes: currentNodes, links: currentLinks } = latest.current
 
-        reflow(currentNodes, currentLinks, groupId, cardSize).then(tweenTo)
+        timedReflow(currentNodes, currentLinks, groupId, cardSize).then(tweenTo)
       },
       open: (groupId: string) => {
         openRoot(groupId)
@@ -2647,7 +2726,7 @@ export function Canvas() {
       },
       resizeGroup,
     }),
-    [tweenTo, openRoot, cardSize, landStamps, commitNow, atomStore, resizeGroup],
+    [tweenTo, openRoot, cardSize, landStamps, commitNow, atomStore, resizeGroup, timedReflow],
   )
 
   const arrangeGroup = useCallback(
@@ -2657,9 +2736,9 @@ export function Canvas() {
         node.id === groupId && isCluster(node) ? { ...node, data: { ...node.data, ...patch } } : node,
       )
 
-      reflow(next, currentLinks, groupId, cardSize).then(tweenTo)
+      timedReflow(next, currentLinks, groupId, cardSize).then(tweenTo)
     },
-    [tweenTo, cardSize],
+    [tweenTo, cardSize, timedReflow],
   )
 
   const updateData = useCallback(
@@ -2820,7 +2899,7 @@ export function Canvas() {
       // An automatic group lays out its new item in line. Only positions and sizes come back, so text typed meanwhile
       // stays.
       if (options.replace && parentNode && isCluster(parentNode) && parentNode.data.arrange !== 'custom')
-        void reflow(nextNodes, next, parentNode.id).then((laidOut) => {
+        void timedReflow(nextNodes, next, parentNode.id).then((laidOut) => {
           const placed = byId(laidOut)
 
           setNodes((latestNodes) =>
@@ -2834,7 +2913,7 @@ export function Canvas() {
           )
         })
     },
-    [root, setLinks, setNodes, setEditing, cardSize],
+    [root, setLinks, setNodes, setEditing, cardSize, timedReflow],
   )
 
   const viewportCenter = useCallback(() => {
@@ -3048,9 +3127,12 @@ export function Canvas() {
   /** Pastes what was copied centered on a canvas point, inside the open group. */
   const paste = useCallback(
     (point = pastePoint()) => {
-      if (clip) void place(clip, { x: point.x - clip.bounds.width / 2, y: point.y - clip.bounds.height / 2 }, root)
+      if (!clip) return
+
+      usage.count('pastes')
+      void place(clip, { x: point.x - clip.bounds.width / 2, y: point.y - clip.bounds.height / 2 }, root)
     },
-    [clip, place, pastePoint, root],
+    [clip, place, pastePoint, root, usage],
   )
 
   /** Copies the selection beside itself, leaving what Copy took alone. */
@@ -3103,8 +3185,9 @@ export function Canvas() {
 
       addNote({ x: point.x - cardSize.width / 2, y: point.y - cardSize.height / 2 }, { parent })
       setTool('select')
+      usage.count('comments_left')
     },
-    [reactFlow, nodeAt, collapsed, root, addNote, cardSize],
+    [reactFlow, nodeAt, collapsed, root, addNote, cardSize, usage],
   )
 
   // ---- Stickers ----
@@ -3133,6 +3216,7 @@ export function Canvas() {
         ...stickers,
         { id, kind: sticker, tilt: Math.round((Math.random() * 2 - 1) * STICKER_TILT), ...at },
       ])
+      usage.count('stickers_placed')
       setFresh((freshStickers) => new Set(freshStickers).add(id))
       setTimeout(
         () =>
@@ -3150,7 +3234,7 @@ export function Canvas() {
         ),
       )
     },
-    [reactFlow, sticker, anchorAt],
+    [reactFlow, sticker, anchorAt, usage],
   )
 
   const settleStickers = useCallback(
@@ -3366,7 +3450,12 @@ export function Canvas() {
       ),
     )
 
-  const tidy = () => reflow(nodes, links, root ?? undefined, cardSize).then(tweenTo)
+  const tidy = () => {
+    usage.count('tidies')
+
+    return timedReflow(nodes, links, root ?? undefined, cardSize).then(tweenTo)
+  }
+
   const rootCustom = !!root && (map.get(root)?.data as ClusterData | undefined)?.arrange === 'custom'
 
   // ---- Context menu ----
