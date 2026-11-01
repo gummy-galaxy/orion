@@ -9,6 +9,7 @@ local createOpenQueries = require("@root/server/createOpenQueries")
 local createRouter = require("@root/server/routes/createRouter")
 local createSessionLoop = require("@root/server/createSessionLoop")
 local createSyncLoop = require("@root/server/createSyncLoop")
+local createTelemetrySender = require("@root/server/createTelemetrySender")
 local createWatcher = require("@root/server/createWatcher")
 local derive = require("@root/canvas/derive")
 local ensureDirectory = require("@root/common/platform/ensureDirectory")
@@ -89,6 +90,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 	)
 
 	local sessionLoop = createSessionLoop(root, router.getActive)
+	local telemetrySender = createTelemetrySender(root, { environment = process.env, isDevServer = devPort ~= nil })
 
 	local trustedPorts: { number } = {}
 	if devPort then
@@ -137,6 +139,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 	writeRuntime(root, runtime)
 	watcher.start()
 	sessionLoop.start()
+	telemetrySender.start()
 	task.delay(5, function()
 		while true do
 			syncLoop.tickAsync()
@@ -150,6 +153,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 		close = function()
 			assert(watcher).close()
 			sessionLoop.close()
+			telemetrySender.close()
 			running.close()
 			removeRuntime(root, runtime)
 			clearAllFocus()

@@ -9,8 +9,8 @@ type Consent = telemetryTypes.Consent
 
 -- The choice saved for this machine. A missing or unreadable file reads as
 -- undecided, so the app asks again rather than guessing.
-local function readConsent(root: string): Consent
-	local file = tostring(path.join(root, fileNames.telemetry))
+local function readTelemetryConsent(root: string): Consent
+	local file = path.join(root, fileNames.telemetry)
 
 	if not fs.exists(file) then
 		return { choice = "undecided" }
@@ -25,17 +25,18 @@ local function readConsent(root: string): Consent
 	end
 
 	local choice = object.choice
-	local installId = object.installId
+	local storedId = object.installId
+	local installId = if type(storedId) == "string" and storedId ~= "" then storedId else nil
 
 	if choice == "off" then
-		return { choice = "off" }
+		return { choice = "off", installId = installId }
 	end
 
-	if choice == "on" and type(installId) == "string" and installId ~= "" then
+	if choice == "on" and installId then
 		return { choice = "on", installId = installId }
 	end
 
 	return { choice = "undecided" }
 end
 
-return readConsent
+return readTelemetryConsent

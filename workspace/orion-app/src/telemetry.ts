@@ -43,3 +43,42 @@ export async function chooseTelemetry(enabled: boolean): Promise<TelemetryStatus
 
 /** Whether to ask on launch: nobody has answered, and no override has already answered for them. */
 export const shouldAskTelemetry = (status: TelemetryStatus | null) => status?.choice === 'undecided' && !status.override
+
+/**
+ * One usage event, named from the list Orion publishes at TELEMETRY_EVENTS_URL. Its properties hold counts, durations,
+ * flags, and names Orion defines, such as a tool name. They never hold what someone wrote.
+ */
+export type TelemetryEvent = {
+  name: string
+  properties?: Record<string, string | number | boolean>
+}
+
+/** An id for this run of the app, from launch to quit. Every event carries it, so a session's events read together. */
+export const TELEMETRY_SESSION_ID = crypto.randomUUID()
+
+/**
+ * Hands events to `orion server start`, which queues them when this machine shares usage data and sends them on to the
+ * telemetry backend later. A failure only logs a warning in the console and never throws, so callers can send without
+ * awaiting the result.
+ */
+export async function sendTelemetryEvents(events: TelemetryEvent[]): Promise<void> {
+  if (events.length === 0) return
+
+  const timestamp = new Date().toISOString()
+  const body = JSON.stringify({
+    events: events.map((event) => ({ ...event, sessionId: TELEMETRY_SESSION_ID, timestamp })),
+  })
+
+  try {
+    const response = await fetch(`${API}/events`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body,
+      keepalive: true,
+    })
+
+    if (!response.ok) console.warn('Could not queue usage events', response.status)
+  } catch (error) {
+    console.warn('Could not queue usage events', error)
+  }
+}
