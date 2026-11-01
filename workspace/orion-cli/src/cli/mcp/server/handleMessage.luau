@@ -1,4 +1,5 @@
 local json = require("@std/json")
+local time = require("@std/time")
 
 local describeTools = require("@root/cli/mcp/catalog/describeTools")
 local findTool = require("@root/cli/mcp/catalog/findTool")
@@ -8,6 +9,7 @@ local mcpTypes = require("@root/cli/mcp/types")
 local orientation = require("@root/cli/orientation")
 local serializeFailure = require("@root/cli/output/serializeFailure")
 
+type Hooks = mcpTypes.Hooks
 type Run = mcpTypes.Run
 type Tool = mcpTypes.Tool
 
@@ -68,10 +70,11 @@ end
 -- Command failures become tool results marked as errors so the client can show
 -- them to the model. Their text is the JSON error that --json prints, so a
 -- failure's code reaches the model too.
-local function callTool(id: json.Value, params: json.Object, tools: { Tool }, run: Run): json.Object
+local function callTool(id: json.Value, params: json.Object, tools: { Tool }, run: Run, hooks: Hooks?): json.Object
 	local name = params.name
+	local tool = if type(name) == "string" then findTool(tools, name) else nil
 
-	if type(name) ~= "string" or findTool(tools, name) == nil then
+	if type(name) ~= "string" or tool == nil then
 		return createFailure(id, INVALID_PARAMS, `Unknown tool: {tostring(name)}`)
 	end
 
@@ -82,11 +85,16 @@ local function callTool(id: json.Value, params: json.Object, tools: { Tool }, ru
 	end
 
 	local lines: { string } = {}
+	local startedAt = time.now()
 	local ok, message = pcall(function()
 		run(getToolArgv(tools, name, arguments), function(line: string)
 			table.insert(lines, line)
 		end)
 	end)
+
+	if hooks and hooks.onToolCalled then
+		pcall(hooks.onToolCalled, tool.name, math.floor(time.since(startedAt) * 1000), not ok)
+	end
 
 	if ok then
 		return createSuccess(id, createToolResult(table.concat(lines, "\n"), false))
@@ -97,7 +105,7 @@ end
 
 -- Answers one JSON-RPC message, calling tools with run. Notifications get no
 -- response. A stale server answers requests with an error.
-local function handleMessage(line: string, tools: { Tool }, run: Run, stale: boolean?): json.Object?
+local function handleMessage(line: string, tools: { Tool }, run: Run, stale: boolean?, hooks: Hooks?): json.Object?
 	local decoded, value = pcall(json.deserialize, line)
 
 	if not decoded then
@@ -129,13 +137,19 @@ local function handleMessage(line: string, tools: { Tool }, run: Run, stale: boo
 	local method = message.method
 
 	if method == "initialize" then
+		if hooks and hooks.onConnected then
+			local clientInfo = json.asObject(params.clientInfo :: json.Value)
+			local clientName = if clientInfo and type(clientInfo.name) == "string" then clientInfo.name else nil
+			pcall(hooks.onConnected, clientName)
+		end
+
 		return createSuccess(id, initialize(params))
 	elseif method == "ping" then
 		return createSuccess(id, json.object({}))
 	elseif method == "tools/list" then
 		return createSuccess(id, json.object({ tools = describeTools(tools) }))
 	elseif method == "tools/call" then
-		return callTool(id, params, tools, run)
+		return callTool(id, params, tools, run, hooks)
 	end
 
 	return createFailure(id, METHOD_NOT_FOUND, `Method not found: {method}`)

@@ -4,8 +4,8 @@ local cardTypes = require("@root/canvas/cardTypes/types")
 
 type CardType = cardTypes.CardType
 
--- A declaration as JSON, the shape orion type show --json prints and the app
--- reads.
+-- A declaration as JSON, the shape orion card type-show --json prints and the
+-- app reads.
 local function serializeCardType(cardType: CardType): json.Object
 	local fields: json.Array = {}
 

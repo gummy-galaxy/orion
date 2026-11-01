@@ -47,7 +47,7 @@ export function TaskInspector({
   jumpTo,
   connections = true,
   focus = false,
-  doneEditing,
+  onDoneEditing,
   links,
   addLink,
   removeLink,
@@ -65,7 +65,7 @@ export function TaskInspector({
   connections?: boolean
   /** Focuses the title, for a card that was just added. */
   focus?: boolean
-  doneEditing?: () => void
+  onDoneEditing?: () => void
   links: Link[]
   addLink: (from: string, to: string, kind: Link['kind']) => void
   removeLink: (id: string) => void
@@ -146,7 +146,7 @@ export function TaskInspector({
           aria-label="Title"
           value={data.label}
           autoFocus={focus}
-          onBlur={doneEditing}
+          onBlur={onDoneEditing}
           onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
           onChange={(event) => update(node.id, { label: event.target.value })}
         />

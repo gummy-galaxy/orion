@@ -8,11 +8,11 @@ local system = require("@std/system")
 
 local cardTypes = require("@root/canvas/cardTypes/types")
 local cli = require("@root/cli")
-local createRegistry = require("@root/canvas/cardTypes/createRegistry")
+local createCardTypeRegistry = require("@root/canvas/cardTypes/createCardTypeRegistry")
 local encodeStableJson = require("@root/storage/files/encodeStableJson")
 local ensureDirectory = require("@root/common/platform/ensureDirectory")
-local getItemTypes = require("@root/canvas/cardTypes/getItemTypes")
-local getRegistry = require("@root/canvas/cardTypes/getRegistry")
+local getCardTypeRegistry = require("@root/canvas/cardTypes/getCardTypeRegistry")
+local getItemCardTypes = require("@root/canvas/cardTypes/getItemCardTypes")
 local githubTypes = require("@root/sources/github/types")
 local readCanvasFiles = require("@root/storage/files/readCanvasFiles")
 local types = require("@root/types")
@@ -81,9 +81,9 @@ end
 -- Runs `body` with a pack of card types registered beside the shipped ones,
 -- as a source or mod would declare them, then takes them out again.
 function testing.withCardTypes(pack: { cardTypes.CardType }, body: () -> ())
-	local registry = getRegistry()
+	local registry = getCardTypeRegistry()
 	local before = table.clone(registry.ordered)
-	local added = createRegistry({ pack })
+	local added = createCardTypeRegistry({ pack })
 
 	for name, cardType in added.byName do
 		assert(not registry.byName[name], `{name} is already registered`)
@@ -107,7 +107,7 @@ end
 
 -- The type that picks a card's face, from what it carries.
 function testing.primaryType(item: Item): string?
-	local itemTypes = getItemTypes(item)
+	local itemTypes = getItemCardTypes(item)
 	return if itemTypes then itemTypes.primary else nil
 end
 

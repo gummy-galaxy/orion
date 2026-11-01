@@ -2,8 +2,8 @@ local json = require("@std/json")
 local net = require("@lute/net/server")
 local test = require("@std/test")
 
+local createRouter = require("@root/server/routes/createRouter")
 local loadDoc = require("@root/storage/canvases/loadDoc")
-local routes = require("@root/server/routes")
 local testing = require("@root/testing")
 local writeDoc = require("@root/storage/canvases/writeDoc")
 
@@ -21,10 +21,10 @@ local function decodeResponse(response): json.Object
 	return assert(json.asObject(json.deserialize(response.body) :: json.Value))
 end
 
-local function createRouter(name: string)
+local function createTestRouter(name: string)
 	local root = testing.directory(name)
 	local status = json.object({ state = "idle" })
-	local router = routes.create(root, "default", {
+	local router = createRouter(root, "default", {
 		getStatus = function()
 			return status
 		end,
@@ -56,7 +56,7 @@ local function edits(text: string): json.Object
 end
 
 test.case("POST applies a list as one revision", function(assert)
-	local root, router = createRouter("operations-apply")
+	local root, router = createTestRouter("operations-apply")
 	local response = router.handleAsync(
 		createRequest(
 			"POST",
@@ -78,7 +78,7 @@ test.case("POST applies a list as one revision", function(assert)
 end)
 
 test.case("POST finishes and closes out a card in one write, and answers with the chain", function(assert)
-	local root, router = createRouter("operations-close-out")
+	local root, router = createTestRouter("operations-close-out")
 	local response = router.handleAsync(
 		createRequest(
 			"POST",
@@ -104,7 +104,7 @@ test.case("POST finishes and closes out a card in one write, and answers with th
 end)
 
 test.case("POST with a stale baseRevision is refused and leaves the file alone", function(assert)
-	local root, router = createRouter("operations-stale")
+	local root, router = createTestRouter("operations-stale")
 	router.handleAsync(createRequest("POST", "/api/operations", edits([[{"operations":[{"op":"tidy","id":"ws"}]}]])))
 	local before = savedText(root)
 	local response = router.handleAsync(
@@ -121,7 +121,7 @@ test.case("POST with a stale baseRevision is refused and leaves the file alone",
 end)
 
 test.case("POST refuses the whole list when one edit no longer applies", function(assert)
-	local root, router = createRouter("operations-rejected")
+	local root, router = createTestRouter("operations-rejected")
 	local before = savedText(root)
 	local response = router.handleAsync(
 		createRequest(
@@ -142,7 +142,7 @@ test.case("POST refuses the whole list when one edit no longer applies", functio
 end)
 
 test.case("POST rejects malformed requests before touching the document", function(assert)
-	local root, router = createRouter("operations-malformed")
+	local root, router = createTestRouter("operations-malformed")
 	local before = savedText(root)
 	local cases = {
 		[[{"operations":[]}]],

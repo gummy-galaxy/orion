@@ -37,7 +37,7 @@ local function setFieldValue(doc: Doc, id: string, name: string, text: string): 
 		return item
 	end
 
-	error(`none of "{id}"'s types has a field named {name}; orion type show lists a type's fields`)
+	error(`none of "{id}"'s types has a field named {name}; orion card type-show lists a type's fields`)
 end
 
 return setFieldValue

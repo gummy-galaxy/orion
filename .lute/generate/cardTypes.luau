@@ -2,14 +2,14 @@
 	Writes `workspace/orion-app/src/cardTypes/builtinTypes.json` from the card
 	types the CLI ships, so the app draws built-in cards before the server sends
 	its declarations, and its tests have them. Run it after changing
-	`workspace/orion-cli/src/canvas/cardTypes/builtinTypes.luau`, and commit
-	what it writes.
+	`workspace/orion-cli/src/canvas/cardTypes/builtinCardTypes.luau`, and
+	commit what it writes.
 ]]
 local fs = require("@std/fs")
 local json = require("@std/json")
 local path = require("@std/path")
 
-local builtinTypes = require("@cli/canvas/cardTypes/builtinTypes")
+local builtinCardTypes = require("@cli/canvas/cardTypes/builtinCardTypes")
 local encodeStableJson = require("@cli/storage/files/encodeStableJson")
 local serializeCardType = require("@cli/canvas/cardTypes/serializeCardType")
 
@@ -18,7 +18,7 @@ local target = path.resolve("workspace/orion-app/src/cardTypes/builtinTypes.json
 local function generate(): string
 	local declared: json.Array = {}
 
-	for _, cardType in builtinTypes do
+	for _, cardType in builtinCardTypes do
 		table.insert(declared, serializeCardType(cardType))
 	end
 

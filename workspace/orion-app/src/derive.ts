@@ -29,8 +29,10 @@ export type GroupStats = { total: number; done: number; ready: number; blocked: 
 export type SourceRef = { domain: string; label: string; href?: string }
 
 /**
- * The graph facts `orion serve` derives and sends beside the document, on `GET /api/orion` and on `orion:changed`
- * events. Maps are keyed by item id. The app reads them and never works out status or blocking itself.
+ * The server works out each card's status, what blocks it, and the other facts below from the canvas. It sends them
+ * beside the document, both from `GET /api/orion` and with each `orion:changed` event, keyed by item id. The app reads
+ * them rather than working these out itself. The one exception is a card the server hasn't reached yet, which
+ * `buildWork` covers.
  */
 export type Derived = {
   status: Record<string, ViewStatus>
@@ -45,11 +47,14 @@ export type Derived = {
   snoozed: Record<string, string>
   /** Open work where it's your move. Blocked work waits, and snoozed work is set aside until it wakes. */
   attention: Record<string, true>
-  /** Pull request facts for cards where a CI job snooze leaves out a failure, shown over the card's own. */
+  /**
+   * A failing CI job can be snoozed so it stops counting against its pull request. For each card where that hides a
+   * failure, this holds the pull request's facts without the snoozed jobs, which the card shows in place of its own.
+   */
   pulls: Record<string, SnoozedFacts>
 }
 
-/** A failed CI job a snooze leaves out on a card, and when the snooze ends if it's timed. */
+/** A failing CI job that's snoozed on a card, and when the snooze ends if it has an end. */
 export type SnoozedJob = { name: string; until?: string }
 
 /**
@@ -211,9 +216,12 @@ export function toServerFacts(derived: Derived | null): ServerFacts {
 }
 
 /**
- * What cards and the canvas read: the server's values, plus sources and the blocking links for tracing. A card the
- * server hasn't derived yet (one just added, or no server at all) shows its recorded status, with no blocking and
- * zero leverage, upstream work, and rarity, until the server answers.
+ * Gathers everything cards and the canvas read: the server's facts, each card's source badges, and the blocking links
+ * that hover tracing follows.
+ *
+ * The server may not have derived a card yet, because it was just added or no server is running. Until it does, the
+ * card shows the status saved on it, with to-do shown as ready since nothing has checked what blocks it. The server's
+ * other facts leave the card out.
  */
 export function buildWork(facts: ServerFacts, nodes: AppNode[], links: Link[], index: NodeIndex = indexNodes(nodes)) {
   let status = facts.status

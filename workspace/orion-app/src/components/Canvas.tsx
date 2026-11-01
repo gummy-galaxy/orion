@@ -4076,7 +4076,7 @@ export function Canvas() {
       stats={work.groups.get(group.id)}
       workspace={workspaces.active}
       focus={selection && editing === group.id}
-      doneEditing={() => setEditing(null)}
+      onDoneEditing={() => setEditing(null)}
       update={updateData}
       arrange={(patch) => arrangeGroup(group.id, patch)}
       changeStyle={(change) => changeGroupStyle(group.id, change)}
@@ -4095,7 +4095,7 @@ export function Canvas() {
         key={focused.id}
         node={focused}
         focus={false}
-        doneEditing={() => setEditing(null)}
+        onDoneEditing={() => setEditing(null)}
         update={updateData}
         saveFields={saveFields}
         remove={() => {
@@ -4108,7 +4108,7 @@ export function Canvas() {
         key={focused.id}
         node={focused}
         focus={false}
-        doneEditing={() => setEditing(null)}
+        onDoneEditing={() => setEditing(null)}
         work={work}
         map={map}
         update={updateData}
@@ -4167,7 +4167,7 @@ export function Canvas() {
       key={inspectorKey}
       node={one}
       focus={editing === one.id}
-      doneEditing={() => setEditing(null)}
+      onDoneEditing={() => setEditing(null)}
       update={updateData}
       saveFields={saveFields}
       remove={() => deleteNote(one.id)}
@@ -4177,7 +4177,7 @@ export function Canvas() {
       key={one.id}
       node={one}
       focus={editing === one.id}
-      doneEditing={() => setEditing(null)}
+      onDoneEditing={() => setEditing(null)}
       work={work}
       map={map}
       update={updateData}
@@ -4194,7 +4194,7 @@ export function Canvas() {
       key={inspectorKey}
       node={one}
       focus={editing === one.id}
-      doneEditing={() => setEditing(null)}
+      onDoneEditing={() => setEditing(null)}
       work={work}
       map={map}
       github={github}
@@ -4230,7 +4230,7 @@ export function Canvas() {
       link={pickedLinkData}
       map={map}
       focus={editing === `link:${pickedLinkData.id}`}
-      doneEditing={() => setEditing(null)}
+      onDoneEditing={() => setEditing(null)}
       update={updateLink}
       flip={flipLink}
       remove={() => {

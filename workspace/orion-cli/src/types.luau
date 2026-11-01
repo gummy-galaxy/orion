@@ -163,4 +163,12 @@ export type Focus = {
 	updatedAt: string?,
 }
 
+-- Which build of Orion is running: its version, the commit it was built from,
+-- and whether it's a release or a dev build. `getBuild` decides which.
+export type Build = {
+	version: string,
+	commit: string,
+	channel: "release" | "dev",
+}
+
 return nil

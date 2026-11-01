@@ -1,4 +1,4 @@
-import { getPrimaryRef, type ItemKind } from '../model'
+import { getPrimaryRef } from '../model'
 import type { QueryRow } from '../persist'
 import type { TableRow } from './types'
 
@@ -7,7 +7,7 @@ export function toTableRow(row: QueryRow): TableRow {
   return {
     id: row.id,
     label: row.label || (row.kind === 'component' ? 'Untitled component' : 'Note'),
-    kind: row.kind as ItemKind,
+    kind: row.kind,
     status: row.status,
     group: row.groupLabel,
     ref: row.refs && getPrimaryRef({ refs: row.refs })?.key,

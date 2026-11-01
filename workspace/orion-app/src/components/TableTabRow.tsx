@@ -1,4 +1,5 @@
-import { ITEM_KIND_LABEL, STATUS_LABEL } from '../model'
+import { findCardType } from '../cardTypes/findCardType'
+import { STATUS_LABEL } from '../model'
 import type { TableRow } from '../table/types'
 import { StatusIcon } from './StatusIcon'
 
@@ -35,7 +36,7 @@ export function TableTabRow({
         )}
       </div>
       <div role="cell" className="table-cell table-kind">
-        {ITEM_KIND_LABEL[row.kind]}
+        {findCardType(row.kind)?.label ?? row.kind}
       </div>
       <div role="cell" className="table-cell table-group" title={row.group || undefined}>
         {row.group || EMPTY}

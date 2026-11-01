@@ -163,3 +163,56 @@ orion card unsnooze [options] [ids...]
 | `--dry-run`             | Preview changes and current revision without writing |
 | `--if-revision <value>` | Write only if the document has this revision         |
 | `--json`                | Print JSON                                           |
+
+## orion card attach-type
+
+Attach a card type to a card, after the ones it carries
+
+```sh
+orion card attach-type [id] [type] [options]
+```
+
+| Argument | Description                                                                               |
+| -------- | ----------------------------------------------------------------------------------------- |
+| `[id]`   | Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 |
+| `[type]` | The type's name, as orion card types shows it                                             |
+| `--json` | Print JSON                                                                                |
+
+## orion card detach-type
+
+Take off a card type a person attached
+
+```sh
+orion card detach-type [id] [type] [options]
+```
+
+| Argument | Description                                                                               |
+| -------- | ----------------------------------------------------------------------------------------- |
+| `[id]`   | Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 |
+| `[type]` | The type's name, as orion card types shows it                                             |
+| `--json` | Print JSON                                                                                |
+
+## orion card types
+
+List the card types this build knows, from Orion and from sources
+
+```sh
+orion card types [options]
+```
+
+| Argument | Description |
+| -------- | ----------- |
+| `--json` | Print JSON  |
+
+## orion card type-show
+
+Show a card type's fields, face, states, and meaning
+
+```sh
+orion card type-show [name] [options]
+```
+
+| Argument | Description                   |
+| -------- | ----------------------------- |
+| `[name]` | The type's name, such as gate |
+| `--json` | Print JSON                    |
