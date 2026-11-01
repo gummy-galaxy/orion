@@ -33,6 +33,7 @@ local function collectAsync(source: Source, run: CommandRunner, context: Context
 			ref = {
 				source = source.id,
 				kind = "issue",
+				type = "step",
 				key = issue.key,
 				url = if source.browse then `{source.browse}/{issue.key}` else nil,
 				status = issue.status,

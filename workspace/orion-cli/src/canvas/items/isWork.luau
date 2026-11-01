@@ -1,13 +1,13 @@
-local isComponent = require("@root/canvas/items/isComponent")
-local isNote = require("@root/canvas/items/isNote")
+local getCardTypeMeaning = require("@root/canvas/cardTypes/getCardTypeMeaning")
 local types = require("@root/types")
 
 type Item = types.Item
 
--- Cards that count as work. Notes and components pass blocking through and
--- never do.
+-- Cards that count as work, as their type declares. Notes and components pass
+-- blocking through and never do.
 local function isWork(item: Item): boolean
-	return item.type == "task" and not isNote(item) and not isComponent(item)
+	local meaning = item.type == "task" and getCardTypeMeaning(item)
+	return if meaning then meaning.isWork else false
 end
 
 return isWork

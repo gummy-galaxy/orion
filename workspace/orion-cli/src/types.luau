@@ -17,6 +17,9 @@ export type Position = { x: number, y: number }
 export type Ref = {
 	source: string,
 	kind: string,
+	-- The card type the ref attaches, which its adapter chooses, such as pr for
+	-- a pull request. Refs recorded before types existed have none.
+	type: string?,
 	-- The readable name for the ref, such as owner/name#12, which can change
 	-- when what it names moves.
 	key: string,

@@ -1,4 +1,5 @@
 local getFieldValue = require("@root/canvas/query/getFieldValue")
+local getItemCardTypes = require("@root/canvas/cardTypes/getItemCardTypes")
 local getRefs = require("@root/canvas/refs/getRefs")
 local parseExpression = require("@root/canvas/query/parseExpression")
 local queryTypes = require("@root/canvas/query/types")
@@ -45,6 +46,24 @@ local function matchesExpression(scope: queryTypes.Scope, item: Item, expression
 					if node.operator == "~" and ref.key:lower():find(value:lower(), 1, true) then
 						return true
 					elseif ref.key:lower() == value:lower() then
+						return node.operator == "="
+					end
+				end
+
+				return node.operator == "!="
+			end
+
+			if field == "type" then
+				local itemTypes = getItemCardTypes(item)
+
+				if not itemTypes then
+					return nil
+				end
+
+				for _, name in itemTypes.types do
+					if node.operator == "~" and name:find(value:lower(), 1, true) then
+						return true
+					elseif name == value then
 						return node.operator == "="
 					end
 				end

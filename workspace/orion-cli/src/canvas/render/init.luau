@@ -1,6 +1,7 @@
 local json = require("@std/json")
 
 local findItem = require("@root/canvas/items/findItem")
+local getItemCardTypes = require("@root/canvas/cardTypes/getItemCardTypes")
 local getLabel = require("@root/canvas/items/getLabel")
 local getPrimaryRef = require("@root/canvas/refs/getPrimaryRef")
 local graphTypes = require("@root/canvas/types")
@@ -65,6 +66,7 @@ function render.itemJson(doc: Doc, derived: graphTypes.Derived, item: Item): jso
 	local object: json.Object = json.object({
 		id = item.id,
 		kind = asString(item.data.itemKind) or "step",
+		types = (assert(getItemCardTypes(item))).types :: any,
 	})
 	object.label = asString(item.data.label)
 
