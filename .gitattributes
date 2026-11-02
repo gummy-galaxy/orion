@@ -5,3 +5,10 @@
 # Written by `lute run generate docs`; collapsed in GitHub diffs.
 docs/reference/cli/** linguist-generated=true
 docs/reference/mcp.md linguist-generated=true
+
+# Written by `lute run generate cardTypes`; collapsed in GitHub diffs.
+workspace/orion-app/src/cardTypes/builtinTypes.json linguist-generated=true
+
+# An anonymized copy of a real canvas, made by a script rather than by hand.
+# Collapsed in GitHub diffs, since changes to it follow from code changes.
+workspace/orion-app/src/fixtures/sprawlCanvas.json linguist-generated=true
