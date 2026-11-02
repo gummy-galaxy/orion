@@ -1,4 +1,4 @@
-local types = require("./types")
+local types = require("@repository/.lute/lib/storybook/types")
 
 type Story = types.Story
 

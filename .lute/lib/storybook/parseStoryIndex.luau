@@ -1,8 +1,8 @@
 local json = require("@std/json")
 
 local getStringField = require("@workspace/orion-cli/src/common/getStringField")
-local joinRepositoryPath = require("./joinRepositoryPath")
-local types = require("./types")
+local joinRepositoryPath = require("@repository/.lute/lib/storybook/joinRepositoryPath")
+local types = require("@repository/.lute/lib/storybook/types")
 
 type ReadFile = types.ReadFile
 type Story = types.Story

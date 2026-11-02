@@ -1,8 +1,8 @@
 local json = require("@std/json")
 local test = require("@std/test")
 
-local getPerfEvents = require("./getPerfEvents")
-local types = require("./types")
+local getPerfEvents = require("@repository/.lute/lib/perf/getPerfEvents")
+local types = require("@repository/.lute/lib/perf/types")
 
 local CONTEXT: types.RunContext = {
 	eventName = "push",

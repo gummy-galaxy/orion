@@ -11,9 +11,9 @@ local path = require("@std/path")
 local process = require("@std/process")
 
 local command = require("@workspace/orion-cli/src/common/process/command")
-local findTouchedStories = require("../lib/storybook/findTouchedStories")
-local formatStorybookComment = require("../lib/storybook/formatStorybookComment")
-local parseStoryIndex = require("../lib/storybook/parseStoryIndex")
+local findTouchedStories = require("@repository/.lute/lib/storybook/findTouchedStories")
+local formatStorybookComment = require("@repository/.lute/lib/storybook/formatStorybookComment")
+local parseStoryIndex = require("@repository/.lute/lib/storybook/parseStoryIndex")
 local upsertCommentAsync = require("@workspace/orion-cli/src/sources/github/api/upsertCommentAsync")
 
 local MARKER = "<!-- orion-storybook -->"
