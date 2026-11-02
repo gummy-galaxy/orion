@@ -8,7 +8,7 @@
 ]]
 local fs = require("@std/fs")
 local json = require("@std/json")
-local loomConfig = require("@cliPackage/loom.config")
+local loomConfig = require("@workspace/orion-cli/loom.config")
 local net = require("@std/net")
 local orionProject = require("@repository/project")
 local path = require("@std/path")

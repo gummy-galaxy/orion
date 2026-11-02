@@ -1,7 +1,7 @@
 local test = require("@std/test")
 
-local formatStorybookComment = require("./formatStorybookComment")
-local types = require("./types")
+local formatStorybookComment = require("@repository/.lute/lib/storybook/formatStorybookComment")
+local types = require("@repository/.lute/lib/storybook/types")
 
 type Story = types.Story
 

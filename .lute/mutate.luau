@@ -20,10 +20,10 @@ local fs = require("@std/fs")
 local process = require("@std/process")
 local time = require("@std/time")
 
-local findMutations = require("./lib/mutation/findMutations")
-local mutationTypes = require("./lib/mutation/types")
+local findMutations = require("@repository/.lute/lib/mutation/findMutations")
+local mutationTypes = require("@repository/.lute/lib/mutation/types")
 
-local runScript = require("@cli/common/process/runScript")
+local runScript = require("@workspace/orion-cli/src/common/process/runScript")
 
 type Mutation = mutationTypes.Mutation
 type Outcome = mutationTypes.Outcome

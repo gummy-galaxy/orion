@@ -9,6 +9,7 @@
 - Keep a helper that only one module uses as a local function there. Once a second module needs it, move it into its own module rather than copying it. Look for an existing helper, such as `getStringField`, before writing one.
 - Keep related requires, type aliases, constants, and short assignments together. Separate those groups and adjacent functions with blank lines.
 - Name a required module after the module itself, such as `local cli = require("@batteries/cli")` and `local io = require("@lute/io")`, without prefixing the package.
+- Require through an alias rather than a relative path such as `./types` or `../lib`. Pick the most specific one: `@root` inside `workspace/orion-cli`, `@workspace` for packages from outside them, `@repository` for the rest of the repository, such as `.lute/lib`, and `@self` for a folder's own modules from its `init.luau`.
 - Within functions, use blank lines between logical steps: setup, guards, loops and branches, state changes, and the final result. Keep statements that form one step together.
 - Run StyLua after editing Luau, then review the spacing yourself. StyLua sorts requires and formats statements, but does not add these logical blank lines.
 - Keep comments within 80 columns, counting a tab as four, while code stays at StyLua's 120. The `comment_width` lint flags longer ones, and `lute lint --auto-fix <paths>` from `workspace/orion-cli` rewraps them. Move a long comment that follows code onto its own line above it.

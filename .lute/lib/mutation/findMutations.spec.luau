@@ -1,6 +1,6 @@
 local test = require("@std/test")
 
-local findMutations = require("./findMutations")
+local findMutations = require("@repository/.lute/lib/mutation/findMutations")
 
 local function describe(source: string): { string }
 	local found = {}

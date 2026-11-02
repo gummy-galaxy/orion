@@ -2,7 +2,7 @@ local printer = require("@std/syntax/printer")
 local query = require("@std/syntax/query")
 local syntax = require("@std/syntax")
 
-local mutationTypes = require("./types")
+local mutationTypes = require("@repository/.lute/lib/mutation/types")
 
 type Mutation = mutationTypes.Mutation
 

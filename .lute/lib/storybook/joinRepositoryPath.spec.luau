@@ -1,6 +1,6 @@
 local test = require("@std/test")
 
-local joinRepositoryPath = require("./joinRepositoryPath")
+local joinRepositoryPath = require("@repository/.lute/lib/storybook/joinRepositoryPath")
 
 test.case("joinRepositoryPath resolves relative parts with forward slashes", function(assert)
 	assert.eq(joinRepositoryPath("app/src/components", "../hooks/useRing"), "app/src/hooks/useRing")
