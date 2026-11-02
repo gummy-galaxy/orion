@@ -23,7 +23,8 @@ local name = "require_groups"
 -- folder's own modules. Every other alias is a package, including `@pkg`
 -- and `@batteries`, which point at packages Loom installs under
 -- `workspace/orion-cli/packages`. A path with no alias, like `./types`, is
--- Orion's own too.
+-- Orion's own too. The list is copied here because Luau won't load a
+-- `.config.luau` file through `require`, so update it when an alias changes.
 local OWN_ALIASES = {
 	repo = true,
 	repository = true,
