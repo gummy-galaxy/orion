@@ -16,6 +16,8 @@ export type CardFields = {
   color?: Tint | ''
   snoozedUntil?: string
   pr?: number | ''
+  /** Fields the card's types declare, by name, as typed text the CLI checks. An empty string clears one. */
+  values?: Record<string, string>
 }
 
 /** Sends a card's field changes to `orion serve` and resolves once it answers: with its error, or null once saved. */

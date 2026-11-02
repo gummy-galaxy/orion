@@ -3,7 +3,7 @@ import { SourceBadges } from './SourceBadges'
 import { StatusIcon } from './StatusIcon'
 
 export function PlainCard({ view }: { view: CardView }) {
-  if (view.kind === 'note') {
+  if (view.layout === 'note') {
     return (
       <>
         <div className="plain-note-kind">Note</div>

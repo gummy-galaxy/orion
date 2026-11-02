@@ -10,7 +10,7 @@ A **note** holds context: a decision, a reminder, or a pointer. Notes never coun
 
 ## Types
 
-Every card carries one or more **types**, which say what it is: a pull request, a step, a gate, a note, a component, or a type a source declares. A type sets the fields a card has, how its face looks, the states it moves through, and how it takes part in blocking and progress. Types are attached, not baked in. A card gains them from its sources, such as `pr` from a pull request, and people attach more with `orion card attach-type`. The card's own type picks its face, and the rest add fields and badges. `orion card types` shows every type, and `orion card type-show <name>` shows what one declares.
+Every card carries one or more **types**, which say what it is: a pull request, a step, a gate, a note, a component, or a type a source declares. A type sets the fields a card has, how its face looks, the states it moves through, and how it takes part in blocking and progress. Types are attached, not baked in. A card gains them from its sources, such as `pr` from a pull request, and people attach more with `orion card attach-type`. The card's own type picks its face, and the rest add fields and badges. `orion card types` shows every type, and `orion card type-show <name>` shows what one declares. Set a field a card's types declare with `orion card set <id> --field <name>=<value>`, or in the card's details panel.
 
 ## Links
 

@@ -115,9 +115,9 @@ local function requireStrings(object: json.Object, key: string): { string }
 	return result
 end
 
-local function parseFields(object: json.Object): { [string]: string | number }
+local function parseFields(object: json.Object): { [string]: any }
 	local fields = assert(json.asObject(object.fields :: json.Value), "fields must be an object")
-	local result: { [string]: string | number } = {}
+	local result: { [string]: any } = {}
 
 	for key, value in fields do
 		-- Objects carry a marker key that isn't a field name.
@@ -133,6 +133,22 @@ local function parseFields(object: json.Object): { [string]: string | number }
 				"pr must be a pull request number, or empty"
 			)
 			result.pr = value :: string | number
+			continue
+		end
+
+		-- Fields the card's types declare, as text the CLI's rules check.
+		if key == "values" then
+			local values = assert(json.asObject(value), "values must be an object")
+			local texts: { [string]: string } = {}
+
+			for name, text in values do
+				if type(name) == "string" then
+					assert(type(text) == "string", `values.{name} must be a string`)
+					texts[name] = text
+				end
+			end
+
+			result.values = texts :: any
 			continue
 		end
 

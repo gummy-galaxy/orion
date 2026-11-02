@@ -65,6 +65,7 @@ orion card set [id] [options]
 | `--shape <value>`  | How a component is drawn: service, store, actor, external, interface, process, or queue (empty to clear)                                              |
 | `--color <value>`  | A component's tint: teal, blue, purple, amber, rose, green, or slate (empty to clear)                                                                 |
 | `--kind <value>`   | step; gate for one that's done once everything it waits on is; or component for a part of a system, not work. A note given a kind becomes a work item |
+| `--field <value>`  | A field the card's types declare, as name=value, such as stage=final (empty value to clear)                                                           |
 | `--ref <value>`    | Attach outside work: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch                                                 |
 | `--json`           | Print JSON                                                                                                                                            |
 
