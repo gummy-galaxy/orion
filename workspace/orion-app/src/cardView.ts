@@ -1,3 +1,5 @@
+import { getCardType } from './cardTypes/getCardType'
+import { getItemTypes } from './cardTypes/getItemTypes'
 import type { SnoozedFacts, SourceRef } from './derive'
 import {
   getCheckCounts,
@@ -7,7 +9,6 @@ import {
   READINESS_LABEL,
   STATUS_LABEL,
   type CheckCounts,
-  type ItemKind,
   type PullReadiness,
   type TaskNode,
   type ViewStatus,
@@ -18,8 +19,8 @@ import { withSnoozedFacts } from './withSnoozedFacts'
 
 export type CardView = {
   id: string
-  /** 'step' | 'pr' | 'placeholder' | 'gate' | 'note' | 'component', from data.type */
-  kind: ItemKind
+  /** The card's primary type, such as `step`, `pr`, `gate`, `note`, or one a source declares. */
+  kind: string
   title: string
   tag: string
   url: string | null
@@ -97,11 +98,12 @@ export function getCardView(node: TaskNode, facts: CardFacts): CardView {
   const merge = readyToMerge && pullRef?.url && pullRef.head ? { url: pullRef.url, head: pullRef.head } : undefined
   // The primary ref's URL, so a badge for another GitHub ref can't change what opens from a pull request card.
   const url = getTaskUrl(data)
-  const pullRequestUrl = data.type === 'pr' && url?.startsWith('https://github.com/') ? url : undefined
+  const cardType = getCardType(data)
+  const pullRequestUrl = cardType.name === 'pr' && url?.startsWith('https://github.com/') ? url : undefined
 
   return {
     id: node.id,
-    kind: data.type,
+    kind: getItemTypes(data).primary,
     title: data.label,
     tag: getTaskTag(data),
     url,
@@ -111,8 +113,8 @@ export function getCardView(node: TaskNode, facts: CardFacts): CardView {
     ...(who ? { who, whoLabel: WHO_LABEL[who] } : {}),
     leverage: facts.leverage,
     upstream: facts.upstream,
-    // Notes and components aren't work, so nothing about them is rare.
-    ...(data.type === 'note' || data.type === 'component' ? {} : { rarity: facts.rarity ?? 'common' }),
+    // Only work has a rarity, so notes and components show none.
+    ...(cardType.meaning.isWork ? { rarity: facts.rarity ?? 'common' } : {}),
     ...(checks ? { checks } : {}),
     ...(readiness ? { readiness } : {}),
     ...(checkProgress ? { checkProgress } : {}),

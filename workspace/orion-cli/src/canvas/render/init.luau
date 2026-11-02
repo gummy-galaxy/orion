@@ -65,9 +65,10 @@ function render.itemJson(doc: Doc, derived: graphTypes.Derived, item: Item): jso
 
 	local object: json.Object = json.object({
 		id = item.id,
-		kind = asString(item.data.type) or "step",
-		types = (assert(getItemCardTypes(item))).types :: any,
 	})
+	local itemTypes = assert(getItemCardTypes(item))
+	object.kind = itemTypes.primary
+	object.types = itemTypes.types :: any
 	object.label = asString(item.data.label)
 
 	-- Notes pass blocking through and components draw a system, so neither

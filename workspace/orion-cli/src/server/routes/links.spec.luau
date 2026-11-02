@@ -50,7 +50,7 @@ test.case("links route returns a new card's data without saving it", function(as
 	assert.eq(response.status, 200)
 	assert.eq(body.status, "found")
 	assert.eq(data.label, "Add a Chip component")
-	assert.eq(data.type, "pr")
+	assert.eq(((json.asArray(data.refs) :: json.Array)[1] :: any).type, "pr")
 	assert.eq(#loadDoc(getWorkspaceDir(root, "ideas")).nodes, 0)
 end)
 

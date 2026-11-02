@@ -1,10 +1,13 @@
-local getStringField = require("@root/common/getStringField")
+local getCardTypeMeaning = require("@root/canvas/cardTypes/getCardTypeMeaning")
 local types = require("@root/types")
 
 type Item = types.Item
 
+-- Work that's done once everything it waits on is, like a milestone or a
+-- sign-off, as its type declares.
 local function isGate(item: Item): boolean
-	return item.type == "task" and getStringField(item.data.type) == "gate"
+	local meaning = item.type == "task" and getCardTypeMeaning(item)
+	return if meaning then meaning.isWork and meaning.doneWhen == "inputs" else false
 end
 
 return isGate

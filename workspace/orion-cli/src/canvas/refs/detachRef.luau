@@ -1,7 +1,6 @@
 local getItem = require("@root/canvas/items/getItem")
 local getRefs = require("@root/canvas/refs/getRefs")
 local isGroup = require("@root/canvas/groups/isGroup")
-local refreshItemKind = require("@root/canvas/items/refreshItemKind")
 local removeRef = require("@root/canvas/refs/removeRef")
 local types = require("@root/types")
 
@@ -23,7 +22,6 @@ local function detachRef(doc: Doc, id: string, key: string, kind: string?): Item
 	end
 
 	assert(matched, `"{id}" has no ref {key}`)
-	refreshItemKind(item)
 	return item
 end
 

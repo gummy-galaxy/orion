@@ -3,7 +3,7 @@ local json = require("@std/json")
 
 local context = require("@root/cli/context")
 local getCardTypeRegistry = require("@root/canvas/cardTypes/getCardTypeRegistry")
-local serializeCardType = require("@root/canvas/cardTypes/serializeCardType")
+local serializeCardTypeRegistry = require("@root/canvas/cardTypes/serializeCardTypeRegistry")
 
 type Context = context.Context
 
@@ -15,14 +15,17 @@ return table.freeze({
 	end,
 
 	run = function(parser: cli.Parser, options: Context)
-		local items: json.Array = {}
+		if parser:has("json") then
+			options.write(json.serialize(serializeCardTypeRegistry(), true))
+			return
+		end
+
 		local lines: { string } = {}
 
 		for _, cardType in getCardTypeRegistry().ordered do
-			table.insert(items, serializeCardType(cardType))
 			table.insert(lines, `{cardType.name}  {cardType.label}  ({cardType.pack})`)
 		end
 
-		options.write(if parser:has("json") then json.serialize(items, true) else table.concat(lines, "\n"))
+		options.write(table.concat(lines, "\n"))
 	end,
 })

@@ -7,7 +7,6 @@ export const task: TaskNode = {
   position: { x: 80, y: 150 },
   data: {
     kind: 'task',
-    type: 'pr',
     label: 'Make the canvas welcoming',
     status: 'active',
     repo: 'vocksel/orion',
@@ -22,7 +21,7 @@ export const blocker: TaskNode = {
   id: 'blocker',
   type: 'task',
   position: { x: 400, y: 150 },
-  data: { kind: 'task', type: 'step', label: 'Review the component split', status: 'todo' },
+  data: { kind: 'task', label: 'Review the component split', status: 'todo' },
 }
 
 export const note: TaskNode = {

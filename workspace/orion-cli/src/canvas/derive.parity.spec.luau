@@ -8,6 +8,7 @@ local project = require("@repository/project")
 local derive = require("@root/canvas/derive")
 local getStringField = require("@root/common/getStringField")
 local graphTypes = require("@root/canvas/types")
+local migrateItemKind = require("@root/storage/migrations/migrateItemKind")
 local testing = require("@root/testing")
 local types = require("@root/types")
 
@@ -27,8 +28,12 @@ local function buildDoc(case: json.Object): types.Doc
 		if getStringField(node.type) == "cluster" then
 			table.insert(nodes, testing.group(id, id, parentId))
 		else
-			local extra = json.object({ type = getStringField(node.dataType) :: string })
-			table.insert(nodes, testing.task(id, id, getStringField(node.status) :: string, parentId, extra))
+			-- The cases record each card's kind from before types, which a read
+			-- migrates the same way.
+			local item = testing.task(id, id, getStringField(node.status) :: string, parentId)
+			item.data.itemKind = getStringField(node.itemKind)
+			migrateItemKind(item)
+			table.insert(nodes, item)
 		end
 	end
 

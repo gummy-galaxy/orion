@@ -3,13 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { taskHeight } from './cardHeight'
 import { type TaskData } from './model'
 
-const card = (data: Partial<TaskData>): TaskData => ({
-  kind: 'task',
-  label: 'Card',
-  type: 'step',
-  status: 'todo',
-  ...data,
-})
+const card = (data: Partial<TaskData>): TaskData => ({ kind: 'task', label: 'Card', status: 'todo', ...data })
 const CLASSIC = { width: TASK_WIDTH, height: TASK_HEIGHT }
 const TRADING = { width: 198, height: 285 }
 

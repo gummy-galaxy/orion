@@ -58,6 +58,10 @@ local function checkCardType(cardType: CardType)
 	assert(type(cardType.label) == "string" and cardType.label ~= "", `{name} needs a label`)
 	assert(type(cardType.pack) == "string" and cardType.pack ~= "", `{name} needs a pack`)
 
+	for _, other in cardType.supersedes or {} do
+		assert(type(other) == "string" and other:match(NAME) and other ~= name, `{name} supersedes an invalid type`)
+	end
+
 	local fieldNames: { [string]: boolean } = {}
 
 	for _, field in cardType.fields do

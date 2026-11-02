@@ -192,7 +192,7 @@ local function parseOperation(object: json.Object): Operation
 		local data = requireObject(object, "data")
 		operation.data = data
 
-		-- A note and a work item are both task cards; the item kind tells them
+		-- A note and a work item are both task cards; the type tells them
 		-- apart.
 		if operation.op == "addNote" then
 			assert(data.type == "note", "addNote needs data.type to be note")

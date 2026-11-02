@@ -23,7 +23,9 @@ test.case("matches derived status and source references", function(assert)
 	local scope = createScope(doc)
 	for _, expression in
 		{
-			[[kind = "step"]],
+			[[kind = "pr"]],
+			[[type = "step"]],
+			[[type != "gate"]],
 			[[repo = "vocksel/orion"]],
 			[[status = "ready" and recordedStatus = "todo"]],
 			[[group = "scope"]],

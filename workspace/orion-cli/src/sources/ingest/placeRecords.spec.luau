@@ -24,7 +24,6 @@ test.case("placeRecords creates in Unsorted and updates by ref", function(assert
 		ref = { source = "example", kind = "issue", key = "ABC-1" },
 		label = "First",
 		repo = "owner/repo",
-		type = "step",
 		status = "active",
 		who = "you",
 	}
@@ -64,7 +63,6 @@ test.case("placeRecords uses fallback, skips missing update-only, and computes s
 		{
 			ref = { source = "example", kind = "pull", key = "owner/repo#2" },
 			label = "Pull",
-			type = "pr",
 			findFallback = function()
 				return existing
 			end,
@@ -80,7 +78,7 @@ test.case("placeRecords uses fallback, skips missing update-only, and computes s
 	assert.eq(#doc.nodes, 1)
 	assert.eq(existing.data.status, "review")
 	assert.eq(existing.data.who, "review")
-	assert.eq(existing.data.type, "pr")
+	assert.eq(testing.primaryType(existing), "pr")
 end)
 
 test.case("placeRecords updates the card whose ref has the record's id, under the record's new key", function(assert)
@@ -88,7 +86,6 @@ test.case("placeRecords updates the card whose ref has the record's id, under th
 	local record: Record = {
 		ref = { source = "example", kind = "pull", key = "vocksel/orion#12", id = "R_1#12" },
 		label = "Fix",
-		type = "pr",
 	}
 	placeRecords(doc, { result({ record }) })
 
@@ -118,7 +115,6 @@ test.case("placeRecords matches a record that names a moved repository's old nam
 		ref = { source = "hop", kind = "branch", key = "vocksel/orion@agent/fix" },
 		label = "agent fix",
 		repo = "vocksel/orion",
-		type = "step",
 	}
 
 	local report = placeRecords(doc, { result({ record }) })

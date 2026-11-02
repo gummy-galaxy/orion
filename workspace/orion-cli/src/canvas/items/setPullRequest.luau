@@ -3,7 +3,6 @@ local findRef = require("@root/canvas/refs/findRef")
 local getItem = require("@root/canvas/items/getItem")
 local getStringField = require("@root/common/getStringField")
 local isGroup = require("@root/canvas/groups/isGroup")
-local refreshItemKind = require("@root/canvas/items/refreshItemKind")
 local removeRef = require("@root/canvas/refs/removeRef")
 local resolveRef = require("@root/sources/resolveRef")
 local types = require("@root/types")
@@ -19,7 +18,6 @@ local function setPullRequest(doc: Doc, id: string, number: number?)
 
 	if number == nil then
 		removeRef(item, "pull")
-		refreshItemKind(item)
 		return
 	end
 
