@@ -109,7 +109,7 @@ export function chainFinale(delays: ReadonlyMap<string, number>): Map<string, nu
 
 /** Whether a patch finishes a card in the app. Those close out at once, so their Done stamp lands right away. */
 export function closesOut(data: TaskData, patch: Partial<TaskData>): boolean {
-  const kind = patch.itemKind ?? data.itemKind
+  const kind = patch.type ?? data.type
 
   return patch.status === 'done' && data.status !== 'done' && kind !== 'note' && kind !== 'component'
 }

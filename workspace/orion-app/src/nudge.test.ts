@@ -7,7 +7,7 @@ const task = (id: string, x: number, y: number, parentId?: string): AppNode => (
   type: 'task',
   parentId,
   position: { x, y },
-  data: { kind: 'task', label: id, itemKind: 'step', status: 'todo' },
+  data: { kind: 'task', label: id, type: 'step', status: 'todo' },
 })
 
 const group = (

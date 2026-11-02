@@ -27,7 +27,7 @@ local function buildDoc(case: json.Object): types.Doc
 		if getStringField(node.type) == "cluster" then
 			table.insert(nodes, testing.group(id, id, parentId))
 		else
-			local extra = json.object({ itemKind = getStringField(node.itemKind) :: string })
+			local extra = json.object({ type = getStringField(node.dataType) :: string })
 			table.insert(nodes, testing.task(id, id, getStringField(node.status) :: string, parentId, extra))
 		end
 	end

@@ -66,7 +66,7 @@ test.case("an issue URL adds a card with its GitHub title, repo, and ref", funct
 	local item = doc.nodes[1]
 	assert.eq(item.data.label, "Import a list of sources")
 	assert.eq(item.data.repo, "vocksel/orion")
-	assert.eq(item.data.itemKind, "placeholder")
+	assert.eq(item.data.type, "placeholder")
 	assert.eq(item.data.who, "you")
 	local refs = item.data.refs :: { json.Object }
 	assert.eq(refs[1].kind, "issue")
@@ -82,7 +82,7 @@ test.case("a pull request URL adds a pull request card", function(assert)
 
 	local item = loadDoc(dir).nodes[1]
 	assert.eq(item.data.label, "Add --ref")
-	assert.eq(item.data.itemKind, "pr")
+	assert.eq(item.data.type, "pr")
 	assert.eq(item.data.who, nil)
 end)
 

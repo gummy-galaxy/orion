@@ -195,9 +195,9 @@ local function parseOperation(object: json.Object): Operation
 		-- A note and a work item are both task cards; the item kind tells them
 		-- apart.
 		if operation.op == "addNote" then
-			assert(data.itemKind == "note", "addNote needs data.itemKind to be note")
+			assert(data.type == "note", "addNote needs data.type to be note")
 		elseif operation.op == "addCard" then
-			assert(data.itemKind ~= "note", "addCard is for work items; use addNote for a note")
+			assert(data.type ~= "note", "addCard is for work items; use addNote for a note")
 		end
 	elseif operation.op == "setData" then
 		operation.id = requireString(object, "id")

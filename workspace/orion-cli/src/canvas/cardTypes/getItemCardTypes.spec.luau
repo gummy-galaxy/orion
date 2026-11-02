@@ -10,7 +10,7 @@ test.case("getItemCardTypes lists a card's own type, then its sources', then peo
 		json.object({ source = "github", kind = "pull", key = "vocksel/orion#12" }),
 		json.object({ source = "github", kind = "issue", key = "vocksel/orion#3" }),
 	}
-	local item = testing.task("a", "A", "todo", nil, { itemKind = "pr", refs = refs, types = { "gate", "pr" } })
+	local item = testing.task("a", "A", "todo", nil, { type = "pr", refs = refs, types = { "gate", "pr" } })
 	local itemTypes = getItemCardTypes(item) :: any
 
 	assert.eq(itemTypes.primary, "pr")
@@ -19,7 +19,7 @@ end)
 
 test.case("getItemCardTypes gives a card with no kind the step type", function(assert)
 	local item = testing.task("a", "A", "todo")
-	item.data.itemKind = nil
+	item.data.type = nil
 
 	assert.eq(table.concat((getItemCardTypes(item) :: any).types, ","), "step")
 end)

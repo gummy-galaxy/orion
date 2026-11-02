@@ -13,7 +13,7 @@ export type Record = {
 	ref: Ref,
 	label: string,
 	repo: string?,
-	itemKind: string?,
+	type: string?,
 	status: string?,
 	who: string?,
 	isUpdateOnly: boolean?,

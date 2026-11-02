@@ -52,7 +52,7 @@ end
 	closer when there is one.
 ]]
 local function estimateTaskHeight(item: Item): number
-	local itemKind = item.data.itemKind
+	local itemKind = item.data.type
 	local height
 
 	if itemKind == "note" then

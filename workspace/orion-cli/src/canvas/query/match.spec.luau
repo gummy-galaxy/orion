@@ -21,7 +21,7 @@ test.case(
 				refs = { { source = "github", kind = "pull", key = "flipbook-labs/flipbook#1" } },
 			}),
 			testing.task("done", "Release health dashboard", "done", nil, { repo = "flipbook-labs/flipbook" }),
-			testing.task("note", "Release health dashboard", "todo", nil, { itemKind = "note" }),
+			testing.task("note", "Release health dashboard", "todo", nil, { type = "note" }),
 		})
 		local candidates = match.candidates(doc, "Add release health dashboard", "flipbook-labs", "flipbook")
 		assert.eq(#candidates, 3)

@@ -17,7 +17,7 @@ local function getFieldValue(scope: queryTypes.Scope, item: Item, field: string)
 	local value: json.Value = nil
 
 	if field == "kind" then
-		value = if isGroup(item) then "group" elseif item.type == "image" then "image" else item.data.itemKind or "step"
+		value = if isGroup(item) then "group" elseif item.type == "image" then "image" else item.data.type or "step"
 	elseif field == "status" then
 		value = derived.status[item.id]
 	elseif field == "recordedStatus" then

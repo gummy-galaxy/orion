@@ -5,7 +5,7 @@ local geometry = require("@root/geometry")
 local testing = require("@root/testing")
 
 local function note(label: string)
-	return testing.task("n", label, "todo", nil, { itemKind = "note" })
+	return testing.task("n", label, "todo", nil, { type = "note" })
 end
 
 test.case("estimateTaskHeight keeps work cards at the card height", function(assert)
@@ -30,7 +30,7 @@ test.case("estimateTaskHeight wraps long text between words and stops at the mos
 end)
 
 test.case("estimateTaskHeight makes room for a component's description and shape", function(assert)
-	local component = testing.task("c", "Server", "todo", nil, { itemKind = "component" })
+	local component = testing.task("c", "Server", "todo", nil, { type = "component" })
 	assert.eq(estimateTaskHeight(component), geometry.TASK_HEIGHT)
 
 	component.data.note = string.rep("Answers requests from the app. ", 6)

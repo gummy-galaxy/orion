@@ -55,7 +55,7 @@
         "y": -1334
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 1 nostrud exercitation ullamco labori",
         "refs": [
@@ -348,7 +348,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 2 cupidatat n",
         "refs": [
@@ -374,7 +374,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "step",
+        "type": "step",
         "kind": "task",
         "label": "Card 3 velit esse cillum fugiat nulla p",
         "status": "done"
@@ -389,7 +389,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 4 deserunt mollit anim id est laborum lorem ipsum dolor sitx",
         "refs": [
@@ -415,7 +415,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 5 eiusmod tempor incididunt ut labore et dolore m",
         "refs": [
@@ -477,7 +477,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 6 incididunt ut labore et dolorex",
         "refs": [
@@ -530,7 +530,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 7 sed do eiusmod tempor incididuntx",
         "refs": [
@@ -592,7 +592,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 8 aute irure in reprehenderit voluptate velitx",
         "refs": [
@@ -694,7 +694,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 9 lorem ipsum dolor sit amet consecteturx",
         "refs": [
@@ -756,7 +756,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 10 quis nostrud exercitation ullamco laboris nisi aliquip ex",
         "refs": [
@@ -781,7 +781,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 11 sint occaecat cupidatat non proident sun",
         "refs": [
@@ -806,7 +806,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 12 cillum fugiat nulla pariatur except",
         "note": "officia deserunt mollit anim id est laborum lorem ipsum dolor sit amet consectetur adipiscing elit se",
@@ -860,7 +860,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 13 dolor sit amet consectetur adipiscing e",
         "note": "ullamco laboris nisi aliquip ex ea com",
@@ -914,7 +914,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 14 et dolore magna aliqua enim ad",
         "note": "magna aliqua enim ad minim veniam quis nostrud exerc",
@@ -977,7 +977,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 15 lorem ipsum dolor sit amet con",
         "note": "quis nostrud exercitation ullamco laboris nisi aliquip ex ea commodo consequat dui",
@@ -1004,7 +1004,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 16 nulla pariatur excepteur sint occaecat cu",
         "refs": [
@@ -1081,7 +1081,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 17 anim id est laborum lorem ipsum dolor s",
         "refs": [
@@ -1144,7 +1144,7 @@
       },
       "data": {
         "deferredByClosedPull": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 18 cillum fugiat nulla pariatur excepteur sint",
         "refs": [
@@ -1214,7 +1214,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 19 velit esse cillum fugiat nulla pariatur excepte",
         "refs": [
@@ -1276,7 +1276,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 20 aliquip ex ea commodo c",
         "note": "anim id est l",
@@ -1339,7 +1339,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 21 esse cillum fugiat nulla pariatur exce",
         "refs": [
@@ -1408,7 +1408,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 22 veniam quis nostrud exercitation ullamco laboris n",
         "refs": [
@@ -1471,7 +1471,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 23 ipsum dolor sit amet consectetur adipisc",
         "refs": [
@@ -1534,7 +1534,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 24 aliquip ex ea commodo con",
         "refs": [
@@ -1560,7 +1560,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 25 reprehenderit voluptate velit e",
         "repo": "example/repo-4",
@@ -1576,7 +1576,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 26 nulla pariatur excepteurx",
         "refs": [
@@ -1601,7 +1601,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 27 ea commodo consequat duis aute irure",
         "refs": [
@@ -1664,7 +1664,7 @@
       },
       "data": {
         "deferredByClosedPull": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 28 ad minim veniam quis nostrud e",
         "refs": [
@@ -1727,7 +1727,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 29 enim ad minim veniam quis n",
         "refs": [
@@ -1789,7 +1789,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 30 enim ad minim veniam quis nos",
         "refs": [
@@ -1844,7 +1844,7 @@
       "width": 216,
       "height": 136,
       "data": {
-        "itemKind": "note",
+        "type": "note",
         "kind": "task",
         "label": "Card 31 incididunt ut labore et dolore magna aliqua enim ad minim veniam quis nostrud exercitation ullamco laboris nisi aliquip ex ea commodo conse",
         "status": "todo"
@@ -1859,7 +1859,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 32 dolor sit amet consectetur adipiscing elit sed dox",
         "refs": [
@@ -1922,7 +1922,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 33 magna aliqua enim ad minim veniam quis nostrud exe",
         "refs": [
@@ -1984,7 +1984,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 34 quis nostrud exercitat",
         "refs": [
@@ -2010,7 +2010,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 35 voluptate velit esse cillum fugi",
         "refs": [
@@ -2035,7 +2035,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 36 sed do eiusmod tempor incididunt ut la",
         "refs": [
@@ -2060,7 +2060,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 37 dolor sit amet consectetur adipiscin",
         "refs": [
@@ -2122,7 +2122,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 38 et dolore magna ali",
         "refs": [
@@ -2185,7 +2185,7 @@
       },
       "data": {
         "deferredByClosedPull": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 39 aliqua enim ad minim v",
         "refs": [
@@ -2248,7 +2248,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 40 et dolore magna aliqua enim ad m",
         "refs": [
@@ -2301,7 +2301,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 41 culpa qui officia deserunt mollit anim id estx",
         "refs": [
@@ -2326,7 +2326,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 42 proident sunt culpa qui officia deserunt molli",
         "refs": [
@@ -2389,7 +2389,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 43 ea commodo consequat duis aute irure in reprehenderit",
         "refs": [
@@ -2452,7 +2452,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 44 mollit anim id est laborum lorem ipsum dolor sit amet co",
         "refs": [
@@ -2514,7 +2514,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 45 pariatur excepteur sint occaecat c",
         "refs": [
@@ -2567,7 +2567,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 46 fugiat nulla pariatur excepteur sintx",
         "refs": [
@@ -2592,7 +2592,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 47 aliquip ex ea commodo consequat duis autex",
         "refs": [
@@ -2654,7 +2654,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 48 reprehenderit voluptate velit esse cillum fug",
         "refs": [
@@ -2716,7 +2716,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 49 laboris nisi aliquip ex ea commodo co",
         "refs": [
@@ -2778,7 +2778,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 50 aliquip ex ea commodo consequat duis aute iru",
         "refs": [
@@ -2831,7 +2831,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 51 cupidatat non proident sunt culpa qui off",
         "refs": [
@@ -2893,7 +2893,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 52 nulla pariatur excepteur sint occaecat cupid",
         "refs": [
@@ -2919,7 +2919,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 53 deserunt mollit anim id est laborum lorem ipsum dol",
         "refs": [
@@ -2994,7 +2994,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 54 adipiscing elit sed do eiusmod tempor incidid",
         "refs": [
@@ -3057,7 +3057,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 55 enim ad minim veniam quis nostrud exercitation ullamco laboris nisi a",
         "refs": [
@@ -3132,7 +3132,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 56 ex ea commodo consequat duis aute irur",
         "refs": [
@@ -3185,7 +3185,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 57 veniam quis nostrud exercitation",
         "refs": [
@@ -3254,7 +3254,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 58 ut labore et dolore magna aliquax",
         "refs": [
@@ -3316,7 +3316,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 59 ut labore et dolore magna aliqua enim ad minim veni",
         "refs": [
@@ -3378,7 +3378,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 60 voluptate velit esse cillum fugiat",
         "refs": [
@@ -3431,7 +3431,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 61 esse cillum fugiat nulla pariatur excepteur sint occae",
         "refs": [
@@ -3493,7 +3493,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 62 cupidatat non proident sunt culpa q",
         "refs": [
@@ -3519,7 +3519,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 63 anim id est laborum lorem ipsum dolor sit ame",
         "refs": [
@@ -3583,7 +3583,7 @@
       "width": 216,
       "height": 260,
       "data": {
-        "itemKind": "note",
+        "type": "note",
         "kind": "task",
         "label": "Card 64 minim veniam quis nostrud exercitation ullamco laboris nisi aliquip ex ea commodo consequat duis aute irure in reprehenderit voluptate velit esse cillum fugiat nulla pariatur excepteur sint occaecat cupidatat non proident sunt culpa qui officia deserunt mollit anim id est laborum lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididu",
         "status": "todo"
@@ -3598,7 +3598,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 65 elit sed do eiusmod tempor incididunt ut labore etx",
         "refs": [
@@ -3660,7 +3660,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 66 amet consectetur adipiscing elit sed do eiusmod temporx",
         "refs": [
@@ -3687,7 +3687,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 67 laborum lorem i",
         "refs": [
@@ -3750,7 +3750,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 68 lorem ipsum dolor sit amet con",
         "refs": [
@@ -3803,7 +3803,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 69 irure in reprehenderit voluptat",
         "refs": [
@@ -3866,7 +3866,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 70 pariatur excepteur sint occaecat cupidatatx",
         "refs": [
@@ -3928,7 +3928,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 71 anim id est laborum lorem ipsum dol",
         "refs": [
@@ -3954,7 +3954,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 72 adipiscing elit sed do eiusmod tempor incididunt utx",
         "refs": [
@@ -4016,7 +4016,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 73 dolore magna aliqua enim ad minim venia",
         "refs": [
@@ -4078,7 +4078,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 74 reprehenderit voluptate velit es",
         "refs": [
@@ -4104,7 +4104,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "gate",
+        "type": "gate",
         "kind": "task",
         "label": "Card 75 f",
         "status": "todo"
@@ -4120,7 +4120,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 76 incididunt ut labore et dolore magna aliqua enim adx",
         "refs": [
@@ -4195,7 +4195,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 77 qui officia deserunt mollit anim id est laborum",
         "refs": [
@@ -4221,7 +4221,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 78 sint occaecat cupidatat non proi",
         "refs": [
@@ -4262,7 +4262,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 79 labore et dolore magna aliqua enim ad mini",
         "refs": [
@@ -4325,7 +4325,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 80 laboris nisi aliquip ex ea commodo co",
         "refs": [
@@ -4387,7 +4387,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 81 quis nostrud exercitation ullamco laboris nisix",
         "refs": [
@@ -4412,7 +4412,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 82 reprehenderit voluptate velit ess",
         "refs": [
@@ -4439,7 +4439,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 83 laboris nisi aliquip ex ea commodo consequat duis",
         "refs": [
@@ -4502,7 +4502,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 84 quis nostrud exercitation ullamco labor",
         "refs": [
@@ -4565,7 +4565,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 85 elit sed do eiusmod tempor incididunt ut labore et dolore",
         "note": "aute irure in reprehenderit voluptate velit esse cillum fugiat nulla pariatur excepteur sint occaecat cupidatat non proident sunt culpa qui officia deserunt mollit anim id est laborum lorem ipsum dolor sit amet consectetur adipiscing elit",
@@ -4630,7 +4630,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 86 quis nostrud exercitation ullamco laboris nisi aliquipx",
         "refs": [
@@ -4694,7 +4694,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 87 mollit anim id est laborum lorem ipsum dolor sit am",
         "refs": [
@@ -4757,7 +4757,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 88 aliquip ex ea commodo consequat duis aute irure in reprehender",
         "refs": [
@@ -4783,7 +4783,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 89 id est laborum lor",
         "refs": [
@@ -4810,7 +4810,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 90 incididunt ut labore et dolore magna aliqua eni",
         "refs": [
@@ -4873,7 +4873,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 91 reprehenderit voluptate velit esse cillum fugia",
         "refs": [
@@ -4942,7 +4942,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 92 exercitation ullamco laboris nisi aliquip exx",
         "refs": [
@@ -4968,7 +4968,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 93 ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor",
         "refs": [
@@ -4994,7 +4994,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 94 reprehenderit voluptate velit esse cillu",
         "refs": [
@@ -5020,7 +5020,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 95 eiusmod tempor incididunt ut labore et dolor",
         "refs": [
@@ -5047,7 +5047,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 96 do eiusmod tempor incididunt ut labor",
         "refs": [
@@ -5110,7 +5110,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 97 nulla pariatur excepteur sint occaecat",
         "refs": [
@@ -5179,7 +5179,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 98 ea commodo consequat duis aute irure in rep",
         "refs": [
@@ -5242,7 +5242,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 99 non proident sunt culpa qui offic",
         "refs": [
@@ -5268,7 +5268,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 100 mollit anim id est laborum lorem ipsum",
         "refs": [
@@ -5294,7 +5294,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 101 id est laborum lorem ipsum d",
         "refs": [
@@ -5328,7 +5328,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 102 minim veniam quis nostrud exercit",
         "refs": [
@@ -5390,7 +5390,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 103 laborum lorem ipsum dolor sit amet consecte",
         "refs": [
@@ -5416,7 +5416,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 104 laborum lorem ipsum dolo",
         "refs": [
@@ -5443,7 +5443,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 105 ad minim veniam quis nostrud exercitation",
         "refs": [
@@ -5505,7 +5505,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 106 velit esse cillum fugiat nulla p",
         "refs": [
@@ -5531,7 +5531,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 107 nisi aliquip ex ea co",
         "refs": [
@@ -5558,7 +5558,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 108 amet consectetur adipiscing elit sed do eius",
         "refs": [
@@ -5622,7 +5622,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 109 aliqua enim ad minim veniam quis",
         "refs": [
@@ -5684,7 +5684,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 110 magna aliqua enim ad minim veniam quis no",
         "refs": [
@@ -5710,7 +5710,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 111 ex ea commodo consequat duis aute irure in repr",
         "refs": [
@@ -5737,7 +5737,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 112 commodo consequat duis aute irure in rep",
         "refs": [
@@ -5800,7 +5800,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 113 et dolore magna aliqua enim adx",
         "note": "non proident sunt culpa qui officia deserunt mollit anim id est laborum lorem ipsum dolor sit amet consectetur adipiscing elit se",
@@ -5863,7 +5863,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 114 duis aute irure in reprehenderit volupt",
         "refs": [
@@ -5889,7 +5889,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 115 veniam quis nostrud exercitati",
         "refs": [
@@ -5915,7 +5915,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 116 consectetur adipiscing elit sed do eiusmod t",
         "refs": [
@@ -5942,7 +5942,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 117 irure in reprehenderit voluptate velit esse cil",
         "refs": [
@@ -6005,7 +6005,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 118 amet consectetur adipiscing e",
         "refs": [
@@ -6067,7 +6067,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 119 reprehenderit voluptate velit esse cillu",
         "refs": [
@@ -6094,7 +6094,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 120 occaecat cupidatat non proident sunt c",
         "refs": [
@@ -6156,7 +6156,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 121 dolore magna aliqua eni",
         "refs": [
@@ -6182,7 +6182,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 122 esse cillum fugiat nulla pariatur excepteur sin",
         "refs": [
@@ -6208,7 +6208,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 123 ad minim veniam quis nostrud exercitatio",
         "refs": [
@@ -6234,7 +6234,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 124 ipsum dolor sit amet consectetur adipiscing elit se",
         "refs": [
@@ -6260,7 +6260,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 125 veniam quis nostrud exerci",
         "refs": [
@@ -6286,7 +6286,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 126 consequat duis au",
         "refs": [
@@ -6312,7 +6312,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 127 tempor incididunt ut labore e",
         "refs": [
@@ -6338,7 +6338,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 128 consectetur a",
         "refs": [
@@ -6365,7 +6365,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 129 enim ad minim veniam quis nostrud exercitatio",
         "refs": [
@@ -6434,7 +6434,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 130 irure in reprehenderit voluptate velit esse cillum fu",
         "refs": [
@@ -6461,7 +6461,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 131 ut labore et dolore magna aliqua enim ad minim veniam qui",
         "refs": [
@@ -6530,7 +6530,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 132 duis aute irure in reprehenderit voluptate velit esse cillum fugiat null",
         "refs": [
@@ -6556,7 +6556,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 133 laboris nisi aliquip ex ea commodo consequat dui",
         "refs": [
@@ -6582,7 +6582,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 134 dolor sit amet consectetur adipiscing elit sed do eiusmod tempor",
         "refs": [
@@ -6609,7 +6609,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 135 non proident sunt culpa qui officia deserunt mollit",
         "refs": [
@@ -6671,7 +6671,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 136 deserunt mollit anim id est laborum lor",
         "refs": [
@@ -6697,7 +6697,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 137 laborum lorem ipsum dolor sit amet c",
         "refs": [
@@ -6723,7 +6723,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 138 consequat duis aute irure in reprehenderit voluptate velit",
         "refs": [
@@ -6749,7 +6749,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 139 elit sed do eiusmod temp",
         "refs": [
@@ -6775,7 +6775,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 140 ex ea commodo conse",
         "refs": [
@@ -6801,7 +6801,7 @@
         "y": 93
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 141 do eiusmod tempor incididunt ut labore et dol",
         "refs": [
@@ -6863,7 +6863,7 @@
         "y": 95
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 142 velit esse cillum fugiat nulla pariatur except",
         "refs": [
@@ -6888,7 +6888,7 @@
         "y": 95
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 143 pariatur excepteur sint occaecat cupidatat non proiden",
         "refs": [
@@ -6913,7 +6913,7 @@
         "y": 95
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 144 anim id est laborum lorem ipsum dolor sit ame",
         "refs": [
@@ -6975,7 +6975,7 @@
         "y": 102
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 145 id est laborum lorem ipsum dolor sit amet consectetur adipi",
         "refs": [
@@ -7000,7 +7000,7 @@
         "y": 108
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 146 nostrud exercitation ullamco laboris nisix",
         "refs": [
@@ -7075,7 +7075,7 @@
         "y": 139
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 147 labore et dolore magna aliqua enim ad minim veniam",
         "refs": [
@@ -7170,7 +7170,7 @@
         "y": 174
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 148 reprehenderit voluptate v",
         "refs": [
@@ -7196,7 +7196,7 @@
         "y": 174
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 149 labore et dolorex",
         "refs": [
@@ -7265,7 +7265,7 @@
         "y": 174
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 150 quis nostrud exercitation ullamc",
         "refs": [
@@ -7327,7 +7327,7 @@
         "y": 174
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 151 consectetur adipiscing e",
         "refs": [
@@ -7390,7 +7390,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 152 culpa qui officia deserunt mollit ani",
         "refs": [
@@ -7452,7 +7452,7 @@
         "y": 174
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 153 consequat duis aute irure in reprehende",
         "refs": [
@@ -7521,7 +7521,7 @@
         "y": 176
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 154 voluptate velit esse cillum fugiat nulla pari",
         "refs": [
@@ -7547,7 +7547,7 @@
         "y": 176
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 155 eiusmod tempor incididunt ut labore et dolore ma",
         "refs": [
@@ -7610,7 +7610,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 156 ad minim veniam quis nostrud exer",
         "refs": [
@@ -7672,7 +7672,7 @@
         "y": 176
       },
       "data": {
-        "itemKind": "step",
+        "type": "step",
         "kind": "task",
         "label": "Card 157 do eiusmod tempor incididunt ut labore et dolore magna aliqua",
         "note": "proident sunt culpa qui officia deserunt mollit anim id est laborum lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua enim ad minim veniam qu",
@@ -7689,7 +7689,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 158 elit sed do eiusmod tempor incididunt ut labore etx",
         "refs": [
@@ -7752,7 +7752,7 @@
         "y": 176
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 159 enim ad minim veniam quis nostrud e",
         "refs": [
@@ -7814,7 +7814,7 @@
         "y": 176
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 160 velit esse cillum fugiat nulla pariatur excepteur",
         "refs": [
@@ -7840,7 +7840,7 @@
         "y": 176
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 161 sed do eiusmod tempor incididunt ut la",
         "refs": [
@@ -7902,7 +7902,7 @@
         "y": 176
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 162 incididunt ut labore et dolore magna",
         "refs": [
@@ -7965,7 +7965,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 163 mollit anim id est laborum lorem ipsu",
         "refs": [
@@ -8028,7 +8028,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 164 proident sunt culpa qui officia deserunt mollit",
         "refs": [
@@ -8090,7 +8090,7 @@
         "y": 176
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 165 deserunt mollit anim id est laborum lorem ipsum dolor sit amet conse",
         "refs": [
@@ -8115,7 +8115,7 @@
         "y": 176
       },
       "data": {
-        "itemKind": "step",
+        "type": "step",
         "kind": "task",
         "label": "Card 166 nostrud exercitation ulla",
         "status": "todo"
@@ -8130,7 +8130,7 @@
         "y": 176
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 167 ipsum dolor sit amet consectetur adipisc",
         "refs": [
@@ -8192,7 +8192,7 @@
         "y": 176
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 168 quis nostrud exercitation ullamco",
         "refs": [
@@ -8219,7 +8219,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 169 sunt culpa qui officia deserunt mo",
         "refs": [
@@ -8282,7 +8282,7 @@
         "y": 176
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 170 sit amet consectetur",
         "refs": [
@@ -8344,7 +8344,7 @@
         "y": 176
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 171 eiusmod tempor incididunt ut labo",
         "refs": [
@@ -8407,7 +8407,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 172 cupidatat non proident sunt culpa qui officia deser",
         "refs": [
@@ -8484,7 +8484,7 @@
       },
       "data": {
         "deferredByClosedPull": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 173 amet consectetur adipiscing elit se",
         "refs": [
@@ -8538,7 +8538,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 174 sint occaecat cupidatat non proident sunt culpa qui offici",
         "refs": [
@@ -8608,7 +8608,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 175 aliqua enim ad minim veniam quis nostru",
         "refs": [
@@ -8671,7 +8671,7 @@
         "y": 176
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 176 ut labore etx",
         "refs": [
@@ -8698,7 +8698,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 177 dolor sit amet consectetur adipiscing elit sed do eiusmodx",
         "refs": [
@@ -8761,7 +8761,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 178 nisi aliquip ex ea commodo consequat duis aute irurex",
         "refs": [
@@ -8838,7 +8838,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 179 lorem ipsum dolor sit amet consectetur ad",
         "refs": [
@@ -8900,7 +8900,7 @@
         "y": 176
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 180 duis aute irure in reprehender",
         "refs": [
@@ -8926,7 +8926,7 @@
         "y": 176
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 181 labore et dolore magna aliqua enim ad minim ve",
         "refs": [
@@ -8952,7 +8952,7 @@
         "y": 180
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 182 irure in reprehenderit voluptate velit esse cillum fugiat nulla p",
         "refs": [
@@ -9027,7 +9027,7 @@
         "y": 182
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 183 velit esse cillum fugiat nulla pariatur excepteur sint",
         "refs": [
@@ -9054,7 +9054,7 @@
       "width": 216,
       "height": 228,
       "data": {
-        "itemKind": "note",
+        "type": "note",
         "kind": "task",
         "label": "Card 184 non proident sunt culpa qui officia deserunt mollit anim id est laborum lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua enim ad minim veniam quis nostrud exercitation ullamco laboris nisi aliquip ex ea com",
         "status": "todo"
@@ -9070,7 +9070,7 @@
       },
       "data": {
         "deferredByClosedPull": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 185 aliqua enim ad minim veniam quis nostrud exercit",
         "refs": [
@@ -9132,7 +9132,7 @@
         "y": 182
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 186 nisi aliquip ex ea commodo consequat d",
         "refs": [
@@ -9195,7 +9195,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 187 culpa qui officia deserunt mollit anim id est labor",
         "refs": [
@@ -9257,7 +9257,7 @@
         "y": 182
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 188 culpa qui officia deserunt mollit anim id est laborum",
         "refs": [
@@ -9320,7 +9320,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 189 tempor incididunt ut labore et dolore magna aliqua eni",
         "refs": [
@@ -9382,7 +9382,7 @@
         "y": 182
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 190 sunt culpa qui officia deseruntx",
         "refs": [
@@ -9445,7 +9445,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 191 pariatur excepteur sint occaecat cupidata",
         "refs": [
@@ -9507,7 +9507,7 @@
         "y": 182
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 192 magna aliqua enim ad minim veniam qu",
         "refs": [
@@ -9570,7 +9570,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 193 tempor incididunt ut labore et dolore ma",
         "refs": [
@@ -9639,7 +9639,7 @@
         "y": 182
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 194 deserunt mollit anim id est laborum lorem ipsum dolor sit amet consectetu",
         "refs": [
@@ -9702,7 +9702,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 195 id est laborum lorem ipsum dol",
         "refs": [
@@ -9765,7 +9765,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 196 nisi aliquip ex ea commodo consequat duis autex",
         "refs": [
@@ -9828,7 +9828,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 197 adipiscing elit sed do eiusmod tempor",
         "refs": [
@@ -9891,7 +9891,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 198 qui officia deserunt mollit anim id est laboru",
         "refs": [
@@ -9954,7 +9954,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 199 ad minim veniam quis nostrud exe",
         "refs": [
@@ -10016,7 +10016,7 @@
         "y": 186
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 200 ea commodo consequat duis",
         "note": "pariatur excepteur sint occaecat cupidatat non pro",
@@ -10092,7 +10092,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 201 pariatur excepteur sin",
         "refs": [
@@ -10168,7 +10168,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 202 sed do eiusmod tempor incididu",
         "refs": [
@@ -10230,7 +10230,7 @@
         "y": 191
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 203 aliquip ex ea commo",
         "note": "qui officia deserunt mollit anim id est laborum lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor in",
@@ -10247,7 +10247,7 @@
         "y": 206
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 204 sed do eiusmod tempor incididunt ut lab",
         "refs": [
@@ -10300,7 +10300,7 @@
         "y": 210
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 205 reprehenderit voluptate velit esse cillum fugi",
         "refs": [
@@ -10375,7 +10375,7 @@
         "y": 218
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 206 lorem ipsum dolor sit amet consectetur adipiscin",
         "refs": [
@@ -10428,7 +10428,7 @@
         "y": 218
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 207 pariatur excepteur sint occaecat cupidatat non proi",
         "refs": [
@@ -10481,7 +10481,7 @@
         "y": 218
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 208 labore et dolore magna aliqua enim ad m",
         "note": "consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et do",
@@ -10535,7 +10535,7 @@
         "y": 218
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 209 amet consectetur adipiscing elit sed d",
         "refs": [
@@ -10588,7 +10588,7 @@
         "y": 218
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 210 elit sed do eiusmod tempor incididunt ut labore",
         "refs": [
@@ -10641,7 +10641,7 @@
         "y": 222
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 211 consectetur adipiscing eli",
         "note": "velit esse cillum fu",
@@ -10658,7 +10658,7 @@
         "y": 222
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 212 ex ea commodo consequat duis aut",
         "refs": [
@@ -10720,7 +10720,7 @@
         "y": 222
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 213 nulla pariatur excepteur sint occaecat cupidatat non proident sunt c",
         "refs": [
@@ -10783,7 +10783,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 214 minim veniam quis nostrud ex",
         "refs": [
@@ -10853,7 +10853,7 @@
         "y": 223
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 215 cupidatat non proident sunt culpa",
         "refs": [
@@ -10916,7 +10916,7 @@
         "y": 238
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 216 aliquip ex ea commodo consequat duisx",
         "refs": [
@@ -10942,7 +10942,7 @@
         "y": 254
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 217 id est laborum lorem ipsum dolor sit amet consectetur adipi",
         "refs": [
@@ -10968,7 +10968,7 @@
         "y": 257
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 218 esse cillum fugiat nulla paria",
         "refs": [
@@ -11043,7 +11043,7 @@
         "y": 257
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 219 eiusmod tempor incidi",
         "refs": [
@@ -11111,7 +11111,7 @@
         "y": 258
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 220 aliqua enim ad minim veniam quis nos",
         "refs": [
@@ -11137,7 +11137,7 @@
         "y": 263
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 221 id est laborum lorem ipsum dolo",
         "refs": [
@@ -11163,7 +11163,7 @@
         "y": 270
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 222 magna aliqua enim ad minim veniam quis nostrud exercitationx",
         "refs": [
@@ -11189,7 +11189,7 @@
         "y": 271
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 223 velit esse cillumx",
         "refs": [
@@ -11214,7 +11214,7 @@
         "y": 272
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 224 incididunt ut labore et dolore magna a",
         "refs": [
@@ -11276,7 +11276,7 @@
         "y": 272
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 225 magna aliqua enim ad minim veniam quis nostrud exercitation ullam",
         "refs": [
@@ -11301,7 +11301,7 @@
         "y": 272
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 226 ut labore et dolorex",
         "refs": [
@@ -11363,7 +11363,7 @@
         "y": 272
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 227 esse cillum fugiat nulla pariatur excepteur sint",
         "refs": [
@@ -11389,7 +11389,7 @@
         "y": 272
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 228 lorem ipsum dolor sit amet consecteturx",
         "refs": [
@@ -11451,7 +11451,7 @@
         "y": 272
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 229 eiusmod tempor incididunt ut labore et do",
         "refs": [
@@ -11478,7 +11478,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 230 mollit anim id est laborum lorem ipsum do",
         "refs": [
@@ -11553,7 +11553,7 @@
         "y": 275
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 231 exercitation ullamco laboris nisi aliquip ex e",
         "refs": [
@@ -11616,7 +11616,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 232 sed do eiusmod tempor incididun",
         "refs": [
@@ -11678,7 +11678,7 @@
         "y": 275
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 233 sunt culpa qui officia deserunt mollit",
         "refs": [
@@ -11704,7 +11704,7 @@
         "y": 275
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 234 non proident sunt culpa q",
         "refs": [
@@ -11730,7 +11730,7 @@
         "y": 275
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 235 tempor incididunt ut laborex",
         "refs": [
@@ -11756,7 +11756,7 @@
         "y": 275
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 236 laboris nisi aliquip ex ea commodo consequat dui",
         "refs": [
@@ -11818,7 +11818,7 @@
         "y": 275
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 237 veniam quis nostrud exercitation ullamco labori",
         "refs": [
@@ -11880,7 +11880,7 @@
         "y": 275
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 238 veniam quis nostrud exercitation u",
         "refs": [
@@ -11906,7 +11906,7 @@
         "y": 275
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 239 est laborum lorem ipsum d",
         "refs": [
@@ -11932,7 +11932,7 @@
         "y": 275
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 240 aliquip ex ea commodo consequat duis autex",
         "refs": [
@@ -11995,7 +11995,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 241 tempor incididunt ut labore et dolore magna aliqua enim adx",
         "note": "mollit anim id est laborum lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua enim ad minim veniam quis nostrud exercitation ullamco laboris nisi aliquip ex ea comm",
@@ -12065,7 +12065,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 242 tempor incididunt ut labore",
         "refs": [
@@ -12127,7 +12127,7 @@
         "y": 275
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 243 esse cillum fugiat nulla pariatur excepteur sint occaec",
         "refs": [
@@ -12190,7 +12190,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 244 aute irure in reprehenderit voluptate velit esse cil",
         "refs": [
@@ -12253,7 +12253,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 245 dolor sit amet consectetur adipiscing eli",
         "refs": [
@@ -12316,7 +12316,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 246 duis aute irure in repre",
         "refs": [
@@ -12379,7 +12379,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 247 qui officia deserunt mollit anim id est l",
         "refs": [
@@ -12441,7 +12441,7 @@
         "y": 275
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 248 excepteur sint occaecat cupidatat nonx",
         "refs": [
@@ -12495,7 +12495,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 249 enim ad minim veniam quis n",
         "refs": [
@@ -12557,7 +12557,7 @@
         "y": 275
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 250 ullamco laboris nisi aliquip ex ea commodo c",
         "refs": [
@@ -12619,7 +12619,7 @@
         "y": 276
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 251 deserunt mollit anim id est laborum lor",
         "refs": [
@@ -12694,7 +12694,7 @@
         "y": 277
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 252 laboris nisi aliquip ex ea commodo consequa",
         "note": "esse cillum fugiat nulla pariatur excepteur sint occaecat cupidatat non proident sunt culpa qui officia deserunt mollit anim id est laborum lorem ipsum dolor sit amet consec",
@@ -12770,7 +12770,7 @@
         "y": 278
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 253 excepteur sint occaecat cupidatat nonx",
         "refs": [
@@ -12795,7 +12795,7 @@
         "y": 278
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 254 commodo consequat duis aute irure in reprehenderit vol",
         "refs": [
@@ -12820,7 +12820,7 @@
         "y": 278
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 255 commodo consequat duis aute irure in reprehenderit vol",
         "refs": [
@@ -12882,7 +12882,7 @@
         "y": 278
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 256 et dolore magna aliqua enimx",
         "note": "eiusmod tempor incididunt ut labore et dolore magna",
@@ -12937,7 +12937,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 257 adipiscing elit sed do eiusmod tem",
         "refs": [
@@ -13014,7 +13014,7 @@
         "y": 290
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 258 adipiscing elit sed do eiusmod tempor incididunt utx",
         "note": "culpa qui officia deserunt mollit anim id est laborum lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusm",
@@ -13041,7 +13041,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 259 nisi aliquip ex ea commodo consequat duis autex",
         "refs": [
@@ -13111,7 +13111,7 @@
         "y": 294
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 260 nisi aliquip ex ea commodo conse",
         "note": "consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua enim ad minim veniam quis nostrud exercitation ullamco laboris nisi aliquip ex ea commodo consequat duis aute irure in reprehenderit voluptate velit esse cillum fugiat nulla pariatur excepteur sint occaecat cupidatat non proident sunt culpa qui officia deserunt mollit anim id est laborum lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magn",
@@ -13128,7 +13128,7 @@
         "y": 301
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 261 dolore magna aliquax",
         "refs": [
@@ -13197,7 +13197,7 @@
         "y": 301
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 262 qui officia deserunt mollit anim id est laborum lorem ipsum",
         "refs": [
@@ -13222,7 +13222,7 @@
         "y": 301
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 263 sunt culpa qui offici",
         "refs": [
@@ -13247,7 +13247,7 @@
         "y": 304
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 264 culpa qui officia deserunt mollit an",
         "refs": [
@@ -13316,7 +13316,7 @@
         "y": 310
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 265 velit esse cillum fugiat nulla pariatur except",
         "refs": [
@@ -13378,7 +13378,7 @@
         "y": 310
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 266 ex ea commodo consequat duis aute irure in reprehende",
         "refs": [
@@ -13440,7 +13440,7 @@
         "y": 312
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 267 officia deserunt mollit anim id est laborumx",
         "refs": [
@@ -13515,7 +13515,7 @@
         "y": 313
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 268 reprehenderit voluptate velit esse cillum",
         "refs": [
@@ -13578,7 +13578,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 269 elit sed do eiusmod tempor incidid",
         "refs": [
@@ -13668,7 +13668,7 @@
         "y": 335
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 270 elit sed do eiusmod tempor incididunt ut labore et dolo",
         "refs": [
@@ -13737,7 +13737,7 @@
         "y": 335
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 271 mollit anim id est laborum lorem ipsum dolor sit amet consectetur adipisci",
         "refs": [
@@ -13806,7 +13806,7 @@
         "y": 335
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 272 ad minim veniam quis nostrud exercitation ullamco laboris nisix",
         "refs": [
@@ -13875,7 +13875,7 @@
         "y": 335
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 273 magna aliqua enim ad minim veniam quis nostrud exercitati",
         "refs": [
@@ -13944,7 +13944,7 @@
         "y": 341
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 274 deserunt mollit anim id est laborum lorem ipsum dolo",
         "refs": [
@@ -13970,7 +13970,7 @@
         "y": 346
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 275 do eiusmod tempor incididunt ut labore et dolore magnax",
         "refs": [
@@ -14023,7 +14023,7 @@
         "y": 346
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 276 est laborum lorem ipsum dolor sit amet consectetur a",
         "refs": [
@@ -14076,7 +14076,7 @@
         "y": 346
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 277 anim id est laborum lorem ipsum dolor sit amet",
         "refs": [
@@ -14129,7 +14129,7 @@
         "y": 346
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 278 amet consectetur adipiscing elit sed do ei",
         "refs": [
@@ -14182,7 +14182,7 @@
         "y": 346
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 279 non proident sunt culpa qui officia deserunt mollit anim id estx",
         "refs": [
@@ -14244,7 +14244,7 @@
         "y": 346
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 280 est laborum lorem ipsum dolor sit amet consectetur a",
         "refs": [
@@ -14297,7 +14297,7 @@
         "y": 352
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 281 nisi aliquip ex ea commod",
         "note": "cillum fugiat nullax",
@@ -14360,7 +14360,7 @@
         "y": 354
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 282 est laborum lorem ipsum dolor sit amet consectetur a",
         "refs": [
@@ -14437,7 +14437,7 @@
       "width": 216,
       "height": 228,
       "data": {
-        "itemKind": "note",
+        "type": "note",
         "kind": "task",
         "label": "Card 283 enim ad minim veniam quis nostrud exercitation ullamco laboris nisi aliquip ex ea commodo consequat duis aute irure in reprehenderit voluptate velit esse cillum fugiat nulla pariatur excepteur sint occaecat cupidatat non proident sunt culpa qui officia deserunt mollitx",
         "status": "todo"
@@ -14452,7 +14452,7 @@
         "y": 365
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 284 minim veniam quis nostrud exercitation ullamco laborisx",
         "refs": [
@@ -14514,7 +14514,7 @@
         "y": 366
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 285 elit sed do eiusmod tempor incididunt ut labor",
         "refs": [
@@ -14540,7 +14540,7 @@
         "y": 371
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 286 enim ad minim veniam quis nostrud exercitation ullamco l",
         "refs": [
@@ -14565,7 +14565,7 @@
         "y": 371
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 287 exercitation ullamco laboris nisi ali",
         "refs": [
@@ -14634,7 +14634,7 @@
         "y": 371
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 288 non proident sunt culpa qui officia deserunt mollit anim idx",
         "note": "do eiusmod tempor incididunt ut labore",
@@ -14698,7 +14698,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 289 consequat duis aute irure in reprehende",
         "refs": [
@@ -14724,7 +14724,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 290 dolore magna aliqua enim ad minim venia",
         "refs": [
@@ -14786,7 +14786,7 @@
         "y": 371
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 291 labore et dolore magna aliqua enim adx",
         "note": "nulla pariatur excepteur sint occaecat cupidatat non pro",
@@ -14840,7 +14840,7 @@
         "y": 371
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 292 nostrud exercitation ullamco labori",
         "refs": [
@@ -14903,7 +14903,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 293 est laborum lorem ipsum dolor s",
         "refs": [
@@ -14965,7 +14965,7 @@
         "y": 373
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 294 aliquip ex ea commodo consequat",
         "refs": [
@@ -15027,7 +15027,7 @@
         "y": 373
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 295 deserunt mollit anim id est labo",
         "refs": [
@@ -15089,7 +15089,7 @@
         "y": 373
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 296 magna aliqua enim ad minim veniam quis nostrud exercitation ullamco labori",
         "note": "laborum lorem ipsum dolor sit amet consectetur adipiscing",
@@ -15106,7 +15106,7 @@
         "y": 373
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 297 nulla pariatur excepteur sint occaecat cupidatat no",
         "refs": [
@@ -15168,7 +15168,7 @@
         "y": 373
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 298 sed do eiusmod tempor incididunt ut l",
         "note": "officia deserunt mol",
@@ -15194,7 +15194,7 @@
         "y": 373
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 299 culpa qui officia deserunt mollit anim id est l",
         "refs": [
@@ -15256,7 +15256,7 @@
         "y": 373
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 300 pariatur exc",
         "refs": [
@@ -15318,7 +15318,7 @@
         "y": 373
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 301 ullamco laboris nisi aliquip ex",
         "refs": [
@@ -15380,7 +15380,7 @@
         "y": 373
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 302 do eiusmod tempor incidid",
         "refs": [
@@ -15442,7 +15442,7 @@
         "y": 373
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 303 dolor sit amet consectetur adipiscing elit sedx",
         "refs": [
@@ -15504,7 +15504,7 @@
         "y": 373
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 304 veniam quis nostrud exercitation",
         "refs": [
@@ -15566,7 +15566,7 @@
         "y": 373
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 305 pariatur excepteur sint occaecat cupidatat nonx",
         "refs": [
@@ -15629,7 +15629,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 306 velit esse cillum fugiat nulla pariatu",
         "refs": [
@@ -15691,7 +15691,7 @@
         "y": 374
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 307 occaecat cupidatat non proident",
         "refs": [
@@ -15753,7 +15753,7 @@
         "y": 374
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 308 est laborum lorem ipsum dolo",
         "note": "enim ad minim",
@@ -15816,7 +15816,7 @@
         "y": 374
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 309 mollit anim id est laborumx",
         "refs": [
@@ -15878,7 +15878,7 @@
         "y": 374
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 310 occaecat cupidatat non proident sunt culpa qui officia",
         "refs": [
@@ -15940,7 +15940,7 @@
         "y": 374
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 311 labore et dolore magna aliqua e",
         "note": "excepteur sint occaecat cupidatat non proident sunt culpa qui officia deserunt mollit anim id est laborum lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua enim ad minim veniam quis nostrud exercitation ullamco laboris nisi aliquip ex ea commodo consequat duis aute irure in reprehenderit voluptate vel",
@@ -15957,7 +15957,7 @@
         "y": 390
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 312 duis aute irure in reprehenderit voluptate velit esse",
         "refs": [
@@ -15983,7 +15983,7 @@
         "y": 390
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 313 laboris nisi aliquip ex ea commodo consequat duis aute irurex",
         "refs": [
@@ -16009,7 +16009,7 @@
         "y": 393
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 314 nostrud exercitation ullamco laboris nisi aliquip ex ea commodo",
         "refs": [
@@ -16034,7 +16034,7 @@
         "y": 409
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 315 reprehenderit vol",
         "refs": [
@@ -16096,7 +16096,7 @@
         "y": 409
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 316 adipiscing elit sed do eiusmod tempor in",
         "refs": [
@@ -16166,7 +16166,7 @@
       "width": 216,
       "height": 136,
       "data": {
-        "itemKind": "note",
+        "type": "note",
         "kind": "task",
         "label": "Card 317 ad minim veniam quis nostrud exercitation ullamco laboris nisi aliquip ex ea commodo consequat duis aute irure in reprehenderit voluptate velit esse cil",
         "status": "todo"
@@ -16181,7 +16181,7 @@
         "y": 440
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 318 voluptate velit esse cillum fug",
         "note": "laborum lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua enim ad minim veniam quis nostrud exercitation ullamco laboris nisi aliquip ex ea commodo consequat duisx",
@@ -16244,7 +16244,7 @@
         "y": 462
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 319 cupidatat non proident sunt culpa qui officia deseru",
         "refs": [
@@ -16285,7 +16285,7 @@
         "y": 466
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 320 do eiusmod tempor incididunt ut laborex",
         "refs": [
@@ -16360,7 +16360,7 @@
         "y": 466
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 321 officia deserunt mollit anim id est laborum l",
         "refs": [
@@ -16422,7 +16422,7 @@
         "y": 466
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 322 sint occaecat cupidatat non proident sunt culpa qui",
         "refs": [
@@ -16497,7 +16497,7 @@
         "y": 466
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 323 incididunt ut labore etx",
         "refs": [
@@ -16572,7 +16572,7 @@
         "y": 468
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 324 occaecat cupidatat non proident sunt c",
         "refs": [
@@ -16598,7 +16598,7 @@
         "y": 469
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 325 dolor sit amet consectetur adipiscingx",
         "note": "veniam quis nostrud exercitati",
@@ -16661,7 +16661,7 @@
         "y": 469
       },
       "data": {
-        "itemKind": "step",
+        "type": "step",
         "kind": "task",
         "label": "Card 326 velit esse cillum fugiat nulla pariatur excepteur sint occaec",
         "note": "do eiusmod tempor incididunt ut labore et dolore magna aliqua enim ad minim veni",
@@ -16677,7 +16677,7 @@
         "y": 469
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 327 quis nostrud exercitation ullamco labori",
         "refs": [
@@ -16747,7 +16747,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 328 id est laborum lorem ipsum dolo",
         "refs": [
@@ -16823,7 +16823,7 @@
         "y": 469
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 329 aliquip ex ea commodo consequat duis aute irure in reprehenderi",
         "refs": [
@@ -16848,7 +16848,7 @@
         "y": 470
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 330 adipiscing elit sed do e",
         "refs": [
@@ -16873,7 +16873,7 @@
         "y": 470
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 331 do eiusmod tempor incididunt ut labore et dolor",
         "refs": [
@@ -16898,7 +16898,7 @@
         "y": 470
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 332 voluptate velit esse cillum fug",
         "refs": [
@@ -16923,7 +16923,7 @@
         "y": 472
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 333 enim ad minim veniam quis nostrud ex",
         "refs": [
@@ -16985,7 +16985,7 @@
         "y": 472
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 334 pariatur excepteur sint occaecat cupidatat non p",
         "refs": [
@@ -17047,7 +17047,7 @@
         "y": 472
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 335 ut labore et dolore magna aliqua enimx",
         "refs": [
@@ -17109,7 +17109,7 @@
         "y": 472
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 336 deserunt mollit anim id est laborum lo",
         "refs": [
@@ -17171,7 +17171,7 @@
         "y": 472
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 337 occaecat cupidatat non proiden",
         "refs": [
@@ -17233,7 +17233,7 @@
         "y": 472
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 338 elit sed do eiusmod tempor in",
         "refs": [
@@ -17295,7 +17295,7 @@
         "y": 473
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 339 consectetur adipiscing elit sed do e",
         "note": "duis aute irure in reprehenderit voluptate velit esse cillum fugiat nulla",
@@ -17358,7 +17358,7 @@
         "y": 474
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 340 tempor incididunt ut labore et dolore magna aliqua enim a",
         "note": "deserunt mollit anim id est labor",
@@ -17421,7 +17421,7 @@
         "y": 478
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 341 ad minim veniam quis nostrud exercitation ullamco la",
         "note": "cillum fugiat nulla pariatur excepteur sint occaecat cupi",
@@ -17447,7 +17447,7 @@
         "y": 484
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 342 commodo consequat duis aute irure in reprehenderi",
         "refs": [
@@ -17516,7 +17516,7 @@
         "y": 490
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 343 qui officia deserunt mollit anim i",
         "refs": [
@@ -17557,7 +17557,7 @@
         "y": 503
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 344 consequat duis aute irure in reprehenderit volupt",
         "refs": [
@@ -17627,7 +17627,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 345 commodo consequat duis aute irure in repreh",
         "note": "quis nostrud exercitation ullamco laboris nisi aliquip ex ea commodo consequatx",
@@ -17690,7 +17690,7 @@
         "y": 536
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 346 ad minim veniam quis nostrud exercit",
         "note": "mollit anim id est laborum lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua enim ad minim veniam quis nostrud exercitation ullamco laboris nisi aliquip ex ea commodo consequat duisx",
@@ -17759,7 +17759,7 @@
         "y": 539
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 347 voluptate velit esse cillum fugiatx",
         "note": "veniam quis nostru",
@@ -17785,7 +17785,7 @@
         "y": 546
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 348 ea commodo consequat duis aute irure in reprehende",
         "refs": [
@@ -17811,7 +17811,7 @@
         "y": 549
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 349 labore et dolore magna aliqua en",
         "note": "irure in reprehenderit voluptate velit esse cillum fugiat nulla pariatur excepteur sint occaecat cupidatat non proident sunt culpa qui officia deseru",
@@ -17881,7 +17881,7 @@
         "y": 549
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 350 laborum lorem ipsum dolor sit amet consectetur adipiscing elit sedx",
         "refs": [
@@ -17956,7 +17956,7 @@
         "y": 549
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 351 id est laborum lorem ipsum dolor sit amet consectetur ad",
         "refs": [
@@ -18025,7 +18025,7 @@
         "y": 564
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 352 minim veniam quis nostrud exe",
         "refs": [
@@ -18051,7 +18051,7 @@
         "y": 565
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 353 dolore magna aliqua",
         "refs": [
@@ -18120,7 +18120,7 @@
         "y": 566
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 354 mollit anim id est lab",
         "refs": [
@@ -18145,7 +18145,7 @@
         "y": 570
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 355 adipiscing elit sed do eiusmod tempor incididu",
         "refs": [
@@ -18207,7 +18207,7 @@
         "y": 570
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 356 id est laborum lorem ipsum dolor sit a",
         "refs": [
@@ -18269,7 +18269,7 @@
         "y": 570
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 357 incididunt ut labore et dolore",
         "refs": [
@@ -18331,7 +18331,7 @@
         "y": 570
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 358 magna aliqua enim ad minim veniam quis nostrud",
         "refs": [
@@ -18393,7 +18393,7 @@
         "y": 570
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 359 irure in reprehenderit voluptate velit",
         "refs": [
@@ -18456,7 +18456,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 360 nisi aliquip ex ea commodo consequat duis",
         "refs": [
@@ -18520,7 +18520,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 361 ea commodo consequat duis au",
         "refs": [
@@ -18583,7 +18583,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 362 irure in reprehenderit voluptate velit essex",
         "refs": [
@@ -18646,7 +18646,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 363 qui officia deserunt mollit anim id est labor",
         "refs": [
@@ -18709,7 +18709,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 364 ut labore et dolore magna aliqua enim ad minim ven",
         "note": "aliqua enim ad minim veniam quis nostrud exercitation ullamco laboris nisi aliquip ex ea commodo consequat duis aute irure in reprehenderit voluptate velit esse cillum fugiat nulla pariatur excepteur sint oc",
@@ -18773,7 +18773,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 365 anim id est laborum lorem ipsum",
         "refs": [
@@ -18848,7 +18848,7 @@
         "y": 585
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 366 cillum fugiat nulla pariatur exc",
         "refs": [
@@ -18923,7 +18923,7 @@
         "y": 586
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 367 esse cillum fugiat nulla pariatur excepteur sin",
         "refs": [
@@ -18985,7 +18985,7 @@
         "y": 586
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 368 non proident sunt culpa qui officia deserunt molli",
         "refs": [
@@ -19010,7 +19010,7 @@
         "y": 615
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 369 reprehenderit voluptate velit esse cil",
         "refs": [
@@ -19130,7 +19130,7 @@
         "y": 635
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 370 ex ea commodo consequat duis aute irure in reprehenderi",
         "note": "qui officia deserunt mollit anim id est laborum",
@@ -19193,7 +19193,7 @@
         "y": 653
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 371 anim id est laborum lorem ipsum dolor sit amet c",
         "refs": [
@@ -19219,7 +19219,7 @@
         "y": 653
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 372 dolore magna aliqua enim ad min",
         "refs": [
@@ -19281,7 +19281,7 @@
         "y": 653
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 373 consequat duis aute irure in reprehenderit voluptate veli",
         "refs": [
@@ -19307,7 +19307,7 @@
         "y": 661
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 374 veniam quis nostrud exercit",
         "refs": [
@@ -19333,7 +19333,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 375 cupidatat non proident sunt culpa qui offic",
         "refs": [
@@ -19395,7 +19395,7 @@
         "y": 666
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 376 commodo consequat duis aute irure in r",
         "refs": [
@@ -19462,7 +19462,7 @@
         "y": 666
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 377 irure in reprehenderit voluptate velit esse cillumx",
         "refs": [
@@ -19488,7 +19488,7 @@
         "y": 666
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 378 id est laborum lorem ipsum dolor sit",
         "refs": [
@@ -19514,7 +19514,7 @@
         "y": 678
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 379 sunt culpa qui officia dese",
         "refs": [
@@ -19589,7 +19589,7 @@
         "y": 679
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 380 velit esse cillum fugiat nulla pariatur excepteur sint occaecat cu",
         "refs": [
@@ -19664,7 +19664,7 @@
         "y": 679
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 381 do eiusmod tempor incididunt ut l",
         "refs": [
@@ -19739,7 +19739,7 @@
         "y": 681
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 382 ex ea commodo consequat duis aute",
         "refs": [
@@ -19808,7 +19808,7 @@
         "y": 681
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 383 dolore magna aliqua enim ad minim veniam quis nostrud",
         "refs": [
@@ -19883,7 +19883,7 @@
         "y": 681
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 384 in reprehenderit voluptate velit esse cillum fugia",
         "refs": [
@@ -19958,7 +19958,7 @@
         "y": 689
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 385 quis nostrud exercitation ullamco labori",
         "refs": [
@@ -19984,7 +19984,7 @@
         "y": 692
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 386 ipsum dolor sit amet consectetur adipiscing elit sed do",
         "refs": [
@@ -20052,7 +20052,7 @@
         "y": 692
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 387 enim ad minim veniam quisx",
         "note": "occaecat cupidatat non proident sunt culpa qui officia deserunt mollit anim id est laborum lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmo",
@@ -20116,7 +20116,7 @@
         "y": 693
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 388 qui officia deserunt mollit anim id est laborum loremx",
         "note": "proident sunt culpa qui officia deserunt mollit anim id est laborum lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt",
@@ -20185,7 +20185,7 @@
         "y": 693
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 389 veniam quis nostrud exercitation ullamco laborisx",
         "note": "labore et dolore magna aliqua enim ad minim veniam quis nostrud exercitation ullam",
@@ -20254,7 +20254,7 @@
         "y": 742
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 390 nulla pariatur excepteur sint occaecat cupidat",
         "refs": [
@@ -20328,7 +20328,7 @@
         "y": 754
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 391 adipiscing elit sed do eiusmod tem",
         "note": "ex ea commodo consequat duis aute irure in reprehenderit voluptate velit esse cillum fugiat nul",
@@ -20392,7 +20392,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 392 anim id est laborum lo",
         "refs": [
@@ -20462,7 +20462,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 393 in reprehenderit voluptate velit esse c",
         "refs": [
@@ -20525,7 +20525,7 @@
         "y": 762
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 394 commodo consequat duis aute",
         "refs": [
@@ -20551,7 +20551,7 @@
         "y": 762
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 395 cillum fugiat n",
         "refs": [
@@ -20577,7 +20577,7 @@
         "y": 762
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 396 veniam quis nostrud exercitationx",
         "refs": [
@@ -20603,7 +20603,7 @@
         "y": 762
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 397 aute irure in reprehenderit voluptate velit",
         "refs": [
@@ -20629,7 +20629,7 @@
         "y": 765
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 398 nulla pariatur excepteur sint occaec",
         "refs": [
@@ -20691,7 +20691,7 @@
         "y": 765
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 399 sunt culpa qui officia deserunt mollit anim id e",
         "refs": [
@@ -20753,7 +20753,7 @@
         "y": 768
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 400 sint occaecat cupidatat non proident sunt culpa qui offici",
         "refs": [
@@ -20779,7 +20779,7 @@
         "y": 780
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 401 pariatur excepteur sint occaecat cupidatat non proident sunt culpa",
         "refs": [
@@ -20805,7 +20805,7 @@
         "y": 789
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 402 occaecat cupidatat non proident",
         "refs": [
@@ -20831,7 +20831,7 @@
         "y": 794
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 403 esse cillum fugiat nulla pariatur e",
         "refs": [
@@ -20899,7 +20899,7 @@
         "y": 826
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 404 deserunt mollit anim id est laborum lorem ip",
         "refs": [
@@ -20974,7 +20974,7 @@
         "y": 827
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 405 proident sunt culpa qui officia deserunt moll",
         "refs": [
@@ -21000,7 +21000,7 @@
         "y": 841
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 406 lorem ipsum dolor sit amet consectetur adipiscing elit",
         "refs": [
@@ -21075,7 +21075,7 @@
         "y": 855
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 407 sit amet consectetur adipiscing elit sed do eiusmod temp",
         "refs": [
@@ -21151,7 +21151,7 @@
         "y": 855
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 408 officia deserunt mollit anim id est l",
         "refs": [
@@ -21228,7 +21228,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 409 magna aliqua enim ad minim veniam qui",
         "refs": [
@@ -21303,7 +21303,7 @@
         "y": 860
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 410 ullamco laboris nisi aliq",
         "note": "qui officia deserunt mollit anim id est laborum",
@@ -21358,7 +21358,7 @@
       },
       "data": {
         "deferredByClosedPull": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 411 officia deserunt mollit anim id est laborum lorem ipsum dolor sitx",
         "refs": [
@@ -21420,7 +21420,7 @@
         "y": 860
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 412 et dolore magna aliqu",
         "refs": [
@@ -21482,7 +21482,7 @@
         "y": 860
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 413 mollit anim id est laborum lorem ipsum dolor sit amet consectetur adipiscing",
         "refs": [
@@ -21545,7 +21545,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 414 reprehenderit voluptate veli",
         "refs": [
@@ -21614,7 +21614,7 @@
         "y": 860
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 415 irure in reprehenderit voluptate velit esse cillum",
         "note": "enim ad minim ven",
@@ -21641,7 +21641,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 416 laboris nisi aliquip ex ea commodo consequat duis aute",
         "refs": [
@@ -21703,7 +21703,7 @@
         "y": 875
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 417 proident sunt culpa qui officia deseru",
         "refs": [
@@ -21744,7 +21744,7 @@
         "y": 892
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 418 fugiat nulla pariatur excepteur sint occa",
         "refs": [
@@ -21819,7 +21819,7 @@
         "y": 954
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 419 et dolore magna aliqua enim ad minim venia",
         "refs": [
@@ -21844,7 +21844,7 @@
         "y": 954
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 420 dolore magna aliqua enim ad minim veniam qui",
         "refs": [
@@ -21870,7 +21870,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 421 consectetur adipiscing elit sed do eiusm",
         "refs": [
@@ -21932,7 +21932,7 @@
         "y": 956
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 422 in reprehenderit voluptate velit esse cillumx",
         "refs": [
@@ -22006,7 +22006,7 @@
         "y": 956
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 423 sed do eiusmod tempor incididunt ut labor",
         "refs": [
@@ -22090,7 +22090,7 @@
         "y": 956
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 424 sit amet consectetur adipiscing elit sed do",
         "refs": [
@@ -22165,7 +22165,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 425 duis aute irure in reprehenderit voluptate velit esse c",
         "refs": [
@@ -22227,7 +22227,7 @@
         "y": 966
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 426 minim veniam quis nostrud exercitation",
         "refs": [
@@ -22254,7 +22254,7 @@
       "width": 216,
       "height": 104,
       "data": {
-        "itemKind": "note",
+        "type": "note",
         "kind": "task",
         "label": "Card 427 nisi aliquip ex ea commodo consequat duis aute irure in reprehenderit voluptate vel",
         "status": "todo"
@@ -22269,7 +22269,7 @@
         "y": 966
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 428 cillum fugiatx",
         "repo": "example/repo-1",
@@ -22285,7 +22285,7 @@
         "y": 966
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 429 irure in reprehenderit voluptate ve",
         "refs": [
@@ -22352,7 +22352,7 @@
         "y": 966
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 430 enim ad minim veniam quis nostrud exercitati",
         "refs": [
@@ -22419,7 +22419,7 @@
         "y": 966
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 431 consectetur adipiscing elit",
         "refs": [
@@ -22444,7 +22444,7 @@
         "y": 991
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 432 veniam quis nostrud exercitation ullamco laboris nisi",
         "refs": [
@@ -22507,7 +22507,7 @@
         "y": 1040
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 433 occaecat cupidatat non proident sunt culpa qui officia d",
         "refs": [
@@ -22576,7 +22576,7 @@
         "y": 1040
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 434 do eiusmod tempor incididunt ut labore et d",
         "note": "deseruntx",
@@ -22641,7 +22641,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 435 nisi aliquip ex ea commodo consequat duis aute",
         "note": "dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua enim ad minim veniam quis nostrud exercitation ullamco",
@@ -22704,7 +22704,7 @@
         "y": 1055
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 436 pariatur excepteur sint occaecat cupid",
         "refs": [
@@ -22730,7 +22730,7 @@
         "y": 1055
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 437 adipiscing elit sed do eiusmod tempor incididunt ut labor",
         "refs": [
@@ -22756,7 +22756,7 @@
         "y": 1055
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 438 labore et dolore magna aliqua enim ad minim veniam quis nostrud exercita",
         "refs": [
@@ -22782,7 +22782,7 @@
         "y": 1055
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 439 non proident sunt culpa qui officia deserunt mollit ani",
         "refs": [
@@ -22808,7 +22808,7 @@
         "y": 1055
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 440 reprehenderit voluptat",
         "refs": [
@@ -22834,7 +22834,7 @@
         "y": 1055
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 441 sit amet consectetur adipiscing e",
         "refs": [
@@ -22896,7 +22896,7 @@
         "y": 1103
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 442 aute irure in reprehenderit voluptate vel",
         "refs": [
@@ -22959,7 +22959,7 @@
         "y": 1153
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 443 proident sunt culpa qui officia deserunt mol",
         "refs": [
@@ -22985,7 +22985,7 @@
         "y": 1153
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 444 adipiscing elit sed do eiusmod tem",
         "refs": [
@@ -23012,7 +23012,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 445 quis nostrud exercitation ullamco laboris ni",
         "refs": [
@@ -23074,7 +23074,7 @@
         "y": 1153
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 446 ut labore et dolore magna al",
         "refs": [
@@ -23099,7 +23099,7 @@
         "y": 1153
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 447 exercitation ullamco laboris nisi aliquip",
         "refs": [
@@ -23124,7 +23124,7 @@
         "y": 1153
       },
       "data": {
-        "itemKind": "placeholder",
+        "type": "placeholder",
         "kind": "task",
         "label": "Card 448 incididunt",
         "refs": [
@@ -23150,7 +23150,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 449 ad minim veniam quis nostrud exercitation ullamco laboris nisix",
         "refs": [
@@ -23213,7 +23213,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 450 excepteur sint occaecat cupidatat nonx",
         "refs": [
@@ -23277,7 +23277,7 @@
       "width": 216,
       "height": 152,
       "data": {
-        "itemKind": "note",
+        "type": "note",
         "kind": "task",
         "label": "Card 451 non proident sunt culpa qui officia deserunt mollit anim id est laborum lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt",
         "status": "todo"
@@ -23292,7 +23292,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 452 consectetur adipiscing elit sed do eiusmod",
         "refs": [
@@ -23354,7 +23354,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 453 velit esse cillum fugiat nulla pariatur excepteur sin",
         "refs": [
@@ -23416,7 +23416,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 454 exercitation ullamco laboris nisi aliquip ex ea",
         "refs": [
@@ -23478,7 +23478,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 455 excepteur sint occaecat cupida",
         "refs": [
@@ -23541,7 +23541,7 @@
       },
       "data": {
         "deferredByClosedPull": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 456 aute irure in reprehenderit voluptate velit esse cillum fugi",
         "note": "irure in reprehenderit voluptate velit esse cillum fugiat nulla pariatur excepteur sint occaecat cupidatat non proid",
@@ -23621,7 +23621,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 458 labore et dolore magna aliqua enim ad minim veni",
         "refs": [
@@ -23683,7 +23683,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 459 dolor sit amet consectetur adipiscing elit sed do",
         "refs": [
@@ -23745,7 +23745,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 460 ex ea commodo consequat duis aute irure i",
         "refs": [
@@ -23824,7 +23824,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 462 incididunt ut labore et dolore magna aliqua enim ad minim veniam",
         "note": "adipiscin",
@@ -23887,7 +23887,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 463 quis nostrud exercitation ullamco laborisx",
         "refs": [
@@ -23950,7 +23950,7 @@
       },
       "data": {
         "deferredByClosedPull": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 464 dolore magna aliqua enim ad minim ven",
         "note": "laborum lorem",
@@ -24013,7 +24013,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 465 quis nostrud exercitation ull",
         "refs": [
@@ -24077,7 +24077,7 @@
       "width": 216,
       "height": 212,
       "data": {
-        "itemKind": "note",
+        "type": "note",
         "kind": "task",
         "label": "Card 466 duis aute irure in reprehenderit voluptate velit esse cillum fugiat nulla pariatur excepteur sint occaecat cupidatat non proident sunt culpa qui officia deserunt mollit anim id est laborum lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod",
         "status": "todo"
@@ -24092,7 +24092,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 467 anim id est laborum lorem ipsum",
         "refs": [
@@ -24154,7 +24154,7 @@
         "y": 78
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 468 culpa qui officia deserunt mollit ani",
         "refs": [
@@ -24207,7 +24207,7 @@
         "y": 85
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 469 amet consectetur adipiscing el",
         "refs": [
@@ -24276,7 +24276,7 @@
         "y": 111
       },
       "data": {
-        "itemKind": "gate",
+        "type": "gate",
         "kind": "task",
         "label": "Card 470 mollit ani",
         "refs": [
@@ -24302,7 +24302,7 @@
         "y": 111
       },
       "data": {
-        "itemKind": "gate",
+        "type": "gate",
         "kind": "task",
         "label": "Card 471 laboris nisi aliquip",
         "refs": [
@@ -24328,7 +24328,7 @@
         "y": 111
       },
       "data": {
-        "itemKind": "gate",
+        "type": "gate",
         "kind": "task",
         "label": "Card 472 anim id est laboru",
         "refs": [
@@ -24354,7 +24354,7 @@
         "y": 111
       },
       "data": {
-        "itemKind": "gate",
+        "type": "gate",
         "kind": "task",
         "label": "Card 473 ut labore etx",
         "refs": [
@@ -24380,7 +24380,7 @@
         "y": 159
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 474 consequat duis aute irure in r",
         "note": "commodo consequat duis aute irure in reprehenderit voluptate velit esse cillum fugia",
@@ -24443,7 +24443,7 @@
         "y": 159
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 475 eiusmod tempor",
         "note": "dolore magna aliqua enim ad minim veniam quis nostrud ex",
@@ -24506,7 +24506,7 @@
         "y": 166
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 476 occaecat cupidatat non proident sunt culpax",
         "refs": [
@@ -24568,7 +24568,7 @@
         "y": 174
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 477 occaecat cupidatat nonx",
         "refs": [
@@ -24630,7 +24630,7 @@
         "y": 174
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 478 fugiat nulla pariatur excepteur sint occaecat cu",
         "refs": [
@@ -24692,7 +24692,7 @@
         "y": 174
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 479 reprehenderit voluptate velit esse cillum fugi",
         "refs": [
@@ -24754,7 +24754,7 @@
         "y": 174
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 480 consectetur adipiscing elit sed do eiusmod te",
         "refs": [
@@ -24816,7 +24816,7 @@
         "y": 174
       },
       "data": {
-        "itemKind": "gate",
+        "type": "gate",
         "kind": "task",
         "label": "Card 481 proident s",
         "refs": [
@@ -24842,7 +24842,7 @@
         "y": 174
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 482 est laborumx",
         "refs": [
@@ -24904,7 +24904,7 @@
         "y": 189
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 483 irure in reprehenderit voluptate velit",
         "note": "nulla pariatur excepteur sint occaecat cupidatat non proident sunt culpa qui officia deserunt mollit anim id est",
@@ -24967,7 +24967,7 @@
         "y": 189
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 484 lorem ipsum dolor sit amet consectetur adipiscingx",
         "note": "aute irur",
@@ -25030,7 +25030,7 @@
         "y": 234
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 485 commodo consequat duis aute irure in reprehenderit volupt",
         "refs": [
@@ -25092,7 +25092,7 @@
         "y": 234
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 486 labore et dolore magna aliqua enim a",
         "refs": [
@@ -25161,7 +25161,7 @@
         "y": 247
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 487 nulla pariatur excepteur sint occaecat cupid",
         "note": "irure in reprehenderit voluptate velit esse cillum fugiat nulla pariatur excepteur sint occaecat cupidatat n",
@@ -25224,7 +25224,7 @@
         "y": 262
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 488 adipiscing elit sed do eiusm",
         "note": "est laborum lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua enim adx",
@@ -25287,7 +25287,7 @@
         "y": 270
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 489 esse cillum fugiat nulla pariat",
         "refs": [
@@ -25349,7 +25349,7 @@
         "y": 278
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 490 aliqua enim ad minim veniam quis n",
         "note": "lorem ips",
@@ -25412,7 +25412,7 @@
         "y": 285
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 491 amet consectetur adipiscing elit sed do eiusmod",
         "refs": [
@@ -25474,7 +25474,7 @@
         "y": 316
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 492 sit amet consectetur adipiscing elit sed do eiusmod tempor",
         "note": "consequatx",
@@ -25537,7 +25537,7 @@
         "y": 318
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 493 occaecat cupidatat",
         "refs": [
@@ -25600,7 +25600,7 @@
         "y": 318
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 494 deserunt mollit anim id est laborum loremx",
         "refs": [
@@ -25663,7 +25663,7 @@
         "y": 330
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 495 ad minim veniam quis nostrud exercitation ullamco la",
         "refs": [
@@ -25732,7 +25732,7 @@
         "y": 344
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 496 eiusmod tempor incididunt ut labore et dolore magn",
         "refs": [
@@ -25852,7 +25852,7 @@
         "y": 389
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 500 adipiscing elit sed do eiusmod tempor incididunt ut la",
         "refs": [
@@ -25914,7 +25914,7 @@
         "y": 449
       },
       "data": {
-        "itemKind": "gate",
+        "type": "gate",
         "kind": "task",
         "label": "Card 501 minim veniam quis nostrud exercit",
         "note": "duis aute irure in reprehenderit voluptate velit esse cillum fugiat nulla pariatur excepteur sint occaecat cupidatat non proident sunt culpa qui officia deserunt m",
@@ -25930,7 +25930,7 @@
         "y": 491
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 502 sint occaecat cupidatat non proident sunt culpa qui of",
         "note": "exercitati",
@@ -25993,7 +25993,7 @@
         "y": 550
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 503 mollit anim id est laborum l",
         "note": "amet cons",
@@ -26056,7 +26056,7 @@
         "y": 582
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 504 irure in reprehenderit voluptate v",
         "note": "occaecat c",
@@ -26136,7 +26136,7 @@
         "y": 655
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 506 dolor sit amet consectetur adipi",
         "note": "sunt culp",
@@ -26199,7 +26199,7 @@
         "y": 698
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 507 ex ea commodo consequat duis aute irure in reprehenderit v",
         "note": "aliquip e",
@@ -26262,7 +26262,7 @@
         "y": 703
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 508 commodo consequat duis aute irure in r",
         "note": "proident s",
@@ -26325,7 +26325,7 @@
         "y": 775
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 509 enim ad minim veniam quis nostrud exercitation ullamco l",
         "refs": [
@@ -26394,7 +26394,7 @@
         "y": 801
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 510 nisi aliquip ex ea commodo consequat duis aute",
         "note": "amet cons",
@@ -26457,7 +26457,7 @@
         "y": 819
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 511 anim id est laborum lorem ipsum dolor sit amet c",
         "refs": [
@@ -26526,7 +26526,7 @@
         "y": 851
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 512 aute irure in reprehenderit voluptate velit esse",
         "note": "excepteurx",
@@ -26589,7 +26589,7 @@
         "y": 940
       },
       "data": {
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 513 nisi aliquip ex ea commodo consequat du",
         "note": "consequat",
@@ -26653,7 +26653,7 @@
       },
       "data": {
         "celebrate": true,
-        "itemKind": "pr",
+        "type": "pr",
         "kind": "task",
         "label": "Card 514 laborum lorem ipsum dolor sit amet consectetur adipiscin",
         "note": "incididunt",
