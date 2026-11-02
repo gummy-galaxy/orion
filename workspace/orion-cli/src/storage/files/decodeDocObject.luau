@@ -127,8 +127,10 @@ local function decodeDocObject(root: json.Object): Doc
 
 	for _, item in nodes do
 		if item.type == "task" then
-			-- Cards from before types keep `itemKind` until read. Remove at
-			-- 0.1.0 with the rest of `migrations/`.
+			-- Cards saved by older builds may keep their kind in `itemKind`, or
+			-- store a kind their refs should decide. `migrateItemKind` converts
+			-- them each time they're read, and the next write saves the result.
+			-- Remove at 0.1.0 with the rest of `migrations/`.
 			migrateItemKind(item)
 			fillPullFacts(item)
 		end
