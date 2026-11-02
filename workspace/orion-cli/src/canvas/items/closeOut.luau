@@ -1,5 +1,5 @@
 local getItem = require("@root/canvas/items/getItem")
-local getStringField = require("@root/common/getStringField")
+local getStateMeaning = require("@root/canvas/cardTypes/getStateMeaning")
 local isWork = require("@root/canvas/items/isWork")
 local types = require("@root/types")
 
@@ -12,7 +12,7 @@ type Doc = types.Doc
 local function closeOut(doc: Doc, id: string)
 	local item = getItem(doc, id)
 	assert(isWork(item), `"{id}" isn't a work item, so it has nothing to close out`)
-	assert(getStringField(item.data.status) == "done", `"{id}" isn't done yet; finish it before closing it out`)
+	assert(getStateMeaning(item) == "done", `"{id}" isn't done yet; finish it before closing it out`)
 
 	item.data.celebrate = false
 end

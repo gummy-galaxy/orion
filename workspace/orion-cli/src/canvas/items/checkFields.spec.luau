@@ -20,7 +20,6 @@ end)
 test.case("checkFields refuses values Orion doesn't store", function(assert)
 	local cases: { { any } } = {
 		{ { repo = "orion" }, "repo must be owner/name" },
-		{ { status = "maybe" }, `status must be one of {table.concat(fieldValues.statuses, ", ")}` },
 		{ { who = "them" }, `who must be one of {table.concat(fieldValues.who, ", ")}` },
 		{ { kind = "milestone" }, `kind must be one of {table.concat(fieldValues.kinds, ", ")}` },
 		{ { arrange = "grid" }, `arrange must be one of {table.concat(fieldValues.arrangements, ", ")}` },

@@ -28,6 +28,8 @@ import { ContextMenu, type MenuItem } from './ContextMenu'
 import { LinkPrompt } from './LinkPrompt'
 import { COMMAND_PREFIX, Palette, type Command } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './AttentionOverlay'
+import { findState } from '../cardTypes/findState'
+import { getStateMeaning } from '../cardTypes/getStateMeaning'
 import { ActionsContext, type AttentionMark, type Flow } from '../derive'
 import { isSameRef } from '../refs/isSameRef'
 import { localDateValue, snoozeUntil } from '../snooze'
@@ -169,7 +171,7 @@ import {
   pasteClip,
   type Clip,
 } from '../clipboard'
-import { patchWork, type BatchPatch } from '../batchEdit'
+import { patchFor, patchWork, type BatchPatch } from '../batchEdit'
 import { reconnectLink } from '../reconnect'
 import { ActionBar } from './ActionBar'
 import { SnapGuides } from './SnapGuides'
@@ -2707,7 +2709,7 @@ export function Canvas() {
   /** Sets the same fields on every work item in the selection, as one edit. */
   const patchSelection = (patch: BatchPatch) => {
     const ids = new Set(selected.map((node) => node.id))
-    const finished = selected.filter((node) => isTask(node) && closesOut(node.data, patch))
+    const finished = selected.filter((node) => isTask(node) && closesOut(node.data, patchFor(node.data, patch)))
 
     // Finishing cards here closes them out at once, as a single edit does, so their Done stamps land together.
     if (finished.length > 0) landStamps(new Map(finished.map((node) => [node.id, 0])))
@@ -3541,12 +3543,12 @@ export function Canvas() {
       const selectedWork = node.selected ? selected.filter(isWork).map((item) => item.data as TaskData) : []
       const markDone: MenuItem =
         selectedWork.length > 1
-          ? selectedWork.every((item) => item.status === 'done')
+          ? selectedWork.every((item) => getStateMeaning(item) === 'done')
             ? { label: `Mark ${selectedWork.length} not done`, run: () => patchSelection({ status: 'todo' }) }
             : { label: `Mark ${selectedWork.length} done`, run: () => patchSelection({ status: 'done' }) }
-          : data.status === 'done'
-            ? { label: 'Mark not done', run: () => updateData(node.id, { status: 'todo' }) }
-            : { label: 'Mark done', run: () => updateData(node.id, { status: 'done' }) }
+          : getStateMeaning(data) === 'done'
+            ? { label: 'Mark not done', run: () => updateData(node.id, { status: findState(data, 'todo') }) }
+            : { label: 'Mark done', run: () => updateData(node.id, { status: findState(data, 'done') }) }
 
       return [
         ...many,

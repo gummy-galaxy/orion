@@ -1,9 +1,11 @@
 local json = require("@std/json")
 
 local checkFields = require("@root/canvas/items/checkFields")
+local checkState = require("@root/canvas/cardTypes/checkState")
 local createId = require("@root/common/createId")
 local findPlacement = require("@root/canvas/placement/findPlacement")
 local getNeighborGroup = require("@root/canvas/groups/getNeighborGroup")
+local getStringField = require("@root/common/getStringField")
 local graphTypes = require("@root/canvas/types")
 local linkNeighbors = require("@root/canvas/links/linkNeighbors")
 local setLook = require("@root/canvas/items/setLook")
@@ -40,6 +42,7 @@ local function addItem(doc: Doc, label: string, options: AddOptions): Item
 		data = data,
 	}
 
+	checkState(item, getStringField(data.status) :: string)
 	setLook(item, options)
 	table.insert(doc.nodes, item)
 	linkNeighbors(doc, item.id, options.after, options.before)

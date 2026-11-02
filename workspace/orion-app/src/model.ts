@@ -58,7 +58,8 @@ export type TaskData = {
   types?: string[]
   /** Values for the fields the card's types declare, by name, beyond the ones stored on the card itself. */
   fields?: Record<string, string | number | boolean>
-  status: Status
+  /** The state recorded on the card, one its type declares. `getStateMeaning` reads what it counts as. */
+  status: string
   /** Full owner/name of the repository this work belongs to. */
   repo?: string
   refs?: SourceRef[]

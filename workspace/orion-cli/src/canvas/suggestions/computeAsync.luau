@@ -1,6 +1,7 @@
 local findRef = require("@root/canvas/refs/findRef")
 local getLabel = require("@root/canvas/items/getLabel")
 local getRefs = require("@root/canvas/refs/getRefs")
+local getStateMeaning = require("@root/canvas/cardTypes/getStateMeaning")
 local isWork = require("@root/canvas/items/isWork")
 local json = require("@std/json")
 local match = require("@root/canvas/query/match")
@@ -335,7 +336,7 @@ local function getAgentGroupsAsync(
 ): { Group }?
 	local ordered = table.clone(cards)
 	table.sort(ordered, function(a: Item, b: Item)
-		local firstOpen, secondOpen = a.data.status ~= "done", b.data.status ~= "done"
+		local firstOpen, secondOpen = getStateMeaning(a) ~= "done", getStateMeaning(b) ~= "done"
 
 		if firstOpen ~= secondOpen then
 			return firstOpen

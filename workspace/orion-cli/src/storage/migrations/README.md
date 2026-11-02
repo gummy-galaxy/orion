@@ -2,7 +2,7 @@
 
 Each module here upgrades data written by an Orion from before 0.1.0. Everyone who installs 0.1.0 or later starts on the current layout, so none of them are needed once it ships.
 
-**Delete this folder at the 0.1.0 release**, along with the calls to it in `storage/canvases/getActiveWorkspace.luau` and `storage/files/decodeDocObject.luau`, and the paragraph on older versions in `docs/guide/data.md`. Clear the alias entries in [`cli/aliases/`](../../cli/aliases/README.md) in the same step.
+**Delete this folder at the 0.1.0 release**, along with the calls to it in `storage/canvases/getActiveWorkspace.luau` and `storage/files/decodeDocObject.luau`, and the paragraph on older versions in `docs/guide/data.md`. Clear the alias entries in [`../aliases/`](../aliases/README.md) in the same step.
 
 | Module | Added | What it upgrades | Called from |
 | --- | --- | --- | --- |

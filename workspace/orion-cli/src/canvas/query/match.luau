@@ -1,5 +1,6 @@
 local findRef = require("@root/canvas/refs/findRef")
 local getLabel = require("@root/canvas/items/getLabel")
+local getStateMeaning = require("@root/canvas/cardTypes/getStateMeaning")
 local isWork = require("@root/canvas/items/isWork")
 local types = require("@root/types")
 
@@ -57,7 +58,7 @@ function match.candidates(doc: Doc, title: string, owner: string, name: string):
 	local candidates: { Candidate } = {}
 
 	for _, item in doc.nodes do
-		if not isWork(item) or findRef(item, "pull") or item.data.status == "done" then
+		if not isWork(item) or findRef(item, "pull") or getStateMeaning(item) == "done" then
 			continue
 		end
 
