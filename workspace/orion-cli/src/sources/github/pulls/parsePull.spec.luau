@@ -1,6 +1,5 @@
-local test = require("@std/test")
-
 local json = require("@std/json")
+local test = require("@std/test")
 
 local parsePull = require("@root/sources/github/pulls/parsePull")
 

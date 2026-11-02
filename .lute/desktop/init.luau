@@ -22,11 +22,10 @@
 local process = require("@std/process")
 local system = require("@std/system")
 
+local prepareSidecar = require("@self/sidecar")
 local project = require("@repository/project")
 local run = require("@workspace/orion-cli/src/common/process/run")
 local runScript = require("@workspace/orion-cli/src/common/process/runScript")
-
-local prepareSidecar = require("@self/sidecar")
 local writeAcknowledgements = require("@self/acknowledgements")
 
 local bundle = if system.macos then "dmg" elseif system.win32 then "nsis" else "deb"

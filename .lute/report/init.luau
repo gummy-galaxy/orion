@@ -17,12 +17,11 @@
 ]]
 local process = require("@std/process")
 
-local runScript = require("@workspace/orion-cli/src/common/process/runScript")
-
 local commentStorybook = require("@self/storybook")
 local recordPerfHistory = require("@self/perfHistory")
 local reportCoverage = require("@self/coverage")
 local reportPerf = require("@self/perf")
+local runScript = require("@workspace/orion-cli/src/common/process/runScript")
 
 local REPORTS: { [string]: () -> () } = {
 	coverage = reportCoverage,

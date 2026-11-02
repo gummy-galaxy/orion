@@ -1,6 +1,5 @@
-local test = require("@std/test")
-
 local json = require("@std/json")
+local test = require("@std/test")
 
 local queryAsync = require("@root/sources/github/api/queryAsync")
 local testing = require("@root/testing")

@@ -1,14 +1,15 @@
 --[[
-	Warns when a file's top-level requires mix third-party packages, such as
-	`@std` or `@batteries`, with Orion's own modules, such as `@root`. The
-	packages go in one block above Orion's modules, with a blank line between,
-	so a reader can tell at a glance what comes from outside the repository.
-	StyLua's `sort_requires` already sorts the requires within each
+	Warns when a file's top-level requires aren't in two blocks: third-party
+	packages, such as `@std` or `@batteries`, in one block, then Orion's own
+	modules, such as `@root`, in another, with a blank line between. That
+	way a reader can tell at a glance what comes from outside the repository.
+	StyLua's `sort_requires` sorts the requires within each
 	blank-line-separated block, so this rule only decides the blocks.
 
 	The suggested fix regroups the requires, so `lute lint --auto-fix` applies
-	it. It's left out when a comment or other code sits among the requires or
-	on their lines, since the rewrite would drop it.
+	it. It's left out when the rewrite would drop or break something: a
+	comment or other code among the requires or on their lines, or a package
+	whose type annotation names one of Orion's modules required above it.
 ]]
 local lintTypes = require("@std/commands/lint/types")
 local path = require("@std/path")
@@ -19,10 +20,10 @@ local name = "require_groups"
 
 -- The aliases for Orion's own code, from the `.config.luau` files at the
 -- repository root and in `workspace/orion-cli`, plus Luau's `@self` for a
--- folder's own modules. Every other alias is a package. That includes
--- `@pkg`, `@batteries`, and `@archivist`, which point at packages installed
--- under `workspace/orion-cli/packages` rather than at code Orion writes. A
--- path with no alias, like `./types`, is Orion's own too.
+-- folder's own modules. Every other alias is a package, including `@pkg`
+-- and `@batteries`, which point at packages Loom installs under
+-- `workspace/orion-cli/packages`. A path with no alias, like `./types`, is
+-- Orion's own too.
 local OWN_ALIASES = {
 	repo = true,
 	repository = true,
@@ -34,6 +35,8 @@ local OWN_ALIASES = {
 type Require = {
 	statement: syntax.CstStat,
 	isOwn: boolean,
+	-- The local the require is assigned to.
+	variable: string,
 }
 
 -- Returns the path a statement like `local x = require("@std/x")` requires,
@@ -94,7 +97,7 @@ local function isBlankBetween(sourceLines: { string }, before: Require, after: R
 end
 
 -- A file breaks the rule when a package comes after any of Orion's modules,
--- or when a package and one of Orion's modules share a block.
+-- or when a blank line falls anywhere but between the two groups.
 local function isMisplaced(sourceLines: { string }, requires: { Require }): boolean
 	local seenOwn = false
 
@@ -105,7 +108,7 @@ local function isMisplaced(sourceLines: { string }, requires: { Require }): bool
 
 		local previous = requires[index - 1]
 
-		if previous and previous.isOwn ~= current.isOwn and not isBlankBetween(sourceLines, previous, current) then
+		if previous and (previous.isOwn == current.isOwn) == isBlankBetween(sourceLines, previous, current) then
 			return true
 		end
 
@@ -130,12 +133,26 @@ local function getOwnText(sourceLines: { string }, statement: syntax.CstStat): s
 	return table.concat(lines, "\n")
 end
 
--- Rebuilds the requires with the packages first, or returns nil when
--- something the rewrite would drop sits among them. Each group keeps its
--- requires in their order. A blank line between two requires of the same
--- group stays only when no require of the other group sat between them, so
--- each group's blocks survive but the packages never split around a moved
--- module.
+-- Whether a package's statement, such as `local x = require("@pkg/x") ::
+-- types.X`, names one of Orion's modules required above it. Moving the
+-- package above that module would use the name before it's defined.
+local function usesEarlierModule(requires: { Require }, texts: { [Require]: string }, index: number): boolean
+	local text = texts[requires[index]]:gsub("require%b()", "")
+
+	for earlier = 1, index - 1 do
+		local module = requires[earlier]
+
+		if module.isOwn and text:find(`%f[%w_]{module.variable}%f[^%w_]`) then
+			return true
+		end
+	end
+
+	return false
+end
+
+-- Rebuilds the requires as two blocks, packages first, or returns nil when
+-- the rewrite would drop or break something. Each block keeps its requires
+-- in their order.
 local function regroup(sourceLines: { string }, requires: { Require }): string?
 	local texts: { [Require]: string } = {}
 
@@ -159,31 +176,28 @@ local function regroup(sourceLines: { string }, requires: { Require }): string?
 		end
 	end
 
-	local groups: { string } = {}
+	local packages: { string } = {}
+	local modules: { string } = {}
 
-	for _, wantOwn in { false, true } do
-		local pieces: { string } = {}
-		local previousIndex: number? = nil
-
-		for index, current in requires do
-			if current.isOwn ~= wantOwn then
-				continue
-			end
-
-			if previousIndex == index - 1 and isBlankBetween(sourceLines, requires[index - 1], current) then
-				table.insert(pieces, "")
-			end
-
-			table.insert(pieces, texts[current])
-			previousIndex = index
-		end
-
-		if #pieces > 0 then
-			table.insert(groups, table.concat(pieces, "\n"))
+	for index, current in requires do
+		if current.isOwn then
+			table.insert(modules, texts[current])
+		elseif usesEarlierModule(requires, texts, index) then
+			return nil
+		else
+			table.insert(packages, texts[current])
 		end
 	end
 
-	return table.concat(groups, "\n\n")
+	local blocks: { string } = {}
+
+	for _, block in { packages, modules } do
+		if #block > 0 then
+			table.insert(blocks, table.concat(block, "\n"))
+		end
+	end
+
+	return table.concat(blocks, "\n\n")
 end
 
 local function lint(cst: syntax.CstStatBlock, sourcepath: path.Path?): { lintTypes.LintViolation }
@@ -195,7 +209,11 @@ local function lint(cst: syntax.CstStatBlock, sourcepath: path.Path?): { lintTyp
 		local requirePath = getRequirePath(statement)
 
 		if requirePath then
-			table.insert(requires, { statement = statement, isOwn = isOwnPath(requirePath) })
+			table.insert(requires, {
+				statement = statement,
+				isOwn = isOwnPath(requirePath),
+				variable = (statement :: syntax.CstStatLocal).variables[1].name.text,
+			})
 			firstIndex = if firstIndex == 0 then index else firstIndex
 			lastIndex = index
 		end
@@ -230,7 +248,7 @@ local function lint(cst: syntax.CstStatBlock, sourcepath: path.Path?): { lintTyp
 	local violation: lintTypes.LintViolation = {
 		lintname = name,
 		location = location,
-		message = "put third-party package requires in a block above Orion's own modules",
+		message = "put third-party package requires in one block above one block of Orion's own modules",
 		severity = "warning",
 		sourcepath = sourcepath,
 		suggestedfix = if fix then { location = location, fix = fix } else nil,
