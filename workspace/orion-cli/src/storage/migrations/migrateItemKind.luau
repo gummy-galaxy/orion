@@ -1,6 +1,5 @@
-local json = require("@std/json")
-
 local getRefCardType = require("@root/canvas/cardTypes/getRefCardType")
+local getRefs = require("@root/canvas/refs/getRefs")
 local getStringField = require("@root/common/getStringField")
 local types = require("@root/types")
 
@@ -8,8 +7,18 @@ type Item = types.Item
 
 -- Pull request, placeholder, and step are the kinds a card's refs and
 -- repository decide, so a card doesn't store them.
+type KindFromRefs = "pr" | "placeholder" | "step"
+
+local KINDS_FROM_REFS: { KindFromRefs } = { "pr", "placeholder", "step" }
+
 local function isKindFromRefs(kind: string?): boolean
-	return kind == "pr" or kind == "placeholder" or kind == "step"
+	for _, candidate in KINDS_FROM_REFS do
+		if candidate == kind then
+			return true
+		end
+	end
+
+	return false
 end
 
 --[[
@@ -26,11 +35,9 @@ end
 	kind even after its refs change.
 ]]
 local function migrateItemKind(item: Item)
-	for _, value in json.asArray(item.data.refs) or {} do
-		local ref = json.asObject(value)
-
-		if ref and ref.type == nil and type(ref.kind) == "string" and type(ref.key) == "string" then
-			ref.type = getRefCardType(ref :: any)
+	for _, ref in getRefs(item) do
+		if ref.type == nil then
+			ref.type = getRefCardType(ref)
 		end
 	end
 
