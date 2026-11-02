@@ -1,7 +1,7 @@
 local test = require("@std/test")
 
 local stringWidth = require("@repository/.lute/lints/stringWidth")
-local testing = require("@root/testing")
+local testing = require("@workspace/orion-cli/src/testing")
 
 local LONG_TEXT = string.rep("word ", 24)
 

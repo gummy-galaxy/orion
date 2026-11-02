@@ -1,6 +1,6 @@
 local json = require("@std/json")
 
-local getStringField = require("@root/common/getStringField")
+local getStringField = require("@workspace/orion-cli/src/common/getStringField")
 local joinRepositoryPath = require("./joinRepositoryPath")
 local types = require("./types")
 

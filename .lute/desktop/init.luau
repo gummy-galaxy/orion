@@ -23,8 +23,8 @@ local process = require("@std/process")
 local project = require("@repository/project")
 local system = require("@std/system")
 
-local run = require("@root/common/process/run")
-local runScript = require("@root/common/process/runScript")
+local run = require("@workspace/orion-cli/src/common/process/run")
+local runScript = require("@workspace/orion-cli/src/common/process/runScript")
 
 local prepareSidecar = require("@self/sidecar")
 local writeAcknowledgements = require("@self/acknowledgements")

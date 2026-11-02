@@ -2,7 +2,7 @@ local syntax = require("@std/syntax")
 local test = require("@std/test")
 
 local commentWidth = require("@repository/.lute/lints/commentWidth")
-local testing = require("@root/testing")
+local testing = require("@workspace/orion-cli/src/testing")
 
 local LONG = "one two three four five six seven eight nine ten eleven twelve thirteen fourteen"
 

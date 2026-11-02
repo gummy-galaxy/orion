@@ -9,7 +9,7 @@
 local fs = require("@std/fs")
 local path = require("@std/path")
 
-local telemetryEvents = require("@root/telemetry/events")
+local telemetryEvents = require("@workspace/orion-cli/src/telemetry/events")
 
 type Property = telemetryEvents.Property
 

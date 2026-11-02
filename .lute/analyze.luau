@@ -1,7 +1,7 @@
 local project = require("@repository/project")
 
-local run = require("@root/common/process/run")
-local runScript = require("@root/common/process/runScript")
+local run = require("@workspace/orion-cli/src/common/process/run")
+local runScript = require("@workspace/orion-cli/src/common/process/runScript")
 
 -- The tools run from the CLI's folder, where stylua.toml and the lint rules'
 -- config live.
