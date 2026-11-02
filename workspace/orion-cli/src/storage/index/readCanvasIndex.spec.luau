@@ -124,7 +124,7 @@ end)
 
 local CONFLICTED = [[{
   "data": {
-    "itemKind": "note",
+    "type": "note",
     "kind": "task",
 <<<<<<< HEAD
     "label": "B here",
