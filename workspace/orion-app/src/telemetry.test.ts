@@ -1,6 +1,7 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import {
   chooseTelemetry,
+  deleteTelemetryData,
   readTelemetry,
   sendTelemetryEvents,
   shouldAskTelemetry,
@@ -82,4 +83,24 @@ it('posts nothing for no events', async () => {
   await sendTelemetryEvents([])
 
   expect(fetchMock).not.toHaveBeenCalled()
+})
+
+it('deletes what the machine shared and returns the status it leaves', async () => {
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValue({ ok: true, json: async () => ({ choice: 'off', enabled: false, deleted: true }) })
+
+  vi.stubGlobal('fetch', fetchMock)
+
+  expect(await deleteTelemetryData()).toEqual({ choice: 'off', enabled: false, deleted: true })
+  expect(fetchMock.mock.calls[0]).toEqual(['/api/telemetry/delete', { method: 'POST' }])
+})
+
+it("rejects with the server's reason when the deletion fails", async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({ ok: false, status: 502, json: async () => ({ error: 'the backend answered 503' }) }),
+  )
+
+  await expect(deleteTelemetryData()).rejects.toThrow('the backend answered 503')
 })

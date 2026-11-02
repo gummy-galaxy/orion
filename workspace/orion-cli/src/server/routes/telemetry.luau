@@ -3,10 +3,12 @@ local net = require("@lute/net/server")
 local process = require("@std/process")
 
 local chooseTelemetry = require("@root/telemetry/chooseTelemetry")
+local deleteTelemetryDataAsync = require("@root/telemetry/deleteTelemetryDataAsync")
 local formatTimestamp = require("@root/common/time/formatTimestamp")
 local getTelemetryStatus = require("@root/telemetry/getTelemetryStatus")
 local parseTelemetryEvent = require("@root/telemetry/parseTelemetryEvent")
 local queueTelemetryEvents = require("@root/telemetry/queueTelemetryEvents")
+local requestTelemetryAsync = require("@root/telemetry/requestTelemetryAsync")
 local serializeTelemetryStatus = require("@root/telemetry/serializeTelemetryStatus")
 local shared = require("@root/server/routes/shared")
 local telemetryConstants = require("@root/telemetry/constants")
@@ -94,6 +96,37 @@ function telemetry.handleEvents(
 	end)
 
 	return if didSucceed then response :: Response else shared.reply(400, json.object({ error = tostring(response) }))
+end
+
+-- `POST` deletes the usage data this machine shared, from the Delete button in
+-- the app's Settings. The reply is the status it leaves, with `deleted` saying
+-- whether there was anything to delete. When the backend can't delete it, the
+-- reply is a 502 with the reason, which the app shows.
+function telemetry.handleDelete(
+	request: net.ReceivedRequest,
+	root: string,
+	environment: { [string]: string }?,
+	-- Specs pass this to stand in for the backend.
+	requestAsync: typeof(requestTelemetryAsync)?
+): Response
+	if request.method ~= "POST" then
+		return shared.reply(405, json.object({ error = "method not allowed" }))
+	end
+
+	local resolvedEnvironment = environment or process.env
+	local outcome, failure = deleteTelemetryDataAsync(root, {
+		environment = resolvedEnvironment,
+		requestTelemetryAsync = requestAsync,
+	})
+
+	if outcome == "failed" then
+		return shared.reply(502, json.object({ error = failure }))
+	end
+
+	local status = serializeTelemetryStatus(getTelemetryStatus(root, resolvedEnvironment))
+	status.deleted = outcome == "deleted"
+
+	return shared.reply(200, status)
 end
 
 return table.freeze(telemetry)

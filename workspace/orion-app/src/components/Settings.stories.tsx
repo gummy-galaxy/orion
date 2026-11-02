@@ -16,10 +16,12 @@ function Interactive({
   section,
   keybindings = DEFAULT_KEYBINDINGS,
   telemetry = { choice: 'off', enabled: false },
+  failDeleting = false,
 }: {
   section: SettingsSection
   keybindings?: Keybindings
   telemetry?: TelemetryStatus | null
+  failDeleting?: boolean
 }) {
   const [shown, setShown] = useState(section)
   const [appearance, setAppearance] = useState<Appearance>({
@@ -51,6 +53,15 @@ function Interactive({
       chooseKeybindings={setBindings}
       telemetry={telemetryStatus}
       chooseTelemetry={(enabled) => setTelemetryStatus({ choice: enabled ? 'on' : 'off', enabled })}
+      deleteTelemetryData={async () => {
+        // The server turns sharing off before it asks the backend, so a failed deletion leaves it off with the id kept.
+        if (failDeleting) {
+          setTelemetryStatus({ choice: 'off', installId: telemetryStatus?.installId, enabled: false })
+          throw new Error('the telemetry backend couldn’t be reached')
+        }
+
+        setTelemetryStatus({ choice: 'off', enabled: false })
+      }}
     />
   )
 }
@@ -77,5 +88,17 @@ export const PrivacyOverridden: Story = {
       section="privacy"
       telemetry={{ choice: 'on', installId: 'example', override: 'DO_NOT_TRACK', enabled: false }}
     />
+  ),
+}
+
+/** A machine that shared data can delete it, after one more click to confirm. */
+export const PrivacyShared: Story = {
+  render: () => <Interactive section="privacy" telemetry={{ choice: 'on', installId: 'example', enabled: true }} />,
+}
+
+/** A deletion the backend couldn't make says why, so the person can try again. */
+export const PrivacyDeleteFailed: Story = {
+  render: () => (
+    <Interactive section="privacy" telemetry={{ choice: 'on', installId: 'example', enabled: true }} failDeleting />
   ),
 }

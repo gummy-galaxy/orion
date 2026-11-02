@@ -28,6 +28,8 @@ type Props = {
   /** Null with no server to ask, which leaves the Privacy section read-only. */
   telemetry: TelemetryStatus | null
   chooseTelemetry: (enabled: boolean) => void
+  /** Resolves once the shared data is deleted, and rejects with the reason it couldn't be. */
+  deleteTelemetryData: () => Promise<void>
 }
 
 /** Preferences saved on this device, one section at a time beside a list of sections. */
@@ -42,6 +44,7 @@ export function Settings({
   chooseKeybindings,
   telemetry,
   chooseTelemetry,
+  deleteTelemetryData,
 }: Props) {
   const dialog = useRef<HTMLDivElement>(null)
 
@@ -105,7 +108,13 @@ export function Settings({
           {section === 'shortcuts' && (
             <ShortcutSettings keybindings={keybindings} chooseKeybindings={chooseKeybindings} />
           )}
-          {section === 'privacy' && <PrivacySettings telemetry={telemetry} chooseTelemetry={chooseTelemetry} />}
+          {section === 'privacy' && (
+            <PrivacySettings
+              telemetry={telemetry}
+              chooseTelemetry={chooseTelemetry}
+              deleteTelemetryData={deleteTelemetryData}
+            />
+          )}
         </div>
       </div>
     </div>

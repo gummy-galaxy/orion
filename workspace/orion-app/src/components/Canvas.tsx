@@ -612,7 +612,7 @@ export function Canvas() {
   const [keybindings, setKeybindings] = useState(readKeybindings)
   /** The settings section on show, or null while settings are closed. */
   const [settings, setSettings] = useState<SettingsSection | null>(null)
-  const [telemetry, chooseTelemetry] = useTelemetry()
+  const [telemetry, chooseTelemetry, deleteTelemetryData] = useTelemetry()
   /** Set when the launch dialog is closed without an answer, so it asks again next launch but not this one. */
   const [telemetryDismissed, setTelemetryDismissed] = useState(false)
   const cardSize = useAtomValue(cardSizeAtom, { store: skinStore })
@@ -4682,6 +4682,7 @@ export function Canvas() {
             chooseKeybindings={chooseKeybindings}
             telemetry={telemetry}
             chooseTelemetry={chooseTelemetry}
+            deleteTelemetryData={deleteTelemetryData}
           />
         )}
         {!settings && !telemetryDismissed && shouldAskTelemetry(telemetry) && (

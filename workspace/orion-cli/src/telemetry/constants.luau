@@ -4,9 +4,9 @@
 ]]
 return table.freeze({
 	-- The backend lives at this address. Its endpoints sit under it, such as
-	-- `/events` for sending batches and `/config` for its limits. Setting
-	-- `ORION_TELEMETRY_URL` points Orion at another backend, such as one
-	-- running locally for testing.
+	-- `/events` for sending batches, `/config` for its limits, and `/delete`
+	-- for deleting what an install sent. Setting `ORION_TELEMETRY_URL` points
+	-- Orion at another backend, such as one running locally for testing.
 	BASE_URL = "https://api.oriongraph.app/telemetry/v1",
 
 	-- `orion server start` sends what's queued this often. The backend accepts
@@ -22,6 +22,10 @@ return table.freeze({
 	-- That's long enough for a slow network, and short enough that a backend
 	-- that can't be reached doesn't hold up the next send.
 	TIMEOUT_SECONDS = 5,
+
+	-- Deleting someone's usage data waits longer, since the person is waiting
+	-- on the answer and the backend passes the request on to PostHog first.
+	DELETE_TIMEOUT_SECONDS = 15,
 
 	-- Requests in Lute, the runtime Orion's CLI runs on, can't set a timeout.
 	-- So while a request runs, Orion checks this often whether it's done, and

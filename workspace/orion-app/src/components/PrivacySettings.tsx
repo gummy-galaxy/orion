@@ -1,9 +1,17 @@
 import { TELEMETRY_EVENTS_URL, type TelemetryStatus } from '../telemetry'
+import { DeleteUsageDataField } from './DeleteUsageDataField'
 
-type Props = { telemetry: TelemetryStatus | null; chooseTelemetry: (enabled: boolean) => void }
+type Props = {
+  telemetry: TelemetryStatus | null
+  chooseTelemetry: (enabled: boolean) => void
+  deleteTelemetryData: () => Promise<void>
+}
 
-/** Whether this machine shares anonymous usage data, the answer to the dialog shown on first launch. */
-export function PrivacySettings({ telemetry, chooseTelemetry }: Props) {
+/**
+ * Whether this machine shares anonymous usage data, the answer to the dialog shown on first launch, and a way to delete
+ * what it already shared.
+ */
+export function PrivacySettings({ telemetry, chooseTelemetry, deleteTelemetryData }: Props) {
   const choice = telemetry?.choice
 
   return (
@@ -45,6 +53,7 @@ export function PrivacySettings({ telemetry, chooseTelemetry }: Props) {
           </button>
         </div>
       </div>
+      <DeleteUsageDataField telemetry={telemetry} deleteTelemetryData={deleteTelemetryData} />
     </section>
   )
 }

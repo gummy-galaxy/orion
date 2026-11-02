@@ -669,11 +669,13 @@ A new usage event joins the catalog only when something outside pushes for it: a
 
 ### People can delete what they've shared
 
-Settings and `orion telemetry delete` erase every event sent under the install ID, separately from opting out. Opting out stops sending but keeps the ID, so the data can still be deleted afterward. Deleting forgets the ID, and opting in again starts a new one. Erasure ships before any release that sends events.
+Settings and `orion telemetry delete` erase every event sent under the install ID, separately from opting out. Opting out stops sending but keeps the ID, so the data can still be deleted afterward. Deleting turns sharing off and forgets the ID, and opting in again starts a new one. Erasure ships before any release that sends events.
+
+Each install gets a PostHog person profile with no properties. PostHog's deletion API finds events only through a person profile, so events sent without one, which the backend first did to keep each event cheaper, could never be deleted. Past PostHog's free tier, events with a profile are billed at a higher rate.
 
 **Why:** consent that can be withdrawn should be able to take back what was given too, and data protection law such as GDPR expects that. Keeping deletion apart from opting out means stopping doesn't silently discard data someone was happy to share, and deleting stays possible after they stop.
 
-2026-10-30 · [#691](https://github.com/gummy-galaxy/orion/issues/691), [#433](https://github.com/gummy-galaxy/orion/issues/433)
+2026-10-30, 2026-11-01 · [#691](https://github.com/gummy-galaxy/orion/issues/691), [#433](https://github.com/gummy-galaxy/orion/issues/433)
 
 ## Releases
 
