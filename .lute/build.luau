@@ -16,9 +16,9 @@
 local fs = require("@std/fs")
 local path = require("@std/path")
 local process = require("@std/process")
-local project = require("@repository/project")
 local system = require("@std/system")
 
+local project = require("@repository/project")
 local run = require("@workspace/orion-cli/src/common/process/run")
 local runScript = require("@workspace/orion-cli/src/common/process/runScript")
 

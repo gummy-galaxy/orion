@@ -1,8 +1,8 @@
+local json = require("@std/json")
 local test = require("@std/test")
 
 local getRecorded = require("@root/sources/github/pulls/getRecorded")
 local githubTypes = require("@root/sources/github/types")
-local json = require("@std/json")
 
 type PullState = githubTypes.PullState
 

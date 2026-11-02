@@ -1,7 +1,8 @@
+local json = require("@std/json")
+
 local getKey = require("@root/sources/github/refs/getKey")
 local getString = require("@root/sources/github/getString")
 local githubTypes = require("@root/sources/github/types")
-local json = require("@std/json")
 local queryAsync = require("@root/sources/github/api/queryAsync")
 local types = require("@root/types")
 
