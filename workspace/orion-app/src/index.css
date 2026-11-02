@@ -3126,6 +3126,12 @@ kbd {
   color: var(--text-muted);
   font-size: var(--text-size-small);
 }
+.settings-field-error {
+  margin: var(--space-1) 0 0;
+  color: var(--status-blocked);
+  font-size: var(--text-size-small);
+  overflow-wrap: anywhere;
+}
 .settings-search {
   flex: 1;
   min-width: 0;
@@ -3214,6 +3220,9 @@ kbd {
 }
 .options button:disabled:not([aria-pressed='true']) {
   opacity: 0.5;
+}
+.options button.danger {
+  color: var(--status-blocked);
 }
 .options .option-tag {
   display: block;

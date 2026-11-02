@@ -19,6 +19,10 @@ local function describeTelemetryStatus(status: Status): string
 		table.insert(lines, `{status.override} is set, so nothing is sent whatever is chosen.`)
 	end
 
+	if status.choice == "off" and status.installId then
+		table.insert(lines, "Run orion telemetry delete to delete what this machine shared before.")
+	end
+
 	table.insert(lines, `The events Orion sends are listed at {EVENTS_URL}.`)
 
 	return table.concat(lines, "\n")

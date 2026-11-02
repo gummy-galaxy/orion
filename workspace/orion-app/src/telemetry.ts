@@ -1,6 +1,7 @@
 /**
  * Whether this machine shares anonymous usage data, kept in the data folder's `telemetry.json` by `orion server start`.
- * The app only reads the choice and records the person's answer; the CLI owns the file and the environment overrides.
+ * The app reads the choice, records the person's answer, and asks for shared data to be deleted; the CLI owns the file
+ * and the environment overrides.
  */
 const API = '/api/telemetry'
 /** Long enough for a local server, short enough that a missing one doesn't hold anything up. */
@@ -39,6 +40,23 @@ export async function chooseTelemetry(enabled: boolean): Promise<TelemetryStatus
   if (!response.ok) throw new Error(`telemetry choice failed: ${response.status}`)
 
   return (await response.json()) as TelemetryStatus
+}
+
+/**
+ * Deletes every event this machine has shared and returns the status it leaves, with sharing off and no install id.
+ * When the machine had shared nothing, `deleted` is false and nothing changes. Rejects with the reason when the server
+ * or the telemetry backend couldn't delete it, so the person can be told and try again.
+ */
+export async function deleteTelemetryData(): Promise<TelemetryStatus & { deleted: boolean }> {
+  const response = await fetch(`${API}/delete`, { method: 'POST' })
+  const body = (await response.json().catch(() => ({}))) as Partial<TelemetryStatus> & {
+    deleted?: boolean
+    error?: string
+  }
+
+  if (!response.ok) throw new Error(body.error ?? `deleting usage data failed: ${response.status}`)
+
+  return body as TelemetryStatus & { deleted: boolean }
 }
 
 /** Whether to ask on launch: nobody has answered, and no override has already answered for them. */

@@ -1,3 +1,4 @@
+local client = require("@std/net")
 local json = require("@std/json")
 local net = require("@lute/net/server")
 local test = require("@std/test")
@@ -130,4 +131,52 @@ test.case("the events route checks only size and shape", function(assert)
 	local get = createEventsRequest("")
 	get.method = "GET"
 	assert.eq(telemetry.handleEvents(get, root, {}).status, 405)
+end)
+
+local function createDeleteRequest(method: string): net.ReceivedRequest
+	local request = createRequest(method)
+	request.path = "/api/telemetry/delete"
+	return request
+end
+
+test.case("the app deletes what the machine shared and reads the status it leaves", function(assert)
+	local root = testing.directory("telemetry-route-delete")
+	telemetry.handle(createRequest("POST", '{"enabled":true}'), root, {})
+
+	local function accepting(
+		_url: string,
+		_metadata: client.Metadata,
+		_timeoutSeconds: number
+	): (client.Response?, string?)
+		return { ok = true, status = 202, body = '{"deleted":true}', headers = {} }, nil
+	end
+
+	local response = telemetry.handleDelete(createDeleteRequest("POST"), root, {}, accepting)
+	local status = decode(response)
+
+	assert.eq(response.status, 200)
+	assert.eq(status.deleted, true)
+	assert.eq(status.choice, "off")
+	assert.eq(status.installId, nil)
+	assert.eq(decode(telemetry.handleDelete(createDeleteRequest("POST"), root, {}, accepting)).deleted, false)
+	assert.eq(telemetry.handleDelete(createDeleteRequest("GET"), root, {}, accepting).status, 405)
+end)
+
+test.case("the route reports a deletion the backend couldn't make", function(assert)
+	local root = testing.directory("telemetry-route-delete-failed")
+	telemetry.handle(createRequest("POST", '{"enabled":true}'), root, {})
+
+	local function unreachable(
+		_url: string,
+		_metadata: client.Metadata,
+		_timeoutSeconds: number
+	): (client.Response?, string?)
+		return nil, "no answer within 15 seconds"
+	end
+
+	local response = telemetry.handleDelete(createDeleteRequest("POST"), root, {}, unreachable)
+
+	assert.eq(response.status, 502)
+	assert.strContains(decode(response).error :: string, "couldn't be reached")
+	assert.eq(type(decode(telemetry.handle(createRequest("GET"), root, {})).installId), "string")
 end)

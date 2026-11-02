@@ -1,6 +1,6 @@
 local telemetryConstants = require("@root/telemetry/constants")
 
-export type EndpointName = "events" | "config"
+export type EndpointName = "events" | "config" | "delete"
 
 --[[
 	Builds the address of one of the backend's endpoints from its base address.

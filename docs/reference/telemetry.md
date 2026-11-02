@@ -10,6 +10,10 @@ The same list is published as [JSON](/reference/telemetry.json), which the telem
 
 Nothing goes straight from the app, a command, or an agent to the network. Events wait in a small queue in Orion's data folder, and `orion server start`, which the app runs, sends them periodically. A batch that can't be sent is dropped, never retried. Setting `DO_NOT_TRACK=1` or `ORION_TELEMETRY=0` keeps everything off whatever was chosen, and a machine that isn't sharing keeps nothing to send later.
 
+## Deleting what you've shared
+
+Opting out stops sending but keeps what was already sent. To delete that too, choose **Delete my usage data** in the Privacy section of Settings, or run `orion telemetry delete`. Either one turns sharing off, then deletes every event this machine sent and forgets its install id, so opting in again starts fresh under a new one. The events can take a few days to disappear from storage.
+
 ## Consent
 
 Sent once, when someone opts in. Opting out sends nothing.

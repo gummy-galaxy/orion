@@ -43,3 +43,15 @@ orion telemetry off [options]
 | Argument | Description |
 | -------- | ----------- |
 | `--json` | Print JSON  |
+
+## orion telemetry delete
+
+Delete the usage data this machine has shared, and stop sharing
+
+```sh
+orion telemetry delete [options]
+```
+
+| Argument | Description |
+| -------- | ----------- |
+| `--json` | Print JSON  |
