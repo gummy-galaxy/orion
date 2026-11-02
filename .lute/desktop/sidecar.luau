@@ -1,8 +1,8 @@
 local fs = require("@std/fs")
 local path = require("@std/path")
-local project = require("@repository/project")
 local system = require("@std/system")
 
+local project = require("@repository/project")
 local run = require("@workspace/orion-cli/src/common/process/run")
 
 local binariesPath = path.join(project.DESKTOP_PATH, "binaries")

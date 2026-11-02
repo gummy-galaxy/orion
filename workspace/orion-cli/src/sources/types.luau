@@ -1,5 +1,6 @@
-local githubTypes = require("@root/sources/github/types")
 local json = require("@std/json")
+
+local githubTypes = require("@root/sources/github/types")
 local types = require("@root/types")
 
 type Doc = types.Doc

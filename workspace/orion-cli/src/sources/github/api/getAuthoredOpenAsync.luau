@@ -1,8 +1,9 @@
+local json = require("@std/json")
+
 local getListFields = require("@root/sources/github/pulls/getListFields")
 local getString = require("@root/sources/github/getString")
 local githubTypes = require("@root/sources/github/types")
 local isTimeout = require("@root/sources/github/api/isTimeout")
-local json = require("@std/json")
 local parsePull = require("@root/sources/github/pulls/parsePull")
 local queryAsync = require("@root/sources/github/api/queryAsync")
 local types = require("@root/types")

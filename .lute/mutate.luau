@@ -22,7 +22,6 @@ local time = require("@std/time")
 
 local findMutations = require("@repository/.lute/lib/mutation/findMutations")
 local mutationTypes = require("@repository/.lute/lib/mutation/types")
-
 local runScript = require("@workspace/orion-cli/src/common/process/runScript")
 
 type Mutation = mutationTypes.Mutation

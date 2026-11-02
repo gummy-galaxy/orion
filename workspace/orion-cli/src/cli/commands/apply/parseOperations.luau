@@ -1,6 +1,7 @@
+local json = require("@std/json")
+
 local getErrorText = require("@root/common/errors/getErrorText")
 local isAbsent = require("@root/cli/mcp/catalog/isAbsent")
-local json = require("@std/json")
 local types = require("@root/cli/commands/apply/types")
 
 type Operation = types.Operation

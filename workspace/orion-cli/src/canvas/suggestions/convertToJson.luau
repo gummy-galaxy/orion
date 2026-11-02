@@ -1,4 +1,5 @@
 local json = require("@std/json")
+
 local suggestTypes = require("@root/canvas/suggestions/types")
 
 type Result = suggestTypes.Result

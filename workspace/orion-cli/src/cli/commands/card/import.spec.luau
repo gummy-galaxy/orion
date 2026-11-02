@@ -1,7 +1,7 @@
-local cli = require("@root/cli")
 local json = require("@std/json")
 local test = require("@std/test")
 
+local cli = require("@root/cli")
 local loadDoc = require("@root/storage/canvases/loadDoc")
 local setSourceCommand = require("@root/sources/setSourceCommand")
 local testing = require("@root/testing")

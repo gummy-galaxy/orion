@@ -1,3 +1,5 @@
+local json = require("@std/json")
+
 local collectPullsAsync = require("@root/sources/github/api/collectPullsAsync")
 local fetchChecksAsync = require("@root/sources/github/api/fetchChecksAsync")
 local fetchUpdatedAsync = require("@root/sources/github/api/fetchUpdatedAsync")
@@ -7,7 +9,6 @@ local getRefFor = require("@root/sources/github/refs/getRefFor")
 local getString = require("@root/sources/github/getString")
 local githubTypes = require("@root/sources/github/types")
 local isInSources = require("@root/sources/github/repositories/isInSources")
-local json = require("@std/json")
 local pollNotificationsAsync = require("@root/sources/github/api/pollNotificationsAsync")
 local types = require("@root/types")
 

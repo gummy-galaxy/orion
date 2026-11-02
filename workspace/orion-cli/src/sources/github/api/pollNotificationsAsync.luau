@@ -1,6 +1,7 @@
+local json = require("@std/json")
+
 local getKey = require("@root/sources/github/refs/getKey")
 local githubTypes = require("@root/sources/github/types")
-local json = require("@std/json")
 local types = require("@root/types")
 
 type Ref = githubTypes.Ref

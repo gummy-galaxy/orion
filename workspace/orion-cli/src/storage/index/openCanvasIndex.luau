@@ -1,4 +1,4 @@
-local archivist = require("@archivist")
+local archivist = require("@pkg/Archivist@v0.2.0")
 local fs = require("@std/fs")
 local json = require("@std/json")
 

@@ -1,6 +1,6 @@
+local json = require("@std/json")
 local test = require("@std/test")
 
-local json = require("@std/json")
 local parsePull = require("@root/sources/github/pulls/parsePull")
 
 test.case("pull response preserves review and check details", function(assert)
