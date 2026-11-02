@@ -1,7 +1,7 @@
 ---
-bump: patch
-category: Under the hood
-kind: improved
+bump: minor
+category: Agents
+kind: breaking
 ---
 
-Cards keep their kind as before, now saved under a new field name. Canvases saved with the old name are converted as they're read, so nothing changes on the canvas.
+Card files save a card's kind under a new name. Canvases move over the first time this version opens them, and the next save keeps a backup. An older Orion then reads every card as a step.
