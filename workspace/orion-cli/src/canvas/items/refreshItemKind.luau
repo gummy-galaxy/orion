@@ -16,7 +16,7 @@ local function refreshItemKind(item: Item)
 	end
 
 	local kind = if isGate(item) then "gate" else nil
-	item.data.itemKind = chooseItemKind(getStringField(item.data.repo), if findRef(item, "pull") then 1 else nil, kind)
+	item.data.type = chooseItemKind(getStringField(item.data.repo), if findRef(item, "pull") then 1 else nil, kind)
 end
 
 return refreshItemKind

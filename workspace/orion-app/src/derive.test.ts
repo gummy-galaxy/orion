@@ -6,7 +6,7 @@ const task = (id: string, status: Status = 'todo', itemKind: ItemKind = 'step'):
   id,
   type: 'task',
   position: { x: 0, y: 0 },
-  data: { kind: 'task', label: id, itemKind, status },
+  data: { kind: 'task', label: id, type: itemKind, status },
 })
 const taskNode = (id: string): TaskNode => task(id) as TaskNode
 const link = (from: string, to: string): Link => ({ id: `${from}>${to}`, from, to, kind: 'blocks' })

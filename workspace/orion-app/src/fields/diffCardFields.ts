@@ -19,9 +19,9 @@ export function diffCardFields(before: TaskData, after: TaskData): CardFields {
     if (before[key] !== after[key]) fields[key] = after[key] ?? ''
   }
 
-  if (before.itemKind !== after.itemKind) {
-    if (after.itemKind === 'gate' || after.itemKind === 'component') fields.kind = after.itemKind
-    else if (after.itemKind !== 'note' && GIVEN_KINDS.has(before.itemKind)) fields.kind = 'step'
+  if (before.type !== after.type) {
+    if (after.type === 'gate' || after.type === 'component') fields.kind = after.type
+    else if (after.type !== 'note' && GIVEN_KINDS.has(before.type)) fields.kind = 'step'
   }
 
   const pullRequest = getPullRequestNumber(getPullRef(after))

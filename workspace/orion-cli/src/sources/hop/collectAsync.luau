@@ -72,7 +72,7 @@ local function collectAsync(source: Source, run: CommandRunner, context: Context
 			},
 			label = label,
 			repo = repo,
-			itemKind = if isUpdateOnly then nil else "step",
+			type = if isUpdateOnly then nil else "step",
 			createStatus = "active",
 			createWho = "you",
 			isUpdateOnly = isUpdateOnly,

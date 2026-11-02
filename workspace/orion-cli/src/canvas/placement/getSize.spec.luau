@@ -24,7 +24,7 @@ test.case("getSize falls back to a default for groups without a stored size", fu
 end)
 
 test.case("getSize takes a card's measured height, or estimates one from its text", function(assert)
-	local note = testing.task("n", "a\nb\nc\nd\ne\nf", "todo", nil, { itemKind = "note" })
+	local note = testing.task("n", "a\nb\nc\nd\ne\nf", "todo", nil, { type = "note" })
 	local _, estimated = getSize(note)
 	assert.eq(estimated, 136)
 

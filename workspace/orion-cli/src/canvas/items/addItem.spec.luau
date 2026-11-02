@@ -10,7 +10,7 @@ local task = testing.task
 test.case("a shape makes a component, and components and groups take a color", function(assert)
 	local doc = testing.createDoc({ testing.group("g", "System") })
 	local item = addItem(doc, "orion.json", { shape = "store", color = "amber" })
-	assert.eq(item.data.itemKind, "component")
+	assert.eq(item.data.type, "component")
 	assert.eq(item.data.shape, "store")
 	assert.eq(item.data.color, "amber")
 
@@ -20,7 +20,7 @@ test.case("a shape makes a component, and components and groups take a color", f
 
 	local step = addItem(doc, "Write the docs", {})
 	setFields(doc, step.id, { shape = "process" })
-	assert.eq(step.data.itemKind, "component")
+	assert.eq(step.data.type, "component")
 	setFields(doc, step.id, { kind = "step" })
 	assert.eq(step.data.shape, nil)
 
@@ -38,7 +38,7 @@ test.case("addItem gives every item a random id", function(assert)
 	local doc = testing.createDoc({ testing.group("g", "Group"), task("x", "X", "todo", "g") })
 	local item = addItem(doc, "Release notes", { group = "g", repo = "flipbook-labs/flipbook" })
 	assert.eq(testing.isRandomId(item.id), true)
-	assert.eq(item.data.itemKind, "placeholder")
+	assert.eq(item.data.type, "placeholder")
 	assert.eq(item.parentId, "g")
 	assert.eq(item.position.y > 0, true)
 	assert.neq(addItem(doc, "Ship it", {}).id, addItem(doc, "Ship it", {}).id)

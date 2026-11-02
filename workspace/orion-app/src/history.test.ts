@@ -7,7 +7,7 @@ const makeNode = (id: string, x = 0, label = id): AppNode => ({
   id,
   type: 'task',
   position: { x, y: 0 },
-  data: { kind: 'task', label, itemKind: 'step', status: 'todo' },
+  data: { kind: 'task', label, type: 'step', status: 'todo' },
 })
 const makeLink = (from: string, to: string): Link => ({ id: `${from}>${to}`, from, to, kind: 'blocks' })
 const makeDoc = (nodes: AppNode[], links: Link[] = []): Saved => ({ nodes, links, stickers: [], stickerLoadout: [] })

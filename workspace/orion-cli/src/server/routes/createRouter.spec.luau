@@ -64,7 +64,7 @@ local function createOperation(id: string): json.Object
 		id = id,
 		x = 0,
 		y = 0,
-		data = json.object({ kind = "task", label = id, itemKind = "step", status = "todo" }),
+		data = json.object({ kind = "task", label = id, type = "step", status = "todo" }),
 	})
 end
 
@@ -96,8 +96,8 @@ test.case("GET sends derived values beside the document without storing them", f
 	testing.writeCanvasText(
 		root,
 		[[{"version":2,"revision":3,"settings":{"sources":[]},"nodes":[{"id":"a","type":"task","position":{"x":0,]]
-			.. [["y":0},"data":{"kind":"task","label":"A","itemKind":"step","status":"todo"}},{"id":"b",]]
-			.. [["type":"task","position":{"x":0,"y":0},"data":{"kind":"task","label":"B","itemKind":"step",]]
+			.. [["y":0},"data":{"kind":"task","label":"A","type":"step","status":"todo"}},{"id":"b",]]
+			.. [["type":"task","position":{"x":0,"y":0},"data":{"kind":"task","label":"B","type":"step",]]
 			.. [["status":"todo"}}],"links":[{"id":"a>b","from":"a","to":"b","kind":"blocks"}]}]]
 	)
 	local response = decodeResponse(router.handleAsync(createRequest("GET", "/api/orion")))

@@ -18,7 +18,7 @@ local function getItemCardTypes(item: Item): ItemTypes?
 		return nil
 	end
 
-	local primary = if item.type == "image" then "image" else getStringField(item.data.itemKind) or "step"
+	local primary = if item.type == "image" then "image" else getStringField(item.data.type) or "step"
 	local attached: { string } = { primary }
 	local seen: { [string]: boolean } = { [primary] = true }
 

@@ -360,16 +360,16 @@ export function Palette({
                     ? 'Group'
                     : node.type === 'image'
                       ? 'Image'
-                      : node.data.itemKind === 'note'
+                      : node.data.type === 'note'
                         ? 'Note'
-                        : node.data.itemKind === 'component'
+                        : node.data.type === 'component'
                           ? 'Component'
                           : 'Card'}
                 </span>
                 <span className="palette-details">
                   <span className="palette-label">
                     {highlighted(
-                      node.data.label || (node.type === 'task' && node.data.itemKind === 'note' ? 'Untitled note' : ''),
+                      node.data.label || (node.type === 'task' && node.data.type === 'note' ? 'Untitled note' : ''),
                       result.labelMatch,
                     )}
                   </span>
