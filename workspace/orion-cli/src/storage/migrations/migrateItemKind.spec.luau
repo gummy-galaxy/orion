@@ -38,3 +38,23 @@ test.case("migrateItemKind keeps a type the card already has", function(assert)
 
 	assert.eq(item.data.type, "note")
 end)
+
+test.case("migrateItemKind drops a stored type that follows from refs", function(assert)
+	local pull = json.object({ source = "github", kind = "pull", key = "vocksel/orion#12" })
+	local item = testing.task("a", "A", "todo", nil, { type = "pr", repo = "vocksel/orion", refs = { pull } })
+	migrateItemKind(item)
+
+	assert.eq(item.data.type, nil)
+	assert.eq(testing.primaryType(item), "pr")
+
+	local gate = testing.task("b", "B", "todo", nil, { type = "gate" })
+	migrateItemKind(gate)
+	assert.eq(gate.data.type, "gate")
+end)
+
+test.case("migrateItemKind keeps a chosen kind over a stored type that follows from refs", function(assert)
+	local item = testing.task("a", "A", "todo", nil, { itemKind = "gate", type = "pr" })
+	migrateItemKind(item)
+
+	assert.eq(item.data.type, "gate")
+end)
