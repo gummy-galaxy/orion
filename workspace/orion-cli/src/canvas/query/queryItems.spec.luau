@@ -70,7 +70,7 @@ end)
 test.case("ties fall to the next key, then canvas order", function(assert)
 	local doc = createDoc()
 	local byKind = queryItems(doc, { sort = { { field = "kind", isDescending = true } } })
-	assert.eq(getIds(byKind.items), "nine ten loose scope")
+	assert.eq(getIds(byKind.items), "loose nine ten scope")
 
 	local byKindThenLabel = queryItems(doc, {
 		sort = {
@@ -78,7 +78,7 @@ test.case("ties fall to the next key, then canvas order", function(assert)
 			{ field = "label", isDescending = false },
 		},
 	})
-	assert.eq(getIds(byKindThenLabel.items), "ten nine loose scope")
+	assert.eq(getIds(byKindThenLabel.items), "loose ten nine scope")
 end)
 
 test.case("pages after sorting and counts every match", function(assert)

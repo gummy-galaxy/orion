@@ -1,3 +1,4 @@
+import { getCardType } from './cardTypes/getCardType'
 import type { CardSize } from './cardSize'
 import { CARD_TEXT, TASK_HEIGHT, TASK_MAX_HEIGHT } from './geometry'
 import type { TaskData } from './model'
@@ -87,13 +88,14 @@ export function forgetTextWidths() {
  * work cards keep the skin's height.
  */
 export function taskHeight(data: TaskData, cardSize: CardSize): number {
+  const layout = getCardType(data).face.layout
   let height: number
 
-  if (data.type === 'note') {
+  if (layout === 'note') {
     height =
       CARD_TEXT.chrome +
       lineCount(data.label || 'Empty note', TEXT.note, cardSize.width - CARD_TEXT.sides.note) * TEXT.note.lineHeight
-  } else if (data.type === 'component') {
+  } else if (layout === 'component') {
     const room = SHAPE_ROOM[data.shape ?? ''] ?? { x: 0, y: 0 }
     const width = cardSize.width - CARD_TEXT.sides.component - room.x
     const label = lineCount(data.label || 'Untitled component', TEXT.label, width) * TEXT.label.lineHeight
@@ -111,5 +113,5 @@ export function taskHeight(data: TaskData, cardSize: CardSize): number {
     Math.max(TASK_HEIGHT, Math.ceil((height + CARD_TEXT.slack) / CARD_TEXT.step) * CARD_TEXT.step),
   )
 
-  return data.type === 'note' ? Math.max(cardSize.height, fit) : fit
+  return layout === 'note' ? Math.max(cardSize.height, fit) : fit
 }

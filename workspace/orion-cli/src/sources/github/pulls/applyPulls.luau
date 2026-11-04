@@ -9,7 +9,6 @@ local githubTypes = require("@root/sources/github/types")
 local isInSources = require("@root/sources/github/repositories/isInSources")
 local linkItems = require("@root/canvas/links/linkItems")
 local match = require("@root/canvas/query/match")
-local refreshItemKind = require("@root/canvas/items/refreshItemKind")
 local setDesired = require("@root/sources/github/pulls/setDesired")
 local setPullRef = require("@root/sources/github/pulls/setPullRef")
 local types = require("@root/types")
@@ -51,7 +50,6 @@ local function attachByBranch(item: Item, pull: PullState, fetched: Fetched, che
 		item.data.repo = repo
 	end
 
-	refreshItemKind(item)
 	table.insert(report.attached, { id = item.id, pull = `{repo}#{pull.number}` })
 end
 

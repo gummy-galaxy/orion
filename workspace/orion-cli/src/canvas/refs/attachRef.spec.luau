@@ -15,7 +15,7 @@ test.case("attachRef adds a ref, fills in a missing repository, and refreshes th
 	})
 	assert.eq((findRef(item, "pull") :: any).key, "vocksel/orion#12")
 	assert.eq(item.data.repo, "vocksel/orion")
-	assert.eq(item.data.type, "pr")
+	assert.eq(testing.primaryType(item), "pr")
 
 	attachRef(doc, "a", { ref = { source = "github", kind = "issue", key = "flipbook-labs/flipbook#1" }, repo = "x/y" })
 	assert.eq(item.data.repo, "vocksel/orion")

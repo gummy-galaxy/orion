@@ -6,7 +6,6 @@ import type { SourceRef as SourceRefData, TaskData, TaskNode, ViewStatus } from 
 
 const createTaskData = (overrides: Partial<TaskData> = {}): TaskData => ({
   kind: 'task',
-  type: 'step',
   label: 'Work',
   status: 'todo',
   ...overrides,
@@ -34,7 +33,6 @@ describe('getCardView', () => {
     const view = getCardView(
       createTaskNode(
         createTaskData({
-          type: 'placeholder',
           label: '',
           repo: 'vocksel/orion',
           note: 'Keep visible',
@@ -46,7 +44,7 @@ describe('getCardView', () => {
 
     expect(view).toMatchObject({
       id: 'card-1',
-      kind: 'placeholder',
+      kind: 'step',
       title: '',
       tag: 'ORN-12',
       url: 'https://jira.example.com/browse/ORN-12',
@@ -121,7 +119,6 @@ describe('getCardView', () => {
     const issueUrl = 'https://github.com/vocksel/orion/issues/187'
     const taskNode = createTaskNode(
       createTaskData({
-        type: 'pr',
         refs: [
           { source: 'github', kind: 'pull', key: 'vocksel/orion#153', url: pullUrl },
           { source: 'github', kind: 'issue', key: 'vocksel/orion#187', url: issueUrl },
@@ -142,7 +139,6 @@ describe('getCardView', () => {
   it('does not open a pull request card when its primary ref is not on GitHub', () => {
     const taskNode = createTaskNode(
       createTaskData({
-        type: 'pr',
         refs: [{ source: 'jira', kind: 'issue', key: 'ORN-12', url: 'https://jira.example.com/browse/ORN-12' }],
       }),
     )
@@ -185,7 +181,6 @@ describe('getCardView', () => {
   it('shows the pull request facts the server derived with snoozed jobs left out', () => {
     const node = createTaskNode(
       createTaskData({
-        type: 'pr',
         refs: [
           {
             source: 'github',

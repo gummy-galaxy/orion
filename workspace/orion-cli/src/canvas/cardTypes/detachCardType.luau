@@ -28,7 +28,7 @@ local function detachCardType(doc: Doc, id: string, name: string): Item
 
 	if not found then
 		local itemTypes = assert(getItemCardTypes(item))
-		local reason = if itemTypes.primary == name
+		local reason = if item.data.type == name
 			then "it's the card's own type"
 			elseif table.find(itemTypes.types, name) then "a source attached it"
 			else "it doesn't carry it"

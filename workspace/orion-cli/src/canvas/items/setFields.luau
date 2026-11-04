@@ -1,12 +1,8 @@
 local checkFields = require("@root/canvas/items/checkFields")
-local chooseItemKind = require("@root/canvas/items/chooseItemKind")
-local findRef = require("@root/canvas/refs/findRef")
 local getHeaderHeight = require("@root/canvas/groups/getHeaderHeight")
 local getItem = require("@root/canvas/items/getItem")
-local getStringField = require("@root/common/getStringField")
 local graphTypes = require("@root/canvas/types")
 local isComponent = require("@root/canvas/items/isComponent")
-local isGate = require("@root/canvas/items/isGate")
 local isGroup = require("@root/canvas/groups/isGroup")
 local isNote = require("@root/canvas/items/isNote")
 local setLook = require("@root/canvas/items/setLook")
@@ -120,20 +116,14 @@ local function setFields(doc: Doc, id: string, fields: ItemFields): Item
 		item.data.repo = if fields.repo == "" then nil else fields.repo
 	end
 
-	-- Giving a note a kind makes it a work item.
-	if fields.kind and isNote(item) then
-		item.data.type = "step"
-	end
-
-	-- As with add, giving a card a shape makes it a component.
+	-- As with add, giving a card a shape makes it a component. Giving a note
+	-- a kind makes it a work item. A step is what a card is when nobody chose,
+	-- so it lets the card's sources and repository decide again.
 	local givenKind = fields.kind
 		or (if fields.shape and fields.shape ~= "" and not isNote(item) then "component" else nil)
 
-	if not isNote(item) and (fields.repo or givenKind) then
-		local repo = getStringField(item.data.repo)
-		local pr = findRef(item, "pull")
-		local kind = givenKind or (if isGate(item) or isComponent(item) then getStringField(item.data.type) else nil)
-		item.data.type = chooseItemKind(repo, if pr then 1 else nil, kind)
+	if givenKind then
+		item.data.type = if givenKind == "step" then nil else givenKind
 	end
 
 	-- Work isn't drawn with a shape or tint, so a component turned into work

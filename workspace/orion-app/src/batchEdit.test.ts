@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { patchWork, sharedValue } from './batchEdit'
-import type { AppNode, ItemKind, TaskData } from './model'
+import type { AppNode, TaskData } from './model'
 
-const card = (id: string, data: Partial<TaskData> = {}, itemKind: ItemKind = 'step'): AppNode => ({
+const card = (id: string, data: Partial<TaskData> = {}, type?: string): AppNode => ({
   id,
   type: 'task',
   position: { x: 0, y: 0 },
-  data: { kind: 'task', label: id, type: itemKind, status: 'todo', ...data },
+  data: { kind: 'task', label: id, ...(type ? { type } : {}), status: 'todo', ...data },
 })
 
 const dataOf = (nodes: AppNode[], id: string) => nodes.find((node) => node.id === id)?.data as TaskData

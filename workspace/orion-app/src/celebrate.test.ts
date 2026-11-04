@@ -1,17 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { CHAIN_BEATS_MS, CHAIN_STEP_MS, chainDelay, chainFinale, chainPulses, closesOut, timeChain } from './celebrate'
-import type { AppNode, ItemKind, Link, Status, TaskData } from './model'
+import type { AppNode, Link, Status, TaskData } from './model'
 
-const task = (
-  id: string,
-  status: Status = 'todo',
-  extra: Partial<TaskData> = {},
-  itemKind: ItemKind = 'step',
-): AppNode => ({
+const task = (id: string, status: Status = 'todo', extra: Partial<TaskData> = {}, type?: string): AppNode => ({
   id,
   type: 'task',
   position: { x: 0, y: 0 },
-  data: { kind: 'task', label: id, type: itemKind, status, ...extra },
+  data: { kind: 'task', label: id, ...(type ? { type } : {}), status, ...extra },
 })
 const link = (from: string, to: string, kind: Link['kind'] = 'blocks'): Link => ({
   id: `${from}>${to}`,

@@ -14,7 +14,6 @@ export type Record = {
 	ref: Ref,
 	label: string,
 	repo: string?,
-	type: string?,
 	status: string?,
 	who: string?,
 	isUpdateOnly: boolean?,
@@ -29,7 +28,6 @@ export type Record = {
 	mentionText: string?,
 	setRepoOnUpdate: boolean?,
 	setLabelOnUpdate: boolean?,
-	keepPullKind: boolean?,
 }
 
 -- `commands` holds the programs this machine runs for the canvas's sources, by

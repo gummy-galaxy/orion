@@ -72,14 +72,12 @@ local function collectAsync(source: Source, run: CommandRunner, context: Context
 			},
 			label = label,
 			repo = repo,
-			type = if isUpdateOnly then nil else "step",
 			createStatus = "active",
 			createWho = "you",
 			isUpdateOnly = isUpdateOnly,
 			isUncounted = isUpdateOnly,
 			setRepoOnUpdate = false,
 			setLabelOnUpdate = false,
-			keepPullKind = true,
 			shouldFindFallbackFirst = true,
 			findFallback = function(current: Doc): Item?
 				return findBranch(current, repo, branch)

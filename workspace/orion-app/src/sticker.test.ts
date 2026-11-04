@@ -49,7 +49,7 @@ describe('placing stickers', () => {
     id,
     type: 'task',
     position: { x, y },
-    data: { kind: 'task', label: id, type: 'step', status: 'todo' },
+    data: { kind: 'task', label: id, status: 'todo' },
   })
 
   it('leaves a loose sticker where it is', () => {

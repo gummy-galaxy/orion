@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { buildWork, deriveSources, sourcesOf, sourcesOfGroup, toServerFacts, type Derived } from './derive'
-import type { AppNode, ItemKind, Link, Status, TaskNode } from './model'
+import type { AppNode, Link, Status, TaskNode } from './model'
 
-const task = (id: string, status: Status = 'todo', itemKind: ItemKind = 'step'): AppNode => ({
+const task = (id: string, status: Status = 'todo', type?: string): AppNode => ({
   id,
   type: 'task',
   position: { x: 0, y: 0 },
-  data: { kind: 'task', label: id, type: itemKind, status },
+  data: { kind: 'task', label: id, ...(type ? { type } : {}), status },
 })
 const taskNode = (id: string): TaskNode => task(id) as TaskNode
 const link = (from: string, to: string): Link => ({ id: `${from}>${to}`, from, to, kind: 'blocks' })

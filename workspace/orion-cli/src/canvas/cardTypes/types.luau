@@ -46,11 +46,14 @@ export type Meaning = {
 }
 
 -- A type a card can carry. A pack is where it was declared: `orion` for the
--- types Orion ships, or the source kind that registered it.
+-- types Orion ships, or the source kind that registered it. `supersedes` names
+-- the types this one takes the face from when a card carries both, such as a
+-- pull request replacing the placeholder that expected it.
 export type CardType = {
 	name: string,
 	label: string,
 	pack: string,
+	supersedes: { string }?,
 	fields: { Field },
 	face: Face,
 	states: { State },

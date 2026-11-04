@@ -5,5 +5,5 @@ export const task = (id: string, parentId: string | undefined, x: number, y: num
   type: 'task',
   parentId,
   position: { x, y },
-  data: { kind: 'task', label: id, type: 'step', status: 'todo' },
+  data: { kind: 'task', label: id, status: 'todo' },
 })

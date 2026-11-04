@@ -27,7 +27,7 @@ test.case("a pull request URL finds a new card without adding it", function(asse
 	assert.eq(found.status, "found")
 	assert.eq(found.item.data.label, "Add a Chip component")
 	assert.eq(found.item.data.repo, "Roblox/foundation")
-	assert.eq(found.item.data.type, "pr")
+	assert.eq(testing.primaryType(found.item), "pr")
 	local refs = found.item.data.refs :: { json.Object }
 	assert.eq(refs[1].kind, "pull")
 	assert.eq(refs[1].key, "Roblox/foundation#2376")

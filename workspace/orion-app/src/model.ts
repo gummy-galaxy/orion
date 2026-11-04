@@ -10,20 +10,14 @@ import {
   TASK_HEIGHT,
   TASK_WIDTH,
 } from './geometry'
+import { getCardType } from './cardTypes/getCardType'
+import { getItemTypes } from './cardTypes/getItemTypes'
 import { indexNodes } from './hierarchy/indexNodes'
 
 /** `blocked` is set by hand for blockers outside the graph; dependency blocking is derived. */
 export type Status = 'todo' | 'active' | 'review' | 'blocked' | 'deferred' | 'done'
 export type Who = 'you' | 'review' | 'ci'
 export type ViewStatus = 'ready' | 'active' | 'review' | 'blocked' | 'deferred' | 'done'
-/**
- * A pull request that exists, one that is expected but not opened yet, a step with no
- * pull request, a gate, a note, or a component. A gate is done once everything it waits on is,
- * like a milestone or sign-off. Notes and components aren't work: they pass blocking through.
- * A component is a part of a system diagram, like a service or a data store, and has no status.
- */
-export type ItemKind = 'pr' | 'placeholder' | 'step' | 'gate' | 'note' | 'component'
-
 /**
  * How a component is drawn: a box for a service (the default), a cylinder for a data store, a pill for a person
  * or agent, a dashed box for something outside the system, a window for a user interface, a chevron for a job or
@@ -55,7 +49,13 @@ export const TINTS: Tint[] = ['teal', 'blue', 'purple', 'amber', 'rose', 'green'
 export type TaskData = {
   kind: 'task'
   label: string
-  type: ItemKind
+  /**
+   * The card type a person chose, such as `gate`, `note`, or `component`, which picks the card's face over its
+   * sources'. Without one, the card's refs and repository decide; `getItemTypes` works out the rest.
+   */
+  type?: string
+  /** Card types people attached beyond the card's own, which add fields and badges. */
+  types?: string[]
   status: Status
   /** Full owner/name of the repository this work belongs to. */
   repo?: string
@@ -81,6 +81,8 @@ export type TaskData = {
 export type SourceRef = {
   source: string
   kind: string
+  /** The card type the ref attaches, such as `pr`, as its adapter chose it. */
+  type?: string
   /** The readable name for the ref, such as `owner/name#12`, which can change when what it names moves. */
   key: string
   /**
@@ -234,15 +236,6 @@ export const STATUS_LABEL: Record<ViewStatus, string> = {
   done: 'Done',
 }
 
-export const ITEM_KIND_LABEL: Record<ItemKind, string> = {
-  pr: 'Pull request',
-  placeholder: 'Placeholder',
-  step: 'Step',
-  gate: 'Gate',
-  note: 'Note',
-  component: 'Component',
-}
-
 /** The statuses a person can record on a card, in the order the inspector lists them. */
 export const STATUS_CHOICES: { value: Status; label: string }[] = [
   { value: 'todo', label: 'To do' },
@@ -276,9 +269,9 @@ export function getPullRequestNumber(ref: SourceRef | undefined): number | undef
 }
 
 export function getTaskTag(data: TaskData): string {
-  return (
-    getPrimaryRef(data)?.key ?? data.repo ?? (data.type === 'gate' || data.type === 'component' ? data.type : 'step')
-  )
+  const primary = getItemTypes(data).primary
+
+  return getPrimaryRef(data)?.key ?? data.repo ?? (primary === 'gate' || primary === 'component' ? primary : 'step')
 }
 
 export function getTaskUrl(data: TaskData): string | null {
@@ -288,12 +281,15 @@ export function getTaskUrl(data: TaskData): string | null {
 export const isCluster = (node: AppNode): node is ClusterNode => node.type === 'cluster'
 export const isTask = (node: AppNode): node is TaskNode => node.type === 'task'
 export const isImage = (node: AppNode): node is ImageNode => node.type === 'image'
-export const isNote = (node: AppNode | undefined): boolean => !!node && isTask(node) && node.data.type === 'note'
+/** Cards whose type draws them as a note. */
+export const isNote = (node: AppNode | undefined): boolean =>
+  !!node && isTask(node) && getCardType(node.data).face.layout === 'note'
+/** Cards whose type draws them as a part of a system, like a service or a data store. */
 export const isComponent = (node: AppNode | undefined): boolean =>
-  !!node && isTask(node) && node.data.type === 'component'
-/** Cards that count as work. Notes and components pass blocking through and never do. */
+  !!node && isTask(node) && getCardType(node.data).face.layout === 'component'
+/** Cards that count as work, as their type declares. Notes and components pass blocking through and never do. */
 export const isWork = (node: AppNode | undefined): boolean =>
-  !!node && isTask(node) && !isNote(node) && !isComponent(node)
+  !!node && isTask(node) && getCardType(node.data).meaning.isWork
 
 /** A card's label for lists and links, with notes falling back to the word Note. */
 export const cardLabel = (node: AppNode): string =>
@@ -334,7 +330,7 @@ export function survivingRoot(root: string, before: Map<string, AppNode>, after:
 
 /** A component's own tint, or else its nearest group's. Work cards and notes have none. */
 export function tintOf(node: AppNode, nodeMap: Map<string, AppNode>): Tint | undefined {
-  if (isTask(node) && node.data.type !== 'component') return undefined
+  if (isTask(node) && !isComponent(node)) return undefined
 
   if (!isImage(node) && node.data.color) return node.data.color
 

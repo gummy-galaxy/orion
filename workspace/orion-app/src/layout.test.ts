@@ -12,7 +12,7 @@ const task = (id: string, parentId = 'g', x = 0, y = 0): AppNode => ({
   type: 'task',
   parentId,
   position: { x, y },
-  data: { kind: 'task', label: id, type: 'step', status: 'todo' },
+  data: { kind: 'task', label: id, status: 'todo' },
 })
 const group = (data: Partial<ClusterData> = {}): AppNode => ({
   id: 'g',

@@ -1,7 +1,6 @@
 local json = require("@std/json")
 
 local checkFields = require("@root/canvas/items/checkFields")
-local chooseItemKind = require("@root/canvas/items/chooseItemKind")
 local createId = require("@root/common/createId")
 local findPlacement = require("@root/canvas/placement/findPlacement")
 local getNeighborGroup = require("@root/canvas/groups/getNeighborGroup")
@@ -25,11 +24,11 @@ local function addItem(doc: Doc, label: string, options: AddOptions): Item
 	local data: json.Object = json.object({
 		kind = "task",
 		label = label,
-		-- A shape only fits a component, so giving one makes the item a
-		-- component.
-		type = chooseItemKind(options.repo, nil, if options.shape then "component" else options.kind),
 		status = options.status or "todo",
 	})
+	-- A shape only fits a component, so giving one makes the item a
+	-- component.
+	data.type = if options.shape then "component" elseif options.kind == "step" then nil else options.kind
 	data.repo = options.repo
 	data.note = options.note
 	data.who = if options.who == "" then nil else options.who

@@ -2,7 +2,6 @@ local json = require("@std/json")
 
 local addItem = require("@root/canvas/items/addItem")
 local findItem = require("@root/canvas/items/findItem")
-local findRef = require("@root/canvas/refs/findRef")
 local findRepository = require("@root/sources/github/repositories/findRepository")
 local findSameRef = require("@root/canvas/refs/findSameRef")
 local getItem = require("@root/canvas/items/getItem")
@@ -104,10 +103,6 @@ local function placeRecords(doc: Doc, results: { Result }): Report
 
 			if record.repo and (not existing or record.setRepoOnUpdate ~= false) then
 				item.data.repo = record.repo
-			end
-
-			if record.type and (not record.keepPullKind or not findRef(item, "pull")) then
-				item.data.type = record.type
 			end
 
 			if record.status then

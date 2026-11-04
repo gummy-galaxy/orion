@@ -1,3 +1,4 @@
+import { registerCardTypes } from './cardTypes/registerCardTypes'
 import type { Derived } from './derive'
 import { IMAGE_MAX_BYTES } from './geometry'
 import {
@@ -447,7 +448,12 @@ export async function load(workspace = 'default'): Promise<Loaded> {
     if (response.ok && response.headers.get('content-type')?.includes('json')) {
       const doc = await response.json()
 
-      if (isSaved(doc) && typeof (doc as Remote).revision === 'number') return { source: 'file', doc: doc as Remote }
+      if (isSaved(doc) && typeof (doc as Remote).revision === 'number') {
+        // The server declares every card type, including ones its sources add, and cards draw from those.
+        registerCardTypes((doc as { types?: unknown }).types)
+
+        return { source: 'file', doc: doc as Remote }
+      }
     }
   } catch {
     // No dev server.

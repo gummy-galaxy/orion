@@ -27,7 +27,6 @@ import { moveOutOfGroup, ungroup } from './layout'
 const task = (overrides: Partial<TaskData> = {}): TaskData => ({
   kind: 'task',
   label: 'Work',
-  type: 'step',
   status: 'todo',
   ...overrides,
 })
@@ -92,7 +91,7 @@ describe('tintOf', () => {
     group('inner', undefined, 'outer'),
     card('plain', {}),
     card('own', { color: 'rose' }),
-    card('work', { type: 'step' }),
+    card('work', { type: undefined }),
   ]
   const nodeMap = byId(nodes)
 
@@ -160,7 +159,7 @@ const cardNode = (id: string, parentId?: string, position = { x: 0, y: 0 }): App
   type: 'task',
   parentId,
   position,
-  data: { kind: 'task', label: id, type: 'step', status: 'todo' },
+  data: { kind: 'task', label: id, status: 'todo' },
 })
 
 const rectOf = (nodes: AppNode[], id: string) => {
