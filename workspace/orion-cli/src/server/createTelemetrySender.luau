@@ -1,4 +1,4 @@
-local archivist = require("@archivist")
+local archivist = require("@pkg/Archivist@v0.2.0")
 local task = require("@std/task")
 
 local appendTelemetryQueue = require("@root/telemetry/appendTelemetryQueue")

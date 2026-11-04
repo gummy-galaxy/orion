@@ -1,10 +1,11 @@
+local json = require("@std/json")
+
 local getCheckCounts = require("@root/sources/github/checks/getCheckCounts")
 local getCheckProgress = require("@root/sources/github/checks/getCheckProgress")
 local getCheckState = require("@root/sources/github/checks/getCheckState")
 local getRepoId = require("@root/sources/github/repositories/getRepoId")
 local getString = require("@root/sources/github/getString")
 local githubTypes = require("@root/sources/github/types")
-local json = require("@std/json")
 
 type PullState = githubTypes.PullState
 

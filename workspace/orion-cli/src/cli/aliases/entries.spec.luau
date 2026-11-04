@@ -2,11 +2,10 @@ local fs = require("@std/fs")
 local path = require("@std/path")
 local test = require("@std/test")
 
-local project = require("@repository/project")
-
 local checkAliases = require("@root/cli/aliases/checkAliases")
 local cli = require("@root/cli")
 local entries = require("@root/cli/aliases/entries")
+local project = require("@repository/project")
 
 test.case("every shipped alias points at a live name and hides none", function(assert)
 	assert.eq(table.concat(checkAliases(cli.describe(), entries), "\n"), "")

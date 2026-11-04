@@ -1,7 +1,8 @@
+local json = require("@std/json")
+
 local applyOperation = require("@root/canvas/operations/applyOperation")
 local getErrorCode = require("@root/common/errors/getErrorCode")
 local getErrorText = require("@root/common/errors/getErrorText")
-local json = require("@std/json")
 local operationTypes = require("@root/canvas/operations/types")
 local restoreDoc = require("@root/canvas/operations/restoreDoc")
 local types = require("@root/types")
