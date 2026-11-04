@@ -18,6 +18,7 @@ local function setPullRef(item: Item, pull: PullState, source: string, viewer: s
 	local recorded = setRef(item, {
 		source = if existing then existing.source else source,
 		kind = "pull",
+		type = "pr",
 		key = getGithubKey(pull.owner, pull.name, `#{pull.number}`, pull.host),
 		id = if pull.repoId then getGithubId(pull.repoId, `#{pull.number}`, pull.host) else nil,
 		url = pull.url,

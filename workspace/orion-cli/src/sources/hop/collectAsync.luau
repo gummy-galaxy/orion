@@ -66,6 +66,7 @@ local function collectAsync(source: Source, run: CommandRunner, context: Context
 			ref = {
 				source = source.id,
 				kind = "branch",
+				type = "step",
 				key = getGithubKey(assert(owner), assert(name), `@{branch}`, host),
 				details = activity,
 			},

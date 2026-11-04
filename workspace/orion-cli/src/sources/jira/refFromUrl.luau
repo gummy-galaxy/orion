@@ -16,7 +16,7 @@ local function refFromUrl(url: string, sources: { Source }): ResolvedRef?
 				local key = url:sub(#prefix + 1)
 
 				if key:match(JIRA_KEY) then
-					return { ref = { source = source.id, kind = "issue", key = key, url = url } }
+					return { ref = { source = source.id, kind = "issue", type = "step", key = key, url = url } }
 				end
 			end
 		end

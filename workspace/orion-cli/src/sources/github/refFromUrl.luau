@@ -39,6 +39,7 @@ local function refFromUrl(url: string, sources: { Source }): ResolvedRef?
 		ref = {
 			source = if configured then configured.id else "github",
 			kind = kind,
+			type = if kind == "pull" then "pr" else "placeholder",
 			key = getGithubKey(owner, name, `#{number}`, lowerHost),
 			url = url,
 		},

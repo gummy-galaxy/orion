@@ -1,10 +1,9 @@
+local cardTypes = require("@root/canvas/cardTypes/types")
+local getCardTypeMeaning = require("@root/canvas/cardTypes/getCardTypeMeaning")
 local getSnoozedFacts = require("@root/sources/github/pulls/getSnoozedFacts")
 local getStringField = require("@root/common/getStringField")
 local graphTypes = require("@root/canvas/types")
-local isComponent = require("@root/canvas/items/isComponent")
-local isGate = require("@root/canvas/items/isGate")
 local isGroup = require("@root/canvas/groups/isGroup")
-local isNote = require("@root/canvas/items/isNote")
 local isWork = require("@root/canvas/items/isWork")
 local types = require("@root/types")
 
@@ -12,6 +11,7 @@ type Derived = graphTypes.Derived
 type Doc = types.Doc
 type GroupStats = graphTypes.GroupStats
 type Item = types.Item
+type Meaning = cardTypes.Meaning
 type SnoozedFacts = types.SnoozedFacts
 
 local UNCOMMON_UPSTREAM = 4
@@ -134,15 +134,18 @@ end
 
 -- Status, flow, leverage, upstream work, rarity, progress for each group and
 -- the whole canvas, and the work where it's your move, all served to the app
--- rather than derived there. Notes and components pass blocking through and
--- never count as work, and components have no status. Gates also pass blocking
--- through, but count as work: one is done once everything it waits on is. A
--- snoozed card keeps its status and blocking, but it has no leverage and isn't
--- ready until it wakes. `now` is a UTC time in the form Orion stores; it
--- defaults to the current time.
+-- rather than derived there. Each card's type says how it takes part. Cards
+-- that can't block, like notes and components, pass blocking through and never
+-- count as work, and cards that can't be done, like components, have no
+-- status. A card done by its inputs, like a gate, also passes blocking
+-- through, and is done once everything it waits on is. A snoozed card keeps
+-- its status and blocking, but it has no leverage and isn't ready until it
+-- wakes. `now` is a UTC time in the form Orion stores; it defaults to the
+-- current time.
 local function derive(doc: Doc, now: string?): Derived
 	local clock = now or os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
 	local tasks: { [string]: Item } = {}
+	local meanings: { [string]: Meaning } = {}
 	local parentOf: { [string]: string } = {}
 	local snoozed: { [string]: string } = {}
 	local pulls: { [string]: SnoozedFacts } = {}
@@ -150,6 +153,7 @@ local function derive(doc: Doc, now: string?): Derived
 	for _, item in doc.nodes do
 		if item.type == "task" then
 			tasks[item.id] = item
+			meanings[item.id] = getCardTypeMeaning(item) :: Meaning
 			pulls[item.id] = getSnoozedFacts(item, doc.settings.checkSnoozes, clock)
 		end
 
@@ -185,7 +189,8 @@ local function derive(doc: Doc, now: string?): Derived
 			return false
 		end
 
-		local passesThrough = not isWork(item) or (isGate(item) and predecessors[id] ~= nil)
+		local meaning = meanings[id]
+		local passesThrough = not meaning.canBlock or (meaning.doneWhen == "inputs" and predecessors[id] ~= nil)
 
 		if not passesThrough then
 			return getStringField(item.data.status) ~= "done"
@@ -218,7 +223,9 @@ local function derive(doc: Doc, now: string?): Derived
 	local status: { [string]: string } = {}
 
 	for id, item in tasks do
-		if isComponent(item) then
+		local meaning = meanings[id]
+
+		if not meaning.canBeDone then
 			continue
 		end
 
@@ -232,7 +239,10 @@ local function derive(doc: Doc, now: string?): Derived
 			end
 		end
 
-		if isNote(item) or (isGate(item) and predecessors[id] and recorded ~= "deferred") then
+		local followsInputs = meaning.doneWhen == "inputs"
+			and (not meaning.canBlock or (predecessors[id] ~= nil and recorded ~= "deferred"))
+
+		if followsInputs then
 			status[id] = if isOpen(id) then "blocked" else "done"
 		elseif recorded == "done" or recorded == "deferred" or recorded == "blocked" then
 			status[id] = recorded
@@ -243,8 +253,9 @@ local function derive(doc: Doc, now: string?): Derived
 		end
 	end
 
-	-- Links move unless they come out of work that's stuck. Notes pass on
-	-- whatever reaches them, and links out of components stay still.
+	-- Links move unless they come out of work that's stuck. Cards that can't
+	-- block pass on whatever reaches them, and links out of cards with no
+	-- status stay still.
 	local flow: { [string]: string } = {}
 
 	local function flowOf(id: string, seen: { [string]: boolean }): string
@@ -268,10 +279,11 @@ local function derive(doc: Doc, now: string?): Derived
 		seen[id] = true
 		local value: string
 
+		local meaning = meanings[id]
 		local incoming = predecessors[id] or {}
 		-- A note fed only by components carries no work either, so its links
 		-- stay still too.
-		local fedOnlyByComponents = isNote(item) and #incoming > 0
+		local fedOnlyByComponents = meaning.canBeDone and not meaning.canBlock and #incoming > 0
 
 		for _, predecessor in incoming do
 			if not fedOnlyByComponents then
@@ -281,11 +293,11 @@ local function derive(doc: Doc, now: string?): Derived
 			fedOnlyByComponents = flowOf(predecessor, seen) == "still"
 		end
 
-		if isComponent(item) or fedOnlyByComponents then
+		if not meaning.canBeDone or fedOnlyByComponents then
 			value = "still"
 		elseif status[id] == "done" then
 			value = "live"
-		elseif isNote(item) then
+		elseif not meaning.canBlock then
 			value = "held"
 
 			for _, predecessor in predecessors[id] or {} do
@@ -389,7 +401,7 @@ local function derive(doc: Doc, now: string?): Derived
 		for id in inside do
 			local statusValue = status[id]
 
-			if isComponent(tasks[id]) then
+			if not meanings[id].canBeDone then
 				stats.components += 1
 			end
 

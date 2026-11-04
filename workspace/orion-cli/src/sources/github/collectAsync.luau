@@ -65,6 +65,7 @@ local function collectAsync(source: Source, run: CommandRunner, context: Context
 			ref = {
 				source = source.id,
 				kind = "issue",
+				type = "placeholder",
 				key = getGithubKey(issue.owner, issue.name, `#{issue.number}`, issue.host),
 				id = if issue.repoId then getGithubId(issue.repoId, `#{issue.number}`, issue.host) else nil,
 				url = issue.url,

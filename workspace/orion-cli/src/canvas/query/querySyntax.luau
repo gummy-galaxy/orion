@@ -31,6 +31,12 @@ local FIELDS: { Field } = {
 		example = [[kind = "gate"]],
 	},
 	{
+		name = "type",
+		help = "Any card type the node carries, from itself, its sources, or a person, such as `pr` or `gate`. "
+			.. "`orion card types` lists them.",
+		example = [[type = "gate"]],
+	},
+	{
 		name = "repo",
 		help = "The repository a card belongs to, as `owner/name`.",
 		example = [[repo = "gummy-galaxy/orion"]],
