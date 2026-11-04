@@ -9,9 +9,9 @@ local fs = require("@std/fs")
 local json = require("@std/json")
 local path = require("@std/path")
 
-local builtinCardTypes = require("@cli/canvas/cardTypes/builtinCardTypes")
-local encodeStableJson = require("@cli/storage/files/encodeStableJson")
-local serializeCardType = require("@cli/canvas/cardTypes/serializeCardType")
+local builtinCardTypes = require("@workspace/orion-cli/src/canvas/cardTypes/builtinCardTypes")
+local encodeStableJson = require("@workspace/orion-cli/src/storage/files/encodeStableJson")
+local serializeCardType = require("@workspace/orion-cli/src/canvas/cardTypes/serializeCardType")
 
 local target = path.resolve("workspace/orion-app/src/cardTypes/builtinTypes.json")
 
