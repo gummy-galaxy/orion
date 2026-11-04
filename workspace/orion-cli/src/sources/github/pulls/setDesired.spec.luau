@@ -1,5 +1,6 @@
 local test = require("@std/test")
 
+local getStateMeaning = require("@root/canvas/cardTypes/getStateMeaning")
 local setDesired = require("@root/sources/github/pulls/setDesired")
 local testing = require("@root/testing")
 
@@ -51,4 +52,51 @@ test.case("setDesired marks a merged pull request done and drops any deferral ma
 	assert.eq(item.data.status, "done")
 	assert.eq(item.data.who, nil)
 	assert.eq(item.data.deferredByClosedPull, nil)
+end)
+
+local DESIGN = {
+	name = "design",
+	label = "Design",
+	pack = "test",
+	fields = {},
+	face = { layout = "card", shows = {} },
+	states = {
+		{ name = "sketching", label = "Sketching", means = "active" },
+		{ name = "refining", label = "Refining", means = "active" },
+		{ name = "approved", label = "Approved", means = "done" },
+	},
+	meaning = { isWork = true, canBlock = true, canBeDone = true, doneWhen = "state" },
+}
+
+local function design(status: string)
+	return testing.task("a", "Work", status, nil, { type = "design" })
+end
+
+test.case("setDesired records the state a card's type declares for a merged pull request", function(assert)
+	testing.withCardTypes({ DESIGN :: any }, function()
+		local item = design("sketching")
+		setDesired(item, pull("MERGED"), "vocksel")
+		assert.eq(item.data.status, "approved")
+		assert.eq(getStateMeaning(item), "done")
+	end)
+end)
+
+test.case("setDesired keeps a card's state when its type has none for the meaning", function(assert)
+	testing.withCardTypes({ DESIGN :: any }, function()
+		local item = design("sketching")
+		setDesired(item, pull("CLOSED"), "vocksel")
+		assert.eq(item.data.status, "sketching")
+		assert.eq(item.data.deferredByClosedPull, nil)
+	end)
+end)
+
+test.case("setDesired keeps a state that already has the meaning the pull request decides", function(assert)
+	testing.withCardTypes({ DESIGN :: any }, function()
+		local draft = pull("OPEN")
+		draft.draft = true
+		local item = design("refining")
+		setDesired(item, draft, "vocksel")
+		assert.eq(item.data.status, "refining")
+		assert.eq(item.data.who, "you")
+	end)
 end)

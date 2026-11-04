@@ -122,6 +122,8 @@ export function getCardView(node: TaskNode, facts: CardFacts): CardView {
   // The primary ref's URL, so a badge for another GitHub ref can't change what opens from a pull request card.
   const url = getTaskUrl(data)
   const cardType = getCardType(data)
+  // The type's own word for its state, unless the graph says something else, such as blocked or ready.
+  const recordedState = cardType.states.find((state) => state.name === data.status && state.means === facts.status)
   const pullRequestUrl = cardType.name === 'pr' && url?.startsWith('https://github.com/') ? url : undefined
 
   return {
@@ -135,7 +137,7 @@ export function getCardView(node: TaskNode, facts: CardFacts): CardView {
     url,
     ...(pullRequestUrl ? { pullRequestUrl } : {}),
     status: facts.status,
-    statusLabel: readyToMerge ? READINESS_LABEL.mergeable : STATUS_LABEL[facts.status],
+    statusLabel: readyToMerge ? READINESS_LABEL.mergeable : (recordedState?.label ?? STATUS_LABEL[facts.status]),
     ...(who ? { who, whoLabel: WHO_LABEL[who] } : {}),
     leverage: facts.leverage,
     upstream: facts.upstream,

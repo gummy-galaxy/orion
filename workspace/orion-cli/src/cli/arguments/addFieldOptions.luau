@@ -14,9 +14,7 @@ local function addFieldOptions(parser: cli.Parser, clearing: boolean)
 	end
 
 	addArgument(parser, "status", "option", {
-		help = "todo, active, review, blocked, deferred, or done",
-		type = "enum",
-		values = fieldValues.statuses,
+		help = "A state the card's type declares: todo, active, review, blocked, deferred, or done for the shipped types",
 	})
 	parser:add("repo", "option", { help = "Repository it belongs to, as owner/name (empty to clear)" })
 	addArgument(parser, "who", "option", {

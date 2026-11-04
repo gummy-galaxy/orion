@@ -23,6 +23,9 @@ export const FIGMA_FRAME: CardType = {
     },
   ],
   face: { layout: 'card', shows: ['stage', 'screens'] },
-  states: [{ name: 'approved', label: 'Approved', means: 'done' }],
+  states: [
+    { name: 'drafting', label: 'Drafting', means: 'todo' },
+    { name: 'approved', label: 'Approved', means: 'done' },
+  ],
   meaning: { isWork: true, canBlock: true, canBeDone: true, doneWhen: 'state' },
 }

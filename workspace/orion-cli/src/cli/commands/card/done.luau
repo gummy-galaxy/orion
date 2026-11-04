@@ -2,6 +2,7 @@ local cli = require("@batteries/cli")
 
 local addBatchOptions = require("@root/cli/arguments/addBatchOptions")
 local context = require("@root/cli/context")
+local findState = require("@root/canvas/cardTypes/findState")
 local getItem = require("@root/canvas/items/getItem")
 local getLabel = require("@root/canvas/items/getLabel")
 local isBatchEdit = require("@root/cli/edits/isBatchEdit")
@@ -30,7 +31,7 @@ return table.freeze({
 		local doc = runTransaction(options.dir, function(current)
 			id = resolveId(current, parser:variadics()[1])
 			requireItem(current, id)
-			setFields(current, id, { status = "done" })
+			setFields(current, id, { status = findState(getItem(current, id), "done") })
 		end)
 
 		options.write(`Done: {id} · {getLabel(getItem(doc, id))}`)

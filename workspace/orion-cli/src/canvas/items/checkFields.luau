@@ -13,10 +13,6 @@ local function checkFields(fields: ItemFields)
 		"repo must be owner/name"
 	)
 	assert(
-		fields.status == nil or table.find(fieldValues.statuses, fields.status),
-		`status must be one of {table.concat(fieldValues.statuses, ", ")}`
-	)
-	assert(
 		fields.who == nil or fields.who == "" or table.find(fieldValues.who, fields.who),
 		`who must be one of {table.concat(fieldValues.who, ", ")}`
 	)

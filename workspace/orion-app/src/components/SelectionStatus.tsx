@@ -1,4 +1,6 @@
 import { sharedValue, type BatchPatch } from '../batchEdit'
+import { getSharedStatusChoices } from '../cardTypes/getSharedStatusChoices'
+import { getStateMeaning } from '../cardTypes/getStateMeaning'
 import { STATUS_CHOICES, WHO_CHOICES, type Status, type TaskData, type Who } from '../model'
 
 type Props = {
@@ -9,7 +11,10 @@ type Props = {
 
 /** Status and whose move it is for a multi-selection, set on every work item in it at once. */
 export function SelectionStatus({ items, update }: Props) {
-  const status = sharedValue(items.map((item) => item.status))
+  const status = sharedValue(items.map((item) => getStateMeaning(item)))
+  const choices = getSharedStatusChoices(items)
+  // Cards can read as a status their types don't declare, so the menu still shows it without offering it.
+  const current = STATUS_CHOICES.find((choice) => choice.value === status)
   const who = sharedValue(items.map((item) => item.who))
 
   return (
@@ -27,7 +32,12 @@ export function SelectionStatus({ items, update }: Props) {
                 Mixed
               </option>
             )}
-            {STATUS_CHOICES.map((choice) => (
+            {current && !choices.includes(current) && (
+              <option value={current.value} disabled>
+                {current.label}
+              </option>
+            )}
+            {choices.map((choice) => (
               <option key={choice.value} value={choice.value}>
                 {choice.label}
               </option>
