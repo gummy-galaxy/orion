@@ -1,10 +1,11 @@
+local json = require("@std/json")
+
 local adapterTypes = require("@root/sources/types")
 local getErrorText = require("@root/common/errors/getErrorText")
 local getGithubId = require("@root/sources/github/refs/getGithubId")
 local getRefKey = require("@root/sources/getRefKey")
 local getRepoId = require("@root/sources/github/repositories/getRepoId")
 local getString = require("@root/sources/github/getString")
-local json = require("@std/json")
 local queryAsync = require("@root/sources/github/api/queryAsync")
 local types = require("@root/types")
 

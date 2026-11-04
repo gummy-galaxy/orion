@@ -1,7 +1,7 @@
 local test = require("@std/test")
 
 local emptyLoop = require("@repository/.lute/lints/emptyLoop")
-local testing = require("@cli/testing")
+local testing = require("@workspace/orion-cli/src/testing")
 
 test.case("emptyLoop flags while, for, and repeat loops with nothing in them", function(assert)
 	local source = [[

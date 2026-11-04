@@ -1,3 +1,5 @@
+local json = require("@std/json")
+
 local findBranchCards = require("@root/sources/github/pulls/findBranchCards")
 local getKey = require("@root/sources/github/refs/getKey")
 local getLabel = require("@root/canvas/items/getLabel")
@@ -5,7 +7,6 @@ local getRefFor = require("@root/sources/github/refs/getRefFor")
 local getString = require("@root/sources/github/getString")
 local githubTypes = require("@root/sources/github/types")
 local isInSources = require("@root/sources/github/repositories/isInSources")
-local json = require("@std/json")
 local linkItems = require("@root/canvas/links/linkItems")
 local match = require("@root/canvas/query/match")
 local refreshItemKind = require("@root/canvas/items/refreshItemKind")

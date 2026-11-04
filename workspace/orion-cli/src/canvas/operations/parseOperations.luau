@@ -1,6 +1,7 @@
+local json = require("@std/json")
+
 local getErrorText = require("@root/common/errors/getErrorText")
 local getStringField = require("@root/common/getStringField")
-local json = require("@std/json")
 local operationTypes = require("@root/canvas/operations/types")
 
 type Operation = operationTypes.Operation

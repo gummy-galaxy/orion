@@ -1,5 +1,6 @@
-local copyValue = require("@root/canvas/operations/copyValue")
 local json = require("@std/json")
+
+local copyValue = require("@root/canvas/operations/copyValue")
 local types = require("@root/types")
 
 type Doc = types.Doc

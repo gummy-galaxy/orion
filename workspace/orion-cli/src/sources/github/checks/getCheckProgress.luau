@@ -1,5 +1,6 @@
-local getString = require("@root/sources/github/getString")
 local json = require("@std/json")
+
+local getString = require("@root/sources/github/getString")
 
 type Progress = { running: number, waiting: number }
 
