@@ -1,6 +1,7 @@
+local json = require("@std/json")
+
 local getString = require("@root/sources/github/getString")
 local githubTypes = require("@root/sources/github/types")
-local json = require("@std/json")
 
 type CheckCounts = githubTypes.CheckCounts
 

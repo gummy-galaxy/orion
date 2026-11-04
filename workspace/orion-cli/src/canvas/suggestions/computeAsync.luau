@@ -1,9 +1,10 @@
+local json = require("@std/json")
+
 local findRef = require("@root/canvas/refs/findRef")
 local getLabel = require("@root/canvas/items/getLabel")
 local getRefs = require("@root/canvas/refs/getRefs")
 local getStateMeaning = require("@root/canvas/cardTypes/getStateMeaning")
 local isWork = require("@root/canvas/items/isWork")
-local json = require("@std/json")
 local match = require("@root/canvas/query/match")
 local suggestTypes = require("@root/canvas/suggestions/types")
 local types = require("@root/types")

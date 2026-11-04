@@ -10,7 +10,7 @@ local net = require("@std/net")
 local path = require("@std/path")
 local process = require("@std/process")
 
-local getPerfEvents = require("../lib/perf/getPerfEvents")
+local getPerfEvents = require("@repository/.lute/lib/perf/getPerfEvents")
 
 local DEFAULT_HOST = "https://us.i.posthog.com"
 local DISTINCT_ID = "orion-ci"

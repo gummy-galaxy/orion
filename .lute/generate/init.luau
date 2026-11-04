@@ -29,12 +29,11 @@
 ]]
 local process = require("@std/process")
 
-local runScript = require("@cli/common/process/runScript")
-
 local generateCardTypes = require("@self/cardTypes")
 local generateDocs = require("@self/docs")
 local generateGeometry = require("@self/geometry")
 local generateTelemetry = require("@self/telemetry")
+local runScript = require("@workspace/orion-cli/src/common/process/runScript")
 
 local GENERATORS: { [string]: (checkOnly: boolean) -> boolean } = {
 	cardTypes = generateCardTypes,

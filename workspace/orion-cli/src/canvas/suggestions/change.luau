@@ -1,9 +1,10 @@
+local json = require("@std/json")
+
 local createId = require("@root/common/createId")
 local findItem = require("@root/canvas/items/findItem")
 local getItem = require("@root/canvas/items/getItem")
 local getNextSlot = require("@root/canvas/placement/getNextSlot")
 local getStored = require("@root/canvas/suggestions/getStored")
-local json = require("@std/json")
 local moveItem = require("@root/canvas/placement/moveItem")
 local save = require("@root/canvas/suggestions/save")
 local suggestTypes = require("@root/canvas/suggestions/types")
