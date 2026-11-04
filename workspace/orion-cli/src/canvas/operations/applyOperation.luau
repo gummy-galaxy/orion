@@ -1,3 +1,5 @@
+local json = require("@std/json")
+
 local captureDoc = require("@root/canvas/operations/captureDoc")
 local closeChain = require("@root/canvas/links/closeChain")
 local closeOut = require("@root/canvas/items/closeOut")
@@ -7,7 +9,6 @@ local getGroup = require("@root/canvas/groups/getGroup")
 local getItem = require("@root/canvas/items/getItem")
 local graphTypes = require("@root/canvas/types")
 local insertBetween = require("@root/canvas/links/insertBetween")
-local json = require("@std/json")
 local linkItems = require("@root/canvas/links/linkItems")
 local makeGroup = require("@root/canvas/groups/makeGroup")
 local markForTidy = require("@root/canvas/placement/markForTidy")

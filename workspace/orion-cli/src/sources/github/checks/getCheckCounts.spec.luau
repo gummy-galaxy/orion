@@ -1,7 +1,7 @@
+local json = require("@std/json")
 local test = require("@std/test")
 
 local getCheckCounts = require("@root/sources/github/checks/getCheckCounts")
-local json = require("@std/json")
 
 local function rollup(source: string): json.Object
 	return json.asObject(json.deserialize(source) :: json.Value) :: json.Object

@@ -1,7 +1,7 @@
 local json = require("@std/json")
 local test = require("@std/test")
 
-local parseStoryIndex = require("./parseStoryIndex")
+local parseStoryIndex = require("@repository/.lute/lib/storybook/parseStoryIndex")
 
 local STORIES_FILE = "app/src/components/Ring.stories.tsx"
 
