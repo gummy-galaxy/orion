@@ -7,7 +7,7 @@ const task = (id: string, zIndex?: number): AppNode => ({
   type: 'task',
   zIndex,
   position: { x: 0, y: 0 },
-  data: { kind: 'task', label: id, itemKind: 'step', status: 'todo' },
+  data: { kind: 'task', label: id, type: 'step', status: 'todo' },
 })
 
 describe('drag lift', () => {

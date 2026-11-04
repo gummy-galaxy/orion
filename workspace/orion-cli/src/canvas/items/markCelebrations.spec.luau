@@ -24,7 +24,7 @@ test.case("markCelebrations keeps a flag until the card is reopened, and skips n
 	local doc = testing.createDoc({
 		task("a", "A", "done", nil, { celebrate = true }),
 		task("created", "Created done", "done"),
-		task("n", "Note", "todo", nil, { itemKind = "note" }),
+		task("n", "Note", "todo", nil, { type = "note" }),
 	})
 	local previous = getRecordedStatuses(doc)
 	doc.nodes[1].data.label = "Renamed"

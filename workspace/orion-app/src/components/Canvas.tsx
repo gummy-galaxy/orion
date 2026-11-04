@@ -2794,7 +2794,7 @@ export function Canvas() {
         type: 'task',
         parentId: parentNode?.id,
         position: { x: at.x - origin.x, y: at.y - origin.y },
-        data: { kind: 'task', label: '', itemKind, status: 'todo' },
+        data: { kind: 'task', label: '', type: itemKind, status: 'todo' },
         selected: true,
       }
       const kind = currentLinks.find((link) => link.id === options.replace)?.kind ?? 'blocks'

@@ -19,7 +19,7 @@ const shapes: TaskNode[] = COMPONENT_SHAPES.map((shape, i) => ({
   position: { x: (i % 4) * 260, y: Math.floor(i / 4) * 150 },
   data: {
     kind: 'task',
-    itemKind: 'component',
+    type: 'component',
     label: SHAPE_LABEL[shape],
     status: 'todo',
     shape,

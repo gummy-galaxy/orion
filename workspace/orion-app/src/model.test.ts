@@ -27,7 +27,7 @@ import { moveOutOfGroup, ungroup } from './layout'
 const task = (overrides: Partial<TaskData> = {}): TaskData => ({
   kind: 'task',
   label: 'Work',
-  itemKind: 'step',
+  type: 'step',
   status: 'todo',
   ...overrides,
 })
@@ -53,7 +53,7 @@ describe('source refs', () => {
     expect(getTaskTag(unlinked)).toBe('vocksel/orion@work')
     expect(getTaskUrl(unlinked)).toBeNull()
     expect(getTaskTag(task({ repo: 'vocksel/orion' }))).toBe('vocksel/orion')
-    expect(getTaskTag(task({ itemKind: 'gate' }))).toBe('gate')
+    expect(getTaskTag(task({ type: 'gate' }))).toBe('gate')
     expect(getTaskTag(task())).toBe('step')
   })
 
@@ -85,14 +85,14 @@ describe('tintOf', () => {
     type: 'task',
     parentId: 'inner',
     position: { x: 0, y: 0 },
-    data: { kind: 'task', label: id, itemKind: 'component', status: 'todo', ...data },
+    data: { kind: 'task', label: id, type: 'component', status: 'todo', ...data },
   })
   const nodes = [
     group('outer', 'teal'),
     group('inner', undefined, 'outer'),
     card('plain', {}),
     card('own', { color: 'rose' }),
-    card('work', { itemKind: 'step' }),
+    card('work', { type: 'step' }),
   ]
   const nodeMap = byId(nodes)
 
@@ -160,7 +160,7 @@ const cardNode = (id: string, parentId?: string, position = { x: 0, y: 0 }): App
   type: 'task',
   parentId,
   position,
-  data: { kind: 'task', label: id, itemKind: 'step', status: 'todo' },
+  data: { kind: 'task', label: id, type: 'step', status: 'todo' },
 })
 
 const rectOf = (nodes: AppNode[], id: string) => {

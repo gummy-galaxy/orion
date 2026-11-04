@@ -18,7 +18,7 @@ import { withSnoozedFacts } from './withSnoozedFacts'
 
 export type CardView = {
   id: string
-  /** 'step' | 'pr' | 'placeholder' | 'gate' | 'note' | 'component', from data.itemKind */
+  /** 'step' | 'pr' | 'placeholder' | 'gate' | 'note' | 'component', from data.type */
   kind: ItemKind
   title: string
   tag: string
@@ -97,11 +97,11 @@ export function getCardView(node: TaskNode, facts: CardFacts): CardView {
   const merge = readyToMerge && pullRef?.url && pullRef.head ? { url: pullRef.url, head: pullRef.head } : undefined
   // The primary ref's URL, so a badge for another GitHub ref can't change what opens from a pull request card.
   const url = getTaskUrl(data)
-  const pullRequestUrl = data.itemKind === 'pr' && url?.startsWith('https://github.com/') ? url : undefined
+  const pullRequestUrl = data.type === 'pr' && url?.startsWith('https://github.com/') ? url : undefined
 
   return {
     id: node.id,
-    kind: data.itemKind,
+    kind: data.type,
     title: data.label,
     tag: getTaskTag(data),
     url,
@@ -112,7 +112,7 @@ export function getCardView(node: TaskNode, facts: CardFacts): CardView {
     leverage: facts.leverage,
     upstream: facts.upstream,
     // Notes and components aren't work, so nothing about them is rare.
-    ...(data.itemKind === 'note' || data.itemKind === 'component' ? {} : { rarity: facts.rarity ?? 'common' }),
+    ...(data.type === 'note' || data.type === 'component' ? {} : { rarity: facts.rarity ?? 'common' }),
     ...(checks ? { checks } : {}),
     ...(readiness ? { readiness } : {}),
     ...(checkProgress ? { checkProgress } : {}),

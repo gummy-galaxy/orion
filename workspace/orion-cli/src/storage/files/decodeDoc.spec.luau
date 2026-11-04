@@ -61,3 +61,20 @@ test.case("decode moves an image's workspace to canvas", function(assert)
 	assert.eq(doc.nodes[1].data.canvas, "planning")
 	assert.eq(doc.nodes[1].data.workspace, nil)
 end)
+
+test.case("decode moves a card's itemKind to type", function(assert)
+	local doc = decodeDoc([[{
+		"version":2,"revision":1,
+		"nodes":[
+			{"id":"gate","type":"task","position":{"x":0,"y":0},
+				"data":{"kind":"task","label":"Ship","itemKind":"gate"}},
+			{"id":"both","type":"task","position":{"x":0,"y":0},
+				"data":{"kind":"task","label":"Both","itemKind":"step","type":"note"}}
+		],
+		"links":[]
+	}]])
+	assert.eq(doc.nodes[1].data.type, "gate")
+	assert.eq(doc.nodes[1].data.itemKind, nil)
+	assert.eq(doc.nodes[2].data.type, "note")
+	assert.eq(doc.nodes[2].data.itemKind, nil)
+end)

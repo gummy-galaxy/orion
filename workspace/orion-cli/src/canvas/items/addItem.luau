@@ -27,7 +27,7 @@ local function addItem(doc: Doc, label: string, options: AddOptions): Item
 		label = label,
 		-- A shape only fits a component, so giving one makes the item a
 		-- component.
-		itemKind = chooseItemKind(options.repo, nil, if options.shape then "component" else options.kind),
+		type = chooseItemKind(options.repo, nil, if options.shape then "component" else options.kind),
 		status = options.status or "todo",
 	})
 	data.repo = options.repo

@@ -31,7 +31,7 @@ export function useCompanionTargets() {
 
       // Cards and folded groups; an open group's frame would always be nearest whatever is inside it.
       const perchable =
-        (node.type === 'task' && node.data.itemKind !== 'note') || (node.type === 'cluster' && collapsed.has(node.id))
+        (node.type === 'task' && node.data.type !== 'note') || (node.type === 'cluster' && collapsed.has(node.id))
 
       if (!perchable) continue
 

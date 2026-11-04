@@ -65,7 +65,7 @@ function testing.directory(name: string): string
 end
 
 function testing.task(id: string, label: string, status: string, parentId: string?, extra: json.Object?): Item
-	local data = json.object({ kind = "task", label = label, itemKind = "step", status = status })
+	local data = json.object({ kind = "task", label = label, type = "step", status = status })
 
 	for key, value in extra or {} do
 		data[key] = value

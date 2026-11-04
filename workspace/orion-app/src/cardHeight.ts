@@ -89,11 +89,11 @@ export function forgetTextWidths() {
 export function taskHeight(data: TaskData, cardSize: CardSize): number {
   let height: number
 
-  if (data.itemKind === 'note') {
+  if (data.type === 'note') {
     height =
       CARD_TEXT.chrome +
       lineCount(data.label || 'Empty note', TEXT.note, cardSize.width - CARD_TEXT.sides.note) * TEXT.note.lineHeight
-  } else if (data.itemKind === 'component') {
+  } else if (data.type === 'component') {
     const room = SHAPE_ROOM[data.shape ?? ''] ?? { x: 0, y: 0 }
     const width = cardSize.width - CARD_TEXT.sides.component - room.x
     const label = lineCount(data.label || 'Untitled component', TEXT.label, width) * TEXT.label.lineHeight
@@ -111,5 +111,5 @@ export function taskHeight(data: TaskData, cardSize: CardSize): number {
     Math.max(TASK_HEIGHT, Math.ceil((height + CARD_TEXT.slack) / CARD_TEXT.step) * CARD_TEXT.step),
   )
 
-  return data.itemKind === 'note' ? Math.max(cardSize.height, fit) : fit
+  return data.type === 'note' ? Math.max(cardSize.height, fit) : fit
 }

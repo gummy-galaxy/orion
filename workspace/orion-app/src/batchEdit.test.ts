@@ -6,7 +6,7 @@ const card = (id: string, data: Partial<TaskData> = {}, itemKind: ItemKind = 'st
   id,
   type: 'task',
   position: { x: 0, y: 0 },
-  data: { kind: 'task', label: id, itemKind, status: 'todo', ...data },
+  data: { kind: 'task', label: id, type: itemKind, status: 'todo', ...data },
 })
 
 const dataOf = (nodes: AppNode[], id: string) => nodes.find((node) => node.id === id)?.data as TaskData

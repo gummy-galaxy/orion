@@ -9,7 +9,7 @@ test.case("countProgress reads a group's totals and counts nothing for an unknow
 		testing.group("g", "Group"),
 		testing.task("a", "A", "done", "g"),
 		testing.task("b", "B", "todo", "g"),
-		testing.task("api", "API", "todo", "g", { itemKind = "component" }),
+		testing.task("api", "API", "todo", "g", { type = "component" }),
 	})
 	local derived = derive(doc)
 	assert.eq(countProgress(derived, "g"), { total = 2, done = 1, ready = 1, components = 1 })

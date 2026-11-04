@@ -4,6 +4,7 @@ local checkDataVersion = require("@root/storage/transactions/checkDataVersion")
 local fillPullFacts = require("@root/sources/github/pulls/fillPullFacts")
 local getStringField = require("@root/common/getStringField")
 local migrateImageCanvas = require("@root/storage/migrations/migrateImageCanvas")
+local migrateItemKind = require("@root/storage/migrations/migrateItemKind")
 local types = require("@root/types")
 
 type CheckSnooze = types.CheckSnooze
@@ -133,6 +134,12 @@ local function decodeDocObject(root: json.Object): Doc
 		-- Remove at 0.1.0 with the rest of `migrations/`.
 		if item.type == "image" and item.data.workspace ~= nil then
 			migrateImageCanvas(item)
+		end
+
+		-- Cards from before their kind was stored as `type` keep `itemKind`
+		-- until read. Remove at 0.1.0 with the rest of `migrations/`.
+		if item.type == "task" and item.data.itemKind ~= nil then
+			migrateItemKind(item)
 		end
 	end
 

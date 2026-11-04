@@ -40,7 +40,7 @@ end)
 test.case("closeChain stops at related links and passes through finished notes", function(assert)
 	local doc = testing.createDoc({
 		task("a", "A", "done", nil, { celebrate = true }),
-		task("n", "Note", "todo", nil, { itemKind = "note" }),
+		task("n", "Note", "todo", nil, { type = "note" }),
 		task("b", "B", "done", nil, { celebrate = true }),
 		task("r", "Related", "done", nil, { celebrate = true }),
 	}, { { "a", "n" }, { "n", "b" }, { "a", "r", "related" } })
@@ -75,7 +75,7 @@ end)
 test.case("closeChain refuses open work, notes, and groups", function(assert)
 	local doc = testing.createDoc({
 		task("open", "Open", "active"),
-		task("n", "Note", "todo", nil, { itemKind = "note" }),
+		task("n", "Note", "todo", nil, { type = "note" }),
 		testing.group("g", "Group"),
 	})
 

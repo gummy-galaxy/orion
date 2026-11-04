@@ -97,7 +97,7 @@ local function setFields(doc: Doc, id: string, fields: ItemFields): Item
 		`"{id}" is an item; only groups take a cover, background, or header`
 	)
 
-	local drawn = { item.data.label, item.data.note, item.data.itemKind, item.data.shape }
+	local drawn = { item.data.label, item.data.note, item.data.type, item.data.shape }
 
 	if fields.label then
 		item.data.label = fields.label
@@ -122,7 +122,7 @@ local function setFields(doc: Doc, id: string, fields: ItemFields): Item
 
 	-- Giving a note a kind makes it a work item.
 	if fields.kind and isNote(item) then
-		item.data.itemKind = "step"
+		item.data.type = "step"
 	end
 
 	-- As with add, giving a card a shape makes it a component.
@@ -132,9 +132,8 @@ local function setFields(doc: Doc, id: string, fields: ItemFields): Item
 	if not isNote(item) and (fields.repo or givenKind) then
 		local repo = getStringField(item.data.repo)
 		local pr = findRef(item, "pull")
-		local kind = givenKind
-			or (if isGate(item) or isComponent(item) then getStringField(item.data.itemKind) else nil)
-		item.data.itemKind = chooseItemKind(repo, if pr then 1 else nil, kind)
+		local kind = givenKind or (if isGate(item) or isComponent(item) then getStringField(item.data.type) else nil)
+		item.data.type = chooseItemKind(repo, if pr then 1 else nil, kind)
 	end
 
 	-- Work isn't drawn with a shape or tint, so a component turned into work
@@ -152,7 +151,7 @@ local function setFields(doc: Doc, id: string, fields: ItemFields): Item
 
 	-- A height the app measured no longer fits new text or a new shape, so the
 	-- estimate stands in until it measures again.
-	local now = { item.data.label, item.data.note, item.data.itemKind, item.data.shape }
+	local now = { item.data.label, item.data.note, item.data.type, item.data.shape }
 
 	-- Fields can be nil, so walk them by index.
 	for i = 1, 4 do

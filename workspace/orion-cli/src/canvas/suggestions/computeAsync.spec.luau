@@ -184,7 +184,7 @@ test.case("default scope includes unsorted and top-level cards, ignoring notes",
 		testing.task("a", "Alpha loading", "todo", "unsorted", json.object({ repo = "vocksel/app" })),
 		testing.task("b", "Alpha loading", "todo", nil, json.object({ repo = "vocksel/app" })),
 		testing.task("c", "Alpha loading", "todo", "placed", json.object({ repo = "vocksel/app" })),
-		testing.task("note", "Alpha loading", "todo", nil, json.object({ itemKind = "note", repo = "vocksel/app" })),
+		testing.task("note", "Alpha loading", "todo", nil, json.object({ type = "note", repo = "vocksel/app" })),
 	})
 	assert.eq(table.concat(getSuggestions(doc).groups[1].members, ","), "a,b")
 	assert.eq(table.concat(getSuggestions(doc, nil, nil, "all").groups[1].members, ","), "a,b,c")

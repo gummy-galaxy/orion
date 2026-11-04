@@ -9,7 +9,7 @@ test.case("snooze sets and clears a work item's wake time, and refuses groups an
 	local doc = testing.createDoc({
 		testing.group("g", "G"),
 		task("a", "A", "todo"),
-		task("n", "Note", "todo", nil, { itemKind = "note" }),
+		task("n", "Note", "todo", nil, { type = "note" }),
 	})
 	snooze(doc, "a", "2026-10-12T17:00:00Z")
 	assert.eq(doc.nodes[2].data.snoozedUntil, "2026-10-12T17:00:00Z")

@@ -106,8 +106,8 @@ local function placeRecords(doc: Doc, results: { Result }): Report
 				item.data.repo = record.repo
 			end
 
-			if record.itemKind and (not record.keepPullKind or not findRef(item, "pull")) then
-				item.data.itemKind = record.itemKind
+			if record.type and (not record.keepPullKind or not findRef(item, "pull")) then
+				item.data.type = record.type
 			end
 
 			if record.status then

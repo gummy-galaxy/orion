@@ -20,7 +20,7 @@ test.case("derive marks work waiting on open items as blocked and the rest ready
 end)
 
 test.case("derive passes blocking through notes without counting them", function(assert)
-	local note = task("n", "Remember", "todo", nil, { itemKind = "note" })
+	local note = task("n", "Remember", "todo", nil, { type = "note" })
 	local doc = testing.createDoc(
 		{ task("a", "A", "active"), note, task("b", "B", "todo") },
 		{ { "a", "n" }, { "n", "b" } }
@@ -32,7 +32,7 @@ test.case("derive passes blocking through notes without counting them", function
 end)
 
 test.case("derive finishes a gate once everything it waits on is done", function(assert)
-	local gate = task("g", "Ready to ship", "todo", nil, { itemKind = "gate" })
+	local gate = task("g", "Ready to ship", "todo", nil, { type = "gate" })
 	local doc = testing.createDoc(
 		{ task("a", "A", "done"), task("b", "B", "active"), gate, task("c", "C", "todo") },
 		{ { "a", "g" }, { "b", "g" }, { "g", "c" } }
@@ -46,12 +46,12 @@ test.case("derive finishes a gate once everything it waits on is done", function
 	assert.eq(derived.status.g, "done")
 	assert.eq(derived.status.c, "ready")
 
-	local lone = testing.createDoc({ task("g", "Lone gate", "todo", nil, { itemKind = "gate" }) })
+	local lone = testing.createDoc({ task("g", "Lone gate", "todo", nil, { type = "gate" }) })
 	assert.eq(derive(lone).status.g, "ready")
 end)
 
 test.case("components have no status, pass blocking through, and never count as work", function(assert)
-	local component = task("api", "API server", "todo", "g", { itemKind = "component" })
+	local component = task("api", "API server", "todo", "g", { type = "component" })
 	local doc = testing.createDoc(
 		{ testing.group("g", "System"), task("a", "A", "active", "g"), component, task("b", "B", "todo", "g") },
 		{ { "a", "api" }, { "api", "b" } }
@@ -125,8 +125,8 @@ test.case("derive passes flow through notes", function(assert)
 	local doc = testing.createDoc({
 		task("ready", "", "todo"),
 		task("waiting", "", "active"),
-		task("n1", "", "todo", nil, { itemKind = "note" }),
-		task("n2", "", "todo", nil, { itemKind = "note" }),
+		task("n1", "", "todo", nil, { type = "note" }),
+		task("n2", "", "todo", nil, { type = "note" }),
 		task("x", "", "todo"),
 		task("y", "", "todo"),
 	}, { { "ready", "n1" }, { "n1", "x" }, { "ready", "waiting" }, { "waiting", "n2" }, { "n2", "y" } })
@@ -136,7 +136,7 @@ test.case("derive passes flow through notes", function(assert)
 end)
 
 test.case("derive counts a chain of upstream work, including completed work and gates", function(assert)
-	local gate = task("gate", "Gate", "todo", nil, { itemKind = "gate" })
+	local gate = task("gate", "Gate", "todo", nil, { type = "gate" })
 	local doc = testing.createDoc(
 		{ task("a", "A", "done"), task("b", "B", "todo"), gate },
 		{ { "a", "b" }, { "b", "gate" } }
@@ -157,7 +157,7 @@ end)
 
 test.case("derive passes upstream through notes without counting them", function(assert)
 	local doc = testing.createDoc(
-		{ task("a", "A", "todo"), task("note", "", "todo", nil, { itemKind = "note" }), task("b", "B", "todo") },
+		{ task("a", "A", "todo"), task("note", "", "todo", nil, { type = "note" }), task("b", "B", "todo") },
 		{ { "a", "note" }, { "note", "b" } }
 	)
 	assert.eq(derive(doc).upstream.b, 1)
@@ -172,7 +172,7 @@ test.case("derive terminates a cycle and leaves the card itself out of its upstr
 	local doc = testing.createDoc({
 		task("a", "A", "todo"),
 		task("b", "B", "todo"),
-		task("note", "", "todo", nil, { itemKind = "note" }),
+		task("note", "", "todo", nil, { type = "note" }),
 		task("c", "C", "todo"),
 	}, { { "a", "b" }, { "b", "note" }, { "note", "a" }, { "b", "c" } })
 	local derived = derive(doc)
@@ -192,7 +192,7 @@ test.case("derive gives rarity from upstream work and leaves notes without one",
 	assert.eq(derived.rarity[ids[16]], "mythic")
 	assert.eq(derived.upstream[ids[16]], 15)
 
-	local note = derive(testing.createDoc({ task("n", "", "todo", nil, { itemKind = "note" }) }))
+	local note = derive(testing.createDoc({ task("n", "", "todo", nil, { type = "note" }) }))
 	assert.eq(note.rarity.n, nil)
 end)
 
@@ -203,7 +203,7 @@ test.case("derive counts each group's progress and the work it reaches outside i
 		task("a", "A", "todo", "inner"),
 		task("b", "B", "done", "outer"),
 		task("c", "C", "todo"),
-		task("note", "", "todo", "outer", { itemKind = "note" }),
+		task("note", "", "todo", "outer", { type = "note" }),
 	}, { { "a", "c" } })
 	local derived = derive(doc)
 	assert.eq(derived.groups.inner, { total = 1, done = 0, ready = 1, blocked = 0, outside = 1, components = 0 })
@@ -218,7 +218,7 @@ test.case("derive leaves deferred work and notes out of a group's total", functi
 		task("a", "A", "done", "g"),
 		task("b", "B", "todo", "g"),
 		task("c", "C", "deferred", "g"),
-		task("n", "Remember", "todo", "g", { itemKind = "note" }),
+		task("n", "Remember", "todo", "g", { type = "note" }),
 	})
 	local derived = derive(doc)
 	assert.eq(derived.groups.g, { total = 2, done = 1, ready = 1, blocked = 0, outside = 0, components = 0 })
@@ -261,7 +261,7 @@ test.case("derive counts progress across the whole canvas the way it does for a 
 		task("b", "B", "done"),
 		task("c", "C", "todo"),
 		task("d", "D", "deferred"),
-		task("n", "Note", "todo", nil, { itemKind = "note" }),
+		task("n", "Note", "todo", nil, { type = "note" }),
 	}, { { "a", "c" } })
 	snooze(doc, "a", "2026-10-12T17:00:00Z")
 	local canvas = derive(doc, "2026-10-04T00:00:00Z").canvas
@@ -284,7 +284,7 @@ test.case(
 			task("deferred", "Deferred", "deferred", nil, yours),
 			task("snoozed", "Snoozed", "todo", nil, yours),
 			task("theirs", "Theirs", "todo", nil, { who = "review" }),
-			task("note", "Note", "todo", nil, { itemKind = "note", who = "you" }),
+			task("note", "Note", "todo", nil, { type = "note", who = "you" }),
 		}, { { "active", "blocked" } })
 		snooze(doc, "snoozed", "2026-10-12T17:00:00Z")
 		local attention = derive(doc, "2026-10-04T00:00:00Z").attention

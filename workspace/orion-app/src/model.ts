@@ -55,7 +55,7 @@ export const TINTS: Tint[] = ['teal', 'blue', 'purple', 'amber', 'rose', 'green'
 export type TaskData = {
   kind: 'task'
   label: string
-  itemKind: ItemKind
+  type: ItemKind
   status: Status
   /** Full owner/name of the repository this work belongs to. */
   repo?: string
@@ -277,9 +277,7 @@ export function getPullRequestNumber(ref: SourceRef | undefined): number | undef
 
 export function getTaskTag(data: TaskData): string {
   return (
-    getPrimaryRef(data)?.key ??
-    data.repo ??
-    (data.itemKind === 'gate' || data.itemKind === 'component' ? data.itemKind : 'step')
+    getPrimaryRef(data)?.key ?? data.repo ?? (data.type === 'gate' || data.type === 'component' ? data.type : 'step')
   )
 }
 
@@ -290,9 +288,9 @@ export function getTaskUrl(data: TaskData): string | null {
 export const isCluster = (node: AppNode): node is ClusterNode => node.type === 'cluster'
 export const isTask = (node: AppNode): node is TaskNode => node.type === 'task'
 export const isImage = (node: AppNode): node is ImageNode => node.type === 'image'
-export const isNote = (node: AppNode | undefined): boolean => !!node && isTask(node) && node.data.itemKind === 'note'
+export const isNote = (node: AppNode | undefined): boolean => !!node && isTask(node) && node.data.type === 'note'
 export const isComponent = (node: AppNode | undefined): boolean =>
-  !!node && isTask(node) && node.data.itemKind === 'component'
+  !!node && isTask(node) && node.data.type === 'component'
 /** Cards that count as work. Notes and components pass blocking through and never do. */
 export const isWork = (node: AppNode | undefined): boolean =>
   !!node && isTask(node) && !isNote(node) && !isComponent(node)
@@ -336,7 +334,7 @@ export function survivingRoot(root: string, before: Map<string, AppNode>, after:
 
 /** A component's own tint, or else its nearest group's. Work cards and notes have none. */
 export function tintOf(node: AppNode, nodeMap: Map<string, AppNode>): Tint | undefined {
-  if (isTask(node) && node.data.itemKind !== 'component') return undefined
+  if (isTask(node) && node.data.type !== 'component') return undefined
 
   if (!isImage(node) && node.data.color) return node.data.color
 

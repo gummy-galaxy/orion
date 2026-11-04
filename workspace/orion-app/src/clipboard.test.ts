@@ -11,7 +11,7 @@ const task = (id: string, x: number, y: number, parentId?: string, selected?: bo
   parentId,
   selected,
   position: { x, y },
-  data: { kind: 'task', label: id, itemKind: 'step', status: 'todo' },
+  data: { kind: 'task', label: id, type: 'step', status: 'todo' },
 })
 
 const group = (
@@ -128,7 +128,7 @@ describe('copying a selection', () => {
   it('leaves out view state', () => {
     const done: AppNode = {
       ...task('a', 0, 0, undefined, true),
-      data: { kind: 'task', label: 'a', itemKind: 'step', status: 'done', celebrate: true },
+      data: { kind: 'task', label: 'a', type: 'step', status: 'done', celebrate: true },
     } as AppNode
     const clip = copy([done], [], ['a'])
 

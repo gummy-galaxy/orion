@@ -354,7 +354,7 @@ test.case("set attaches a GitHub issue from a URL and fills in an empty reposito
 	)
 	local item = loadDoc(dir).nodes[3]
 	assert.eq(item.data.repo, "Roblox/avatar")
-	assert.eq(item.data.itemKind, "placeholder")
+	assert.eq(item.data.type, "placeholder")
 	assert.neq(findRef(item, "issue", "Roblox/avatar#3"), nil)
 end)
 
@@ -374,7 +374,7 @@ test.case("add attaches a pull request URL as a pr card", function(assert)
 	)
 	local item = loadDoc(dir).nodes[4]
 	assert.eq(item.data.repo, "Roblox/avatar")
-	assert.eq(item.data.itemKind, "pr")
+	assert.eq(item.data.type, "pr")
 	assert.neq(findRef(item, "pull", "Roblox/avatar#9"), nil)
 end)
 
@@ -541,7 +541,7 @@ test.case("ref remove takes a ref off by its key or URL", function(assert)
 	assert.eq(run({ "ref", "remove", "ci", "FLIPBOOK-LABS/flipbook#658" }), "Updated ci · Report release health")
 	local item = loadDoc(dir).nodes[2]
 	assert.eq(findRef(item, "pull"), nil)
-	assert.eq(item.data.itemKind, "placeholder")
+	assert.eq(item.data.type, "placeholder")
 
 	run({ "ref", "remove", "ci", "https://github.com/Roblox/avatar/issues/3" })
 	assert.eq(loadDoc(dir).nodes[2].data.refs, nil)

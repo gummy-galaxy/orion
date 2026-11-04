@@ -9,7 +9,7 @@ const task = (id: string, x: number, y: number): AppNode => ({
   id,
   type: 'task',
   position: { x, y },
-  data: { kind: 'task', label: id, itemKind: 'step', status: 'todo' },
+  data: { kind: 'task', label: id, type: 'step', status: 'todo' },
 })
 
 describe('drag snapping', () => {

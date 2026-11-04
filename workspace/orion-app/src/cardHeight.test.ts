@@ -6,7 +6,7 @@ import { type TaskData } from './model'
 const card = (data: Partial<TaskData>): TaskData => ({
   kind: 'task',
   label: 'Card',
-  itemKind: 'step',
+  type: 'step',
   status: 'todo',
   ...data,
 })
@@ -16,9 +16,9 @@ const TRADING = { width: 198, height: 285 }
 describe('taskHeight', () => {
   it("estimates text it can't measure the way the CLI does, so both place notes the same", () => {
     // The same notes and heights as workspace/orion-cli/src/canvas/placement/estimateTaskHeight.spec.luau.
-    expect(taskHeight(card({ itemKind: 'note', label: 'a\nb\nc\nd\ne\nf' }), CLASSIC)).toBe(136)
-    expect(taskHeight(card({ itemKind: 'note', label: 'word '.repeat(12) }), CLASSIC)).toBe(88)
-    expect(taskHeight(card({ itemKind: 'note', label: 'x'.repeat(400) }), CLASSIC)).toBe(292)
+    expect(taskHeight(card({ type: 'note', label: 'a\nb\nc\nd\ne\nf' }), CLASSIC)).toBe(136)
+    expect(taskHeight(card({ type: 'note', label: 'word '.repeat(12) }), CLASSIC)).toBe(88)
+    expect(taskHeight(card({ type: 'note', label: 'x'.repeat(400) }), CLASSIC)).toBe(292)
   })
 
   it('keeps work cards one size however long their title', () => {
@@ -26,12 +26,9 @@ describe('taskHeight', () => {
   })
 
   it('grows notes and components with their text, up to a limit', () => {
-    const short = taskHeight(card({ itemKind: 'note', label: 'Short' }), CLASSIC)
-    const long = taskHeight(
-      card({ itemKind: 'note', label: 'A sentence that goes on for a while. '.repeat(6) }),
-      CLASSIC,
-    )
-    const huge = taskHeight(card({ itemKind: 'note', label: 'Words '.repeat(500) }), CLASSIC)
+    const short = taskHeight(card({ type: 'note', label: 'Short' }), CLASSIC)
+    const long = taskHeight(card({ type: 'note', label: 'A sentence that goes on for a while. '.repeat(6) }), CLASSIC)
+    const huge = taskHeight(card({ type: 'note', label: 'Words '.repeat(500) }), CLASSIC)
 
     expect(short).toBe(TASK_HEIGHT)
     expect(long).toBeGreaterThan(short)
@@ -39,18 +36,18 @@ describe('taskHeight', () => {
     expect(
       taskHeight(
         card({
-          itemKind: 'component',
+          type: 'component',
           label: 'Store',
           note: 'One lock for every write; revisions, migrations, and backups',
         }),
         CLASSIC,
       ),
-    ).toBeGreaterThan(taskHeight(card({ itemKind: 'component', label: 'Store' }), CLASSIC))
+    ).toBeGreaterThan(taskHeight(card({ type: 'component', label: 'Store' }), CLASSIC))
   })
 
   it('leaves room for the shapes that take some of the card', () => {
     const data = {
-      itemKind: 'component' as const,
+      type: 'component' as const,
       label: 'orion.json',
       note: 'One per workspace: nodes, links, and settings',
     }
@@ -60,7 +57,7 @@ describe('taskHeight', () => {
 
   it('keeps work cards and short notes at the skin size, and sizes components to their text', () => {
     expect(taskHeight(card({ label: 'Card' }), TRADING)).toBe(TRADING.height)
-    expect(taskHeight(card({ itemKind: 'note', label: 'Short' }), TRADING)).toBe(TRADING.height)
-    expect(taskHeight(card({ itemKind: 'component', label: 'Store' }), TRADING)).toBe(TASK_HEIGHT)
+    expect(taskHeight(card({ type: 'note', label: 'Short' }), TRADING)).toBe(TRADING.height)
+    expect(taskHeight(card({ type: 'component', label: 'Store' }), TRADING)).toBe(TASK_HEIGHT)
   })
 })

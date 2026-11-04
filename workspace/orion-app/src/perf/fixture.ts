@@ -29,7 +29,7 @@ const { width: TASK_WIDTH, height: TASK_HEIGHT } = sizeOf({
   id: 'size',
   type: 'task',
   position: { x: 0, y: 0 },
-  data: { kind: 'task', label: '', itemKind: 'step', status: 'todo' },
+  data: { kind: 'task', label: '', type: 'step', status: 'todo' },
 } as TaskNode)
 const GROUP_HEADER_HEIGHT = groupHeaderHeight(undefined)
 // An empty group is one card wide plus its padding on each side.
@@ -146,7 +146,7 @@ export function generateCanvas({ cards, perGroup = 24, perArea = 4, seed = 1 }: 
           data: {
             kind: 'task',
             label: `Card ${made + 1} in stream ${index + 1}`,
-            itemKind: kindRoll < 0.04 ? 'note' : kindRoll < 0.07 ? 'gate' : isPullRequest ? 'pr' : 'step',
+            type: kindRoll < 0.04 ? 'note' : kindRoll < 0.07 ? 'gate' : isPullRequest ? 'pr' : 'step',
             status: pickStatus(roll()),
             ...(isPullRequest ? { repo: 'vocksel/orion', pr: 1000 + made } : {}),
           },

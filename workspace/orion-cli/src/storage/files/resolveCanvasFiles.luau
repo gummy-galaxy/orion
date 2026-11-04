@@ -108,7 +108,7 @@ local function getUnreadableNode(file: string, text: string): json.Object
 		position = json.object({ x = 0, y = 0 }),
 		data = json.object({
 			kind = "task",
-			itemKind = "note",
+			type = "note",
 			label = `Unreadable {file}`,
 			note = `This file isn't valid JSON, so Orion shows its text here. Fix the file to bring the card back.\n`
 				.. `\n\`\`\`\n{text}\n\`\`\``,

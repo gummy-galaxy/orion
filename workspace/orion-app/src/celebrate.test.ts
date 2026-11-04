@@ -11,7 +11,7 @@ const task = (
   id,
   type: 'task',
   position: { x: 0, y: 0 },
-  data: { kind: 'task', label: id, itemKind, status, ...extra },
+  data: { kind: 'task', label: id, type: itemKind, status, ...extra },
 })
 const link = (from: string, to: string, kind: Link['kind'] = 'blocks'): Link => ({
   id: `${from}>${to}`,

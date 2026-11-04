@@ -24,7 +24,7 @@ function docOf(ids: string[]): fc.Arbitrary<Saved> {
         type: 'task',
         position: { x, y: 0 },
         width,
-        data: { kind: 'task', label, itemKind: 'step', status, note },
+        data: { kind: 'task', label, type: 'step', status, note },
       }))
 
   return fc

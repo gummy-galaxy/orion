@@ -161,7 +161,7 @@ test.case("hop step converts to a pull request without changing placement or not
 
 	placeRecords(doc, collectSourcesAsync(doc, COMMANDS, runHop, NOW))
 	local step = doc.nodes[2]
-	assert.eq(step.data.itemKind, "step")
+	assert.eq(step.data.type, "step")
 	assert.eq(step.data.label, "feature ABC-123 avatar fix")
 	assert.eq(step.parentId, "unsorted")
 	step.data.note = "Keep this note"
@@ -187,7 +187,7 @@ test.case("hop step converts to a pull request without changing placement or not
 	local report = placeRecords(doc, collectSourcesAsync(doc, COMMANDS, runCommand, NOW))
 	assert.eq(report.sources[1].updated, 1)
 	assert.eq(doc.nodes[2].id, id)
-	assert.eq(doc.nodes[2].data.itemKind, "pr")
+	assert.eq(doc.nodes[2].data.type, "pr")
 	assert.eq(doc.nodes[2].data.note, "Keep this note")
 	assert.eq(doc.nodes[2].parentId, "unsorted")
 end)
@@ -217,7 +217,7 @@ test.case("hop resolves bare repository names without changing case and matches 
 	assert.eq(first.sources[1].added, 1)
 	local step = doc.nodes[3]
 	assert.eq(step.data.repo, "Roblox/Avatar")
-	assert.eq(step.data.itemKind, "step")
+	assert.eq(step.data.type, "step")
 	assert.eq((findRef(step, "branch") :: any).key, "Roblox/Avatar@feature/new")
 
 	local function runLowercaseHop(argv: { string })
@@ -297,13 +297,13 @@ test.case("hop attaches worktree activity to pull cards", function(assert)
 		[[{"version":2,"settings":{"sources":[{"id":"gh-flipbook-labs","kind":"github","host":"github.com",]]
 			.. [["owners":["flipbook-labs"]},{"id":"hop","kind":"hop"}]},"nodes":[{"id":"st-161","type":"task",]]
 			.. [["position":{"x":24,"y":240},"data":{"label":"Batch matching discovery queries","status":"done",]]
-			.. [["kind":"task","itemKind":"pr","repo":"flipbook-labs/storyteller","refs":[{"source":"github",]]
+			.. [["kind":"task","type":"pr","repo":"flipbook-labs/storyteller","refs":[{"source":"github",]]
 			.. [["kind":"pull","key":"flipbook-labs/storyteller#161",]]
 			.. [["url":"https://github.com/flipbook-labs/storyteller/pull/161","status":"merged","isDone":true,]]
 			.. [["details":{"state":"MERGED","url":"https://github.com/flipbook-labs/storyteller/pull/161",]]
 			.. [["branch":"batch-discovery-queries"}}]}},{"id":"st-162","type":"task","position":{"x":24,]]
 			.. [["y":150},"data":{"label":"Reference-count Storyteller consumers","status":"done","kind":"task",]]
-			.. [["itemKind":"pr","repo":"flipbook-labs/storyteller","refs":[{"source":"github","kind":"pull",]]
+			.. [["type":"pr","repo":"flipbook-labs/storyteller","refs":[{"source":"github","kind":"pull",]]
 			.. [["key":"flipbook-labs/storyteller#162",]]
 			.. [["url":"https://github.com/flipbook-labs/storyteller/pull/162","status":"merged","isDone":true,]]
 			.. [["details":{"state":"MERGED",]]

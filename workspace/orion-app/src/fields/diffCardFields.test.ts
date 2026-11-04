@@ -5,7 +5,7 @@ import type { TaskData } from '../model'
 const card = (extra: Partial<TaskData> = {}): TaskData => ({
   kind: 'task',
   label: 'Ship',
-  itemKind: 'step',
+  type: 'step',
   status: 'todo',
   ...extra,
 })
@@ -22,15 +22,15 @@ test('sends only the fields that changed, with an empty string for one cleared',
 })
 
 test('leaves out the kind the server works out from the repository', () => {
-  expect(diffCardFields(card(), card({ repo: 'vocksel/orion', itemKind: 'placeholder' }))).toEqual({
+  expect(diffCardFields(card(), card({ repo: 'vocksel/orion', type: 'placeholder' }))).toEqual({
     repo: 'vocksel/orion',
   })
 })
 
 test('sends a kind given or taken away', () => {
-  expect(diffCardFields(card(), card({ itemKind: 'gate' }))).toEqual({ kind: 'gate' })
-  expect(diffCardFields(card({ itemKind: 'gate' }), card({ itemKind: 'pr' }))).toEqual({ kind: 'step' })
-  expect(diffCardFields(card({ itemKind: 'note' }), card())).toEqual({ kind: 'step' })
+  expect(diffCardFields(card(), card({ type: 'gate' }))).toEqual({ kind: 'gate' })
+  expect(diffCardFields(card({ type: 'gate' }), card({ type: 'pr' }))).toEqual({ kind: 'step' })
+  expect(diffCardFields(card({ type: 'note' }), card())).toEqual({ kind: 'step' })
 })
 
 test('sends the pull request number in place of its ref, and leaves the server its other refs', () => {
