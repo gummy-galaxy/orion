@@ -1,7 +1,7 @@
 local test = require("@std/test")
 
-local findTouchedStories = require("./findTouchedStories")
-local types = require("./types")
+local findTouchedStories = require("@repository/.lute/lib/storybook/findTouchedStories")
+local types = require("@repository/.lute/lib/storybook/types")
 
 type Story = types.Story
 

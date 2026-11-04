@@ -9,8 +9,8 @@ local json = require("@std/json")
 local path = require("@std/path")
 local process = require("@std/process")
 
-local command = require("@cli/common/process/command")
-local upsertCommentAsync = require("@cli/sources/github/api/upsertCommentAsync")
+local command = require("@workspace/orion-cli/src/common/process/command")
+local upsertCommentAsync = require("@workspace/orion-cli/src/sources/github/api/upsertCommentAsync")
 
 type Metric = { total: number, covered: number, pct: number }
 

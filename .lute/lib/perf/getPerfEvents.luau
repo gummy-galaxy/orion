@@ -1,6 +1,6 @@
 local json = require("@std/json")
 
-local types = require("./types")
+local types = require("@repository/.lute/lib/perf/types")
 
 local SIDES = { "base", "head" }
 

@@ -3,12 +3,11 @@ local json = require("@std/json")
 local path = require("@std/path")
 local test = require("@std/test")
 
-local project = require("@repository/project")
-
 local derive = require("@root/canvas/derive")
 local getStringField = require("@root/common/getStringField")
 local graphTypes = require("@root/canvas/types")
 local migrateItemKind = require("@root/storage/migrations/migrateItemKind")
+local project = require("@repository/project")
 local testing = require("@root/testing")
 local types = require("@root/types")
 

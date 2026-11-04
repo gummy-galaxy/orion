@@ -1,6 +1,7 @@
+local json = require("@std/json")
+
 local getCheckCounts = require("@root/sources/github/checks/getCheckCounts")
 local getString = require("@root/sources/github/getString")
-local json = require("@std/json")
 
 -- A commit's checks as FAILURE, PENDING, or SUCCESS. Cancelled, skipped,
 -- neutral, and stale checks don't fail it.
