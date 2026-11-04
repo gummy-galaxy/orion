@@ -2,6 +2,7 @@ local json = require("@std/json")
 
 local applyOperations = require("@root/canvas/operations/applyOperations")
 local checkReconnect = require("@root/canvas/links/checkReconnect")
+local findState = require("@root/canvas/cardTypes/findState")
 local getAncestors = require("@root/canvas/groups/getAncestors")
 local getContents = require("@root/canvas/groups/getContents")
 local getItem = require("@root/canvas/items/getItem")
@@ -43,9 +44,11 @@ type Change = { id: string, label: string, parent: string? }
 
 -- The operation one target gets. The app sends the same operations, so both
 -- paths edit the document one way.
-local function editFor(options: Options, id: string, destination: string?): operationTypes.Operation
+local function editFor(options: Options, item: Item, destination: string?): operationTypes.Operation
+	local id = item.id
+
 	if options.action == "done" then
-		return { op = "setFields", id = id, fields = { status = "done" } }
+		return { op = "setFields", id = id, fields = { status = findState(item, "done") } }
 	elseif options.action == "remove" then
 		return { op = "remove", id = id, reconnect = options.reconnect }
 	elseif options.action == "ungroup" then
@@ -139,7 +142,7 @@ local function batchEdit(options: Options)
 			end
 
 			if not insideTarget then
-				table.insert(edits, editFor(options, item.id, destination))
+				table.insert(edits, editFor(options, item, destination))
 			end
 		end
 

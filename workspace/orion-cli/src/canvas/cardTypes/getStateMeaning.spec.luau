@@ -73,3 +73,24 @@ test.case("derive and card done follow a type's states", function(assert)
 		assert.strContains(testing.run(dir, { "node", "show", "build" }), "status   ready")
 	end)
 end)
+
+test.case("card done records each card's own state in a batch and with --json", function(assert)
+	testing.withCardTypes({ DESIGN :: any }, function()
+		local dir = testing.directory("type-states-batch")
+		writeDoc(
+			dir,
+			testing.createDoc({
+				testing.task("design", "Design", "sketching", nil, { type = "design" }),
+				testing.task("build", "Build", "todo"),
+				testing.task("logo", "Logo", "sketching", nil, { type = "design" }),
+			})
+		)
+
+		testing.run(dir, { "card", "done", "design", "build" })
+		assert.strContains(testing.run(dir, { "node", "show", "design" }), "recorded approved")
+		assert.strContains(testing.run(dir, { "node", "show", "build" }), "status   done")
+
+		testing.run(dir, { "card", "done", "logo", "--json" })
+		assert.strContains(testing.run(dir, { "node", "show", "logo" }), "recorded approved")
+	end)
+end)
