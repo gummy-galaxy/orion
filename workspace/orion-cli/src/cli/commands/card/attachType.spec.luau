@@ -50,3 +50,38 @@ test.case("node query matches any type a card carries", function(assert)
 	assert.strContains(found, '"a"')
 	assert.eq(found:find('"b"', 1, true), nil)
 end)
+
+test.case("card set --field sets a field the card's types declare, and node show lists it", function(assert)
+	testing.withCardTypes({
+		{
+			name = "figma.frame",
+			label = "Figma frame",
+			pack = "figma",
+			fields = {
+				{
+					name = "stage",
+					label = "Stage",
+					kind = "choice",
+					choices = { { value = "draft", label = "Draft" }, { value = "final", label = "Final" } },
+					default = "draft",
+				},
+			},
+			face = { layout = "card", shows = { "stage" } },
+			states = { { name = "approved", label = "Approved", means = "done" } },
+			meaning = { isWork = true, canBlock = true, canBeDone = true, doneWhen = "state" },
+		},
+	}, function()
+		local dir = testing.directory("type-field")
+		writeDoc(dir, testing.createDoc({ testing.task("a", "A", "todo", nil, { types = { "figma.frame" } }) }))
+
+		local function shownFields(): json.Object
+			local shown =
+				json.asObject(json.deserialize(testing.run(dir, { "node", "show", "a", "--json" }))) :: json.Object
+			return json.asObject(shown.fields) :: json.Object
+		end
+
+		assert.eq(shownFields().stage, "draft")
+		testing.run(dir, { "card", "set", "a", "--field", "stage=final" })
+		assert.eq(shownFields().stage, "final")
+	end)
+end)

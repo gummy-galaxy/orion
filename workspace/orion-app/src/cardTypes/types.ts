@@ -40,5 +40,8 @@ export type CardType = {
   meaning: Meaning
 }
 
+/** A field on one card: what declares it, the type it comes from, and the card's value or else the field's default. */
+export type FieldValue = { field: Field; type: string; value?: string | number | boolean }
+
 /** The types attached to a card. The primary type picks its face, and `types` lists them all, primary first. */
 export type ItemTypes = { primary: string; types: string[] }

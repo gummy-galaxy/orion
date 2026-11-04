@@ -7,6 +7,9 @@ const NOW = Date.parse('2026-10-11T12:00:00Z')
 const createView = (overrides: Partial<CardView> = {}): CardView => ({
   id: 'card',
   kind: 'pr',
+  layout: 'card',
+  fields: [],
+  badges: [],
   title: 'Work',
   tag: 'vocksel/orion#1',
   url: null,

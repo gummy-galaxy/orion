@@ -24,6 +24,9 @@ return table.freeze({
 		addIdPositional(parser, "id")
 		parser:add("label", "option", { help = "New label" })
 		addFieldOptions(parser, true)
+		parser:add("field", "option", {
+			help = "A field the card's types declare, as name=value, such as stage=final (empty value to clear)",
+		})
 		addRefOption(parser)
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
@@ -31,6 +34,13 @@ return table.freeze({
 	run = function(parser: cli.Parser, options: Context)
 		local idInput = getRequired(parser, "id")
 		local values = getItemFields(parser)
+		local field = parser:get("field")
+
+		if field then
+			local name, text = field:match("^([^=]+)=(.*)$")
+			assert(name, "--field takes name=value")
+			values.values = { [name] = text :: string }
+		end
 
 		local changed: Item
 		local doc = runTransaction(options.dir, function(current)

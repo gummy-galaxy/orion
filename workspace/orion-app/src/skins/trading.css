@@ -178,6 +178,14 @@
   background: var(--status-todo);
 }
 
+/* A type a person attached to the card, in its own words. */
+.trading-fact-type {
+  background: color-mix(in srgb, var(--trading-background) 80%, transparent);
+  color: var(--trading-text);
+  font-size: 12px;
+  font-weight: var(--weight-medium);
+}
+
 /* Top right: the one status that asks someone to act. */
 .trading-status-badge {
   position: absolute;
@@ -342,6 +350,33 @@
   font: var(--weight-bold) 19px/var(--line-height-tight) var(--font-ui);
   letter-spacing: -0.01em;
   text-wrap: balance;
+}
+
+/* The fields the card's type shows on its face, under the title. */
+.trading-fields {
+  margin: -4px 0 0;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  overflow: hidden;
+  white-space: nowrap;
+  font: var(--weight-medium) 12px/var(--line-height-tight) var(--font-ui);
+  color: color-mix(in srgb, var(--trading-text) 72%, transparent);
+}
+
+.trading-field {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trading-field + .trading-field::before {
+  content: '·';
+  margin-right: 6px;
+}
+
+/* Detail is chosen, not stumbled into: fields wait for a closer look. */
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) > .trading-frame .trading-fields {
+  display: none;
 }
 
 /* Bottom: open blockers, what's in motion, and what finishing frees up. */

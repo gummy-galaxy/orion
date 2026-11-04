@@ -16,6 +16,10 @@ export type Field = {
 	default: json.Value?,
 }
 
+-- A field on one card: what declares it, the type it comes from, and the
+-- card's value, or the field's default when the card has none.
+export type FieldValue = { field: Field, type: string, value: json.Value }
+
 -- What a state counts as when Orion works out what's done, what's waiting,
 -- and what's stuck.
 export type StateMeaning = "todo" | "active" | "review" | "blocked" | "deferred" | "done"

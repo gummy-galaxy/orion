@@ -8,7 +8,7 @@ import { StatusIcon } from './StatusIcon'
 import { WhoBadge } from './WhoBadge'
 
 export function ClassicCard({ view }: { view: CardView }) {
-  if (view.kind === 'note') {
+  if (view.layout === 'note') {
     return (
       <>
         <div className="meta">

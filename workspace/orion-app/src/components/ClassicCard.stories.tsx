@@ -10,6 +10,9 @@ type Story = StoryObj<typeof meta>
 const ready: CardView = {
   id: 'ready-step',
   kind: 'step',
+  layout: 'card',
+  fields: [],
+  badges: [],
   title: 'Review the canvas',
   tag: 'step',
   url: null,

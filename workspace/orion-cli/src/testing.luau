@@ -6,9 +6,12 @@ local process = require("@std/process")
 local syntax = require("@std/syntax")
 local system = require("@std/system")
 
+local cardTypes = require("@root/canvas/cardTypes/types")
 local cli = require("@root/cli")
+local createCardTypeRegistry = require("@root/canvas/cardTypes/createCardTypeRegistry")
 local encodeStableJson = require("@root/storage/files/encodeStableJson")
 local ensureDirectory = require("@root/common/platform/ensureDirectory")
+local getCardTypeRegistry = require("@root/canvas/cardTypes/getCardTypeRegistry")
 local getItemCardTypes = require("@root/canvas/cardTypes/getItemCardTypes")
 local githubTypes = require("@root/sources/github/types")
 local readCanvasFiles = require("@root/storage/files/readCanvasFiles")
@@ -73,6 +76,33 @@ function testing.task(id: string, label: string, status: string, parentId: strin
 	end
 
 	return { id = id, type = "task", position = { x = 0, y = 0 }, parentId = parentId, data = data }
+end
+
+-- Runs `body` with a pack of card types registered beside the shipped ones,
+-- as a source or mod would declare them, then takes them out again.
+function testing.withCardTypes(pack: { cardTypes.CardType }, body: () -> ())
+	local registry = getCardTypeRegistry()
+	local before = table.clone(registry.ordered)
+	local added = createCardTypeRegistry({ pack })
+
+	for name, cardType in added.byName do
+		assert(not registry.byName[name], `{name} is already registered`)
+		registry.byName[name] = cardType
+		table.insert(registry.ordered, cardType)
+	end
+
+	local succeeded, problem = pcall(body)
+
+	for name in added.byName do
+		registry.byName[name] = nil
+	end
+
+	table.clear(registry.ordered)
+	table.move(before, 1, #before, 1, registry.ordered)
+
+	if not succeeded then
+		error(problem, 0)
+	end
 end
 
 -- The type that picks a card's face, from what it carries.

@@ -1,5 +1,9 @@
+import { findCardType } from './cardTypes/findCardType'
+import { formatFieldValue } from './cardTypes/formatFieldValue'
 import { getCardType } from './cardTypes/getCardType'
+import { getFieldValues } from './cardTypes/getFieldValues'
 import { getItemTypes } from './cardTypes/getItemTypes'
+import type { CardType, Face } from './cardTypes/types'
 import type { SnoozedFacts, SourceRef } from './derive'
 import {
   getCheckCounts,
@@ -10,6 +14,7 @@ import {
   STATUS_LABEL,
   type CheckCounts,
   type PullReadiness,
+  type TaskData,
   type TaskNode,
   type ViewStatus,
   type Who,
@@ -21,6 +26,12 @@ export type CardView = {
   id: string
   /** The card's primary type, such as `step`, `pr`, `gate`, `note`, or one a source declares. */
   kind: string
+  /** Which face draws the card, from its primary type. */
+  layout: Face['layout']
+  /** The fields the primary type shows on the face, in order, with the ones that have no value left out. */
+  fields: { name: string; label: string; text: string }[]
+  /** Types people attached beyond the card's own, by label. */
+  badges: string[]
   title: string
   tag: string
   url: string | null
@@ -83,6 +94,18 @@ export type CardFacts = {
   snoozedFacts?: SnoozedFacts
 }
 
+/** The fields a card's primary type shows on its face, formatted, skipping any without a value. */
+function getFaceFields(data: TaskData, cardType: CardType): CardView['fields'] {
+  const values = getFieldValues(data)
+
+  return cardType.face.shows.flatMap((name) => {
+    const entry = values.find((candidate) => candidate.field.name === name)
+    const text = entry && formatFieldValue(entry.field, entry.value)
+
+    return entry && text ? [{ name, label: entry.field.label, text }] : []
+  })
+}
+
 export function getCardView(node: TaskNode, facts: CardFacts): CardView {
   const { data } = node
   const who = facts.status === 'done' ? undefined : data.who
@@ -104,6 +127,9 @@ export function getCardView(node: TaskNode, facts: CardFacts): CardView {
   return {
     id: node.id,
     kind: getItemTypes(data).primary,
+    layout: cardType.face.layout,
+    fields: getFaceFields(data, cardType),
+    badges: (data.types ?? []).map((name) => findCardType(name)?.label ?? name),
     title: data.label,
     tag: getTaskTag(data),
     url,
