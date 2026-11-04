@@ -5,6 +5,7 @@ import type { AppNode, TaskData } from '../model'
 import builtinTypes from './builtinTypes.json'
 import { FIGMA_FRAME } from './fixtures/figmaFrame'
 import { findState } from './findState'
+import { getSharedStatusChoices } from './getSharedStatusChoices'
 import { getStateChoices } from './getStateChoices'
 import { getStateMeaning } from './getStateMeaning'
 import { registerCardTypes } from './registerCardTypes'
@@ -61,4 +62,20 @@ test("a selection marked done records each card's own done state and closes them
 
   expect(next.map((node) => (node.data as TaskData).status)).toEqual(['approved', 'done'])
   expect(closesOut(frame('drafting'), patchFor(frame('drafting'), { status: 'done' }))).toBe(true)
+})
+
+test('a selection offers only the statuses every card can record', () => {
+  registerCardTypes([...builtinTypes, FIGMA_FRAME])
+
+  const values = (items: TaskData[]) => getSharedStatusChoices(items).map((choice) => choice.value)
+
+  expect(values([frame('drafting'), card({})])).toEqual(['todo', 'done'])
+  expect(values([card({}), card({ type: 'note' })])).toEqual([
+    'todo',
+    'active',
+    'review',
+    'blocked',
+    'deferred',
+    'done',
+  ])
 })
